@@ -25,12 +25,15 @@ rationale.
 
 | Input | Action |
 |-------|--------|
-| **W A S D** | Move on the ground plane (thrust) |
+| **Click-drag on the canvas** | Look around (release mouse anytime) |
+| **W A S D** | Move (thrust) |
 | **Space / C** | Up / down (altitude) |
-| **Mouse drag** | Look |
-| **Scroll** | FOV |
-| **β slider** | Speed as fraction of *c* |
-| **Toggles** | Aberration · Doppler · Headlight · Naive squash |
+| **Scroll on canvas** | FOV |
+| **Right panel** | Always free — change β, optics, teleports without Esc |
+| **β presets** | 0 · 0.3 · 0.6 · 0.9 · 0.99 |
+| **Teleports** | Gate · Plaza · Shape garden · Bridge · Flyover |
+
+**No pointer lock.** Looking only happens while you hold the mouse button on the scenery; the settings panel never steals control.
 
 ## Stack
 
@@ -49,11 +52,13 @@ python3 -m http.server 8765
 # http://localhost:8765
 ```
 
-## Roadmap
+## Versions
 
-1. **v0.1** — village + free flight + cubemap aberration + Doppler (this commit)
-2. **v0.2** — explicit Terrell comparison mode, better materials, night village
-3. **v0.3** — recorded paths, shareable β presets, optional VR
+1. **v0.1** — village + free flight + cubemap aberration + Doppler  
+2. **v0.2** — richer town (church, silo, bridge, train, windmill, …)  
+3. **v0.3** — click-drag look (no pointer lock), shape garden, β presets, teleports  
+
+Next: light-travel-time façades, recorded paths, night mode, optional VR.
 
 ## License
 

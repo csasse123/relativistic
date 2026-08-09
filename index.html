@@ -84,11 +84,24 @@
     position: fixed; left: 50%; top: 50%; width: 14px; height: 14px;
     margin: -7px 0 0 -7px; border: 1px solid rgba(255,255,255,0.35);
     border-radius: 50%; pointer-events: none; z-index: 4;
+    opacity: 0; transition: opacity 0.15s;
   }
+  .crosshair.on { opacity: 1; }
   .crosshair::after {
     content: ""; position: absolute; left: 50%; top: 50%; width: 2px; height: 2px;
     margin: -1px; background: rgba(255,255,255,0.7); border-radius: 50%;
   }
+  canvas#c.dragging { cursor: grabbing; }
+  canvas#c { cursor: grab; }
+  .panel { pointer-events: auto; }
+  .look-badge {
+    position: fixed; left: 50%; bottom: 42px; transform: translateX(-50%);
+    z-index: 5; font: 600 0.65rem "JetBrains Mono", monospace; color: #94a3b8;
+    background: rgba(8,12,20,0.75); border: 1px solid rgba(125,211,252,0.2);
+    border-radius: 999px; padding: 5px 12px; pointer-events: none;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .look-badge.on { opacity: 1; color: #7dd3fc; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
@@ -113,14 +126,20 @@
   </label>
   <div class="row"><span>β</span><span class="val" id="betaVal">0.000</span></div>
   <div class="row"><span>γ = 1/√(1−β²)</span><span class="val" id="gammaVal">1.000</span></div>
-  <div class="row"><span>Speed of light</span><span class="val" style="color:#fbbf24">β → 1</span></div>
+  <div class="chips" id="betaPresets" style="margin-top:4px">
+    <button type="button" data-beta="0">0</button>
+    <button type="button" data-beta="0.3">0.3</button>
+    <button type="button" data-beta="0.6">0.6</button>
+    <button type="button" data-beta="0.9">0.9</button>
+    <button type="button" data-beta="0.99">0.99</button>
+  </div>
 
   <h2>Optics stack</h2>
   <div class="chips" id="fxChips">
     <button type="button" data-fx="aberration" class="on" title="Relativistic aberration of light">Aberration</button>
     <button type="button" data-fx="doppler" class="on" title="Frequency / color shift">Doppler</button>
     <button type="button" data-fx="headlight" class="on" title="Searchlight brightness">Headlight</button>
-    <button type="button" data-fx="naive" title="Fake: squash meshes along velocity (textbook myth for photographs)">Naive squash</button>
+    <button type="button" data-fx="naive" title="Fake: squash meshes along velocity (not a photo)">Naive squash</button>
   </div>
 
   <h2>Motion</h2>
@@ -131,19 +150,26 @@
   <label class="row full">Thrust power
     <input id="thrust" type="range" min="0.2" max="3" step="0.05" value="1.2" />
   </label>
+  <div class="chips" id="teleportChips">
+    <button type="button" data-tp="gate">Gate</button>
+    <button type="button" data-tp="plaza">Plaza</button>
+    <button type="button" data-tp="shapes">Shape garden</button>
+    <button type="button" data-tp="bridge">Bridge</button>
+    <button type="button" data-tp="air">Flyover</button>
+  </div>
 
   <div class="meta" id="meta">
     β=<b>0</b> · classical · village at rest in lab frame
   </div>
   <div class="help" id="help">
-    <b style="color:#7dd3fc">W A S D</b> move · <b>Space / C</b> up / down · <b>drag</b> look · scroll FOV.<br>
-    Village is <b>at rest</b> in the lab. You move. Photons that hit your eye are
-    Lorentz-mapped (aberration) — forward world compresses into a tunnel as β rises.
+    <b style="color:#7dd3fc">Drag on the scenery</b> to look · release to use this panel freely.<br>
+    <b>W A S D</b> move · <b>Space / C</b> up / down · scroll FOV. Settings never steal the mouse.
   </div>
 </div>
 
-<div class="hint">Pointer lock on click · Esc releases · literature in docs/LITERATURE.md</div>
-<div class="build" id="build">v0.1.0</div>
+<div class="look-badge" id="lookBadge">looking… release to adjust β</div>
+<div class="hint">Click-drag canvas to look · release mouse to use sliders · docs/LITERATURE.md</div>
+<div class="build" id="build">v0.3.0</div>
 
 <script type="importmap">
 {
@@ -155,11 +181,9 @@
 </script>
 <script type="module">
 import * as THREE from "three";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 
-const BUILD = "v0.1.0";
+const BUILD = "v0.3.0";
 document.getElementById("build").textContent = BUILD;
 
 // =============================================================================
@@ -176,7 +200,8 @@ const state = {
   // velocity direction in lab (unit); magnitude is beta*c with c=1
   vel: new THREE.Vector3(1, 0, 0),
   keys: Object.create(null),
-  pointerLocked: false,
+  /** Look only while primary button is held on the canvas — never pointer-lock */
+  looking: false,
   cubeNeedsUpdate: true,
   cubeInterval: 0,
 };
@@ -251,7 +276,7 @@ scene.add(fill);
 }
 
 // =============================================================================
-// Village construction
+// Village construction — houses + pedagogic shapes (sphere, cube, torus, …)
 // =============================================================================
 const village = new THREE.Group();
 scene.add(village);
@@ -259,6 +284,8 @@ const mats = {
   asphalt: new THREE.MeshStandardMaterial({ color: 0x3a3f48, roughness: 0.95, metalness: 0.05 }),
   mark: new THREE.MeshStandardMaterial({ color: 0xf5f0c8, roughness: 0.7, metalness: 0 }),
   grass: new THREE.MeshStandardMaterial({ color: 0x4a7c4e, roughness: 0.92, metalness: 0 }),
+  dirt: new THREE.MeshStandardMaterial({ color: 0x6b5a45, roughness: 0.95 }),
+  water: new THREE.MeshStandardMaterial({ color: 0x3a8ec8, roughness: 0.15, metalness: 0.35, transparent: true, opacity: 0.82 }),
   wall: [
     new THREE.MeshStandardMaterial({ color: 0xe8dcc8, roughness: 0.85 }),
     new THREE.MeshStandardMaterial({ color: 0xd4c4a8, roughness: 0.85 }),
@@ -278,18 +305,48 @@ const mats = {
   glow: new THREE.MeshStandardMaterial({ color: 0xffe08a, emissive: 0xffc04a, emissiveIntensity: 0.9, roughness: 0.4 }),
   tree: new THREE.MeshStandardMaterial({ color: 0x2f6b3a, roughness: 0.9 }),
   trunk: new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.95 }),
+  metal: new THREE.MeshStandardMaterial({ color: 0x9aa4b2, roughness: 0.35, metalness: 0.75 }),
+  copper: new THREE.MeshStandardMaterial({ color: 0xb87333, roughness: 0.4, metalness: 0.7 }),
+  brick: new THREE.MeshStandardMaterial({ color: 0xa0522d, roughness: 0.9 }),
+  marble: new THREE.MeshStandardMaterial({ color: 0xe8e4dc, roughness: 0.35, metalness: 0.15 }),
+  accent: new THREE.MeshStandardMaterial({ color: 0x7c3aed, roughness: 0.45, metalness: 0.2, emissive: 0x2e1065, emissiveIntensity: 0.15 }),
+  accent2: new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.4, metalness: 0.25, emissive: 0x0c4a6e, emissiveIntensity: 0.12 }),
+  gold: new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.3, metalness: 0.85 }),
+  rail: new THREE.MeshStandardMaterial({ color: 0x4b5563, roughness: 0.6, metalness: 0.5 }),
 };
 
-function addBox(g, w, h, d, mat, x, y, z, rx = 0, ry = 0, rz = 0) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+function addMesh(g, geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) {
+  const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);
   m.rotation.set(rx, ry, rz);
-  m.castShadow = false;
   g.add(m);
   return m;
 }
+function addBox(g, w, h, d, mat, x, y, z, rx = 0, ry = 0, rz = 0) {
+  return addMesh(g, new THREE.BoxGeometry(w, h, d), mat, x, y, z, rx, ry, rz);
+}
 
-/** One house: body + pitched roof + door + windows */
+/** Billboard label in the scene (for shape garden) */
+function makeLabel(text, y = 3.2) {
+  const cv = document.createElement("canvas");
+  cv.width = 512; cv.height = 128;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "rgba(8,12,20,0.75)";
+  ctx.roundRect?.(20, 24, 472, 80, 16);
+  if (!ctx.roundRect) { ctx.fillRect(20, 24, 472, 80); }
+  else { ctx.beginPath(); ctx.roundRect(20, 24, 472, 80, 16); ctx.fill(); }
+  ctx.fillStyle = "#e2e8f0";
+  ctx.font = "600 42px DM Sans, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 256, 64);
+  const tex = new THREE.CanvasTexture(cv);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  sp.scale.set(4.5, 1.15, 1);
+  sp.position.y = y;
+  return sp;
+}
+
 function buildHouse(x, z, rotY, seed) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
@@ -300,17 +357,174 @@ function buildHouse(x, z, rotY, seed) {
   const d = 2.2 + ((seed * 3) % 3) * 0.3;
   const h = 2.0 + (seed % 2) * 0.4;
   addBox(g, w, h, d, wall, 0, h / 2, 0);
-  // simple roof (two slabs)
-  const roofH = 0.9;
-  addBox(g, w * 1.08, 0.12, d * 0.72, roof, 0, h + roofH * 0.35, 0, 0, 0, 0.55);
-  addBox(g, w * 1.08, 0.12, d * 0.72, roof, 0, h + roofH * 0.35, 0, 0, 0, -0.55);
-  // door
+  addBox(g, w * 1.08, 0.12, d * 0.72, roof, 0, h + 0.32, 0, 0, 0, 0.55);
+  addBox(g, w * 1.08, 0.12, d * 0.72, roof, 0, h + 0.32, 0, 0, 0, -0.55);
   addBox(g, 0.55, 1.1, 0.08, mats.door, 0, 0.55, d / 2 + 0.02);
-  // windows
   addBox(g, 0.55, 0.55, 0.06, mats.window, -w * 0.28, h * 0.55, d / 2 + 0.03);
   addBox(g, 0.55, 0.55, 0.06, mats.window, w * 0.28, h * 0.55, d / 2 + 0.03);
+  // chimney variety
+  if (seed % 4 === 0) addBox(g, 0.35, 0.7, 0.35, mats.brick, w * 0.25, h + 0.9, -d * 0.15);
   village.add(g);
   return g;
+}
+
+function buildChurch(x, z) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  addBox(g, 5.5, 3.2, 8, mats.marble, 0, 1.6, 0);
+  addBox(g, 6.2, 0.2, 4.2, mats.copper, 0, 3.5, -1.2, 0.5, 0, 0);
+  addBox(g, 6.2, 0.2, 4.2, mats.copper, 0, 3.5, 1.2, -0.5, 0, 0);
+  // steeple
+  addBox(g, 1.8, 5.5, 1.8, mats.marble, 0, 5.5, -2.5);
+  addMesh(g, new THREE.ConeGeometry(1.3, 2.4, 8), mats.copper, 0, 9.2, -2.5);
+  addBox(g, 0.8, 1.4, 0.1, mats.window, 0, 6.5, -1.55);
+  village.add(g);
+}
+
+function buildSilo(x, z) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  addMesh(g, new THREE.CylinderGeometry(1.6, 1.7, 7, 20), mats.metal, 0, 3.5, 0);
+  addMesh(g, new THREE.ConeGeometry(1.75, 1.4, 16), mats.copper, 0, 7.6, 0);
+  addBox(g, 0.8, 2.2, 0.5, mats.metal, 1.5, 1.1, 0);
+  village.add(g);
+}
+
+function buildWaterTower(x, z) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  for (const [dx, dz] of [[-1.2, -1.2], [1.2, -1.2], [-1.2, 1.2], [1.2, 1.2]]) {
+    addMesh(g, new THREE.CylinderGeometry(0.12, 0.15, 6, 8), mats.metal, dx, 3, dz);
+  }
+  addMesh(g, new THREE.SphereGeometry(1.8, 20, 16), mats.metal, 0, 7.2, 0);
+  addMesh(g, new THREE.CylinderGeometry(0.5, 0.5, 0.6, 12), mats.metal, 0, 9.1, 0);
+  village.add(g);
+}
+
+function buildWindmill(x, z) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  addMesh(g, new THREE.CylinderGeometry(1.4, 1.8, 5, 12), mats.wall[0], 0, 2.5, 0);
+  addMesh(g, new THREE.ConeGeometry(1.6, 1.5, 8), mats.roof[1], 0, 5.7, 0);
+  const hub = new THREE.Group();
+  hub.position.set(0, 4.2, 1.5);
+  for (let i = 0; i < 4; i++) {
+    const blade = addBox(hub, 0.25, 3.8, 0.08, mats.mark, 0, 1.7, 0);
+    blade.position.set(0, 0, 0);
+    blade.rotation.z = (i * Math.PI) / 2;
+    blade.position.set(Math.sin((i * Math.PI) / 2) * 0, Math.cos((i * Math.PI) / 2) * 0, 0);
+  }
+  // clearer blades
+  hub.clear();
+  for (let i = 0; i < 4; i++) {
+    const ang = (i * Math.PI) / 2;
+    const b = addBox(hub, 0.35, 4.2, 0.1, mats.mark, Math.sin(ang) * 2.0, Math.cos(ang) * 2.0, 0);
+    b.rotation.z = -ang;
+  }
+  g.add(hub);
+  g.userData.spin = hub;
+  village.add(g);
+  return g;
+}
+
+function buildBridge() {
+  const g = new THREE.Group();
+  g.position.set(28, 0, 0);
+  // river
+  addMesh(g, new THREE.BoxGeometry(14, 0.3, 80), mats.water, 0, -0.1, 0);
+  addMesh(g, new THREE.BoxGeometry(18, 0.2, 84), mats.dirt, 0, -0.35, 0);
+  // deck
+  addBox(g, 8, 0.4, 22, mats.asphalt, 0, 2.2, 0);
+  // arches
+  for (const z of [-6, 0, 6]) {
+    addMesh(g, new THREE.TorusGeometry(3.2, 0.45, 10, 24, Math.PI), mats.brick, 0, 0.3, z, 0, Math.PI / 2, 0);
+  }
+  // rails
+  addBox(g, 0.15, 0.9, 22, mats.rail, -3.8, 2.8, 0);
+  addBox(g, 0.15, 0.9, 22, mats.rail, 3.8, 2.8, 0);
+  village.add(g);
+}
+
+function buildFountain(x, z) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  addMesh(g, new THREE.CylinderGeometry(3.2, 3.5, 0.5, 24), mats.marble, 0, 0.25, 0);
+  addMesh(g, new THREE.CylinderGeometry(1.2, 1.4, 0.4, 16), mats.marble, 0, 0.7, 0);
+  addMesh(g, new THREE.CylinderGeometry(0.25, 0.3, 2.2, 10), mats.marble, 0, 1.8, 0);
+  addMesh(g, new THREE.SphereGeometry(0.55, 16, 12), mats.water, 0, 3.1, 0);
+  village.add(g);
+}
+
+function buildTrain() {
+  const g = new THREE.Group();
+  g.position.set(0, 0, 42);
+  // tracks
+  for (let x = -40; x <= 40; x += 2) {
+    addBox(g, 0.15, 0.12, 1.6, mats.rail, x, 0.1, -0.7);
+    addBox(g, 0.15, 0.12, 1.6, mats.rail, x, 0.1, 0.7);
+  }
+  addBox(g, 90, 0.08, 0.2, mats.metal, 0, 0.18, -0.7);
+  addBox(g, 90, 0.08, 0.2, mats.metal, 0, 0.18, 0.7);
+  // locomotive + cars
+  addBox(g, 5, 2.4, 2.2, mats.accent2, -8, 1.4, 0);
+  addMesh(g, new THREE.CylinderGeometry(1.0, 1.0, 3.5, 16), mats.metal, -5.5, 1.5, 0, 0, 0, Math.PI / 2);
+  addMesh(g, new THREE.SphereGeometry(1.05, 12, 10), mats.metal, -3.6, 1.5, 0);
+  addBox(g, 4, 2.2, 2.1, mats.wall[3], -1, 1.3, 0);
+  addBox(g, 4, 2.2, 2.1, mats.wall[1], 4, 1.3, 0);
+  addBox(g, 4, 2.2, 2.1, mats.brick, 9, 1.3, 0);
+  for (const x of [-8, -1, 4, 9]) {
+    addMesh(g, new THREE.CylinderGeometry(0.45, 0.45, 0.35, 12), mats.rail, x - 1.2, 0.45, 1.0, Math.PI / 2, 0, 0);
+    addMesh(g, new THREE.CylinderGeometry(0.45, 0.45, 0.35, 12), mats.rail, x + 1.2, 0.45, 1.0, Math.PI / 2, 0, 0);
+    addMesh(g, new THREE.CylinderGeometry(0.45, 0.45, 0.35, 12), mats.rail, x - 1.2, 0.45, -1.0, Math.PI / 2, 0, 0);
+    addMesh(g, new THREE.CylinderGeometry(0.45, 0.45, 0.35, 12), mats.rail, x + 1.2, 0.45, -1.0, Math.PI / 2, 0, 0);
+  }
+  village.add(g);
+}
+
+/** Shape garden — classic solids for Terrell / aberration reading */
+function buildShapeGarden() {
+  const g = new THREE.Group();
+  g.position.set(-35, 0, -28);
+  // plinths
+  const items = [
+    { name: "Sphere (Terrell)", build: (p) => addMesh(p, new THREE.SphereGeometry(2.2, 32, 24), mats.accent, 0, 2.4, 0) },
+    { name: "Cube", build: (p) => addBox(p, 3.2, 3.2, 3.2, mats.gold, 0, 2.0, 0, 0.2, 0.4, 0.1) },
+    { name: "Torus", build: (p) => addMesh(p, new THREE.TorusGeometry(1.6, 0.55, 16, 40), mats.accent2, 0, 2.2, 0, Math.PI / 2, 0, 0) },
+    { name: "Cone", build: (p) => addMesh(p, new THREE.ConeGeometry(1.8, 3.6, 20), mats.copper, 0, 2.2, 0) },
+    { name: "Icosahedron", build: (p) => addMesh(p, new THREE.IcosahedronGeometry(2.0, 0), mats.marble, 0, 2.3, 0) },
+    { name: "Dodecahedron", build: (p) => addMesh(p, new THREE.DodecahedronGeometry(1.9, 0), mats.wall[2], 0, 2.2, 0) },
+    { name: "Octahedron", build: (p) => addMesh(p, new THREE.OctahedronGeometry(2.1, 0), mats.metal, 0, 2.3, 0) },
+    { name: "Long rod", build: (p) => addBox(p, 0.5, 0.5, 8, mats.gold, 0, 1.5, 0) },
+  ];
+  items.forEach((it, i) => {
+    const col = i % 4;
+    const row = Math.floor(i / 4);
+    const p = new THREE.Group();
+    p.position.set(col * 8 - 12, 0, row * 10);
+    addMesh(p, new THREE.CylinderGeometry(2.4, 2.6, 0.35, 20), mats.dirt, 0, 0.15, 0);
+    it.build(p);
+    p.add(makeLabel(it.name, 5.0));
+    g.add(p);
+  });
+  // lattice of small spheres — great for seeing compression
+  for (let i = 0; i < 5; i++) {
+    for (let j = 0; j < 5; j++) {
+      addMesh(g, new THREE.SphereGeometry(0.35, 10, 8), mats.glow, 18 + i * 1.4, 1.2, -4 + j * 1.4);
+    }
+  }
+  const latticeLab = makeLabel("Sphere lattice", 3.2);
+  latticeLab.position.set(20.5, 3.2, 0);
+  g.add(latticeLab);
+  village.add(g);
+}
+
+function buildObelisk(x, z) {
+  const g = new THREE.Group();
+  g.position.set(x, 0, z);
+  addBox(g, 2.2, 0.5, 2.2, mats.marble, 0, 0.25, 0);
+  addBox(g, 1.2, 8, 1.2, mats.marble, 0, 4.5, 0);
+  addMesh(g, new THREE.ConeGeometry(0.9, 1.6, 4), mats.gold, 0, 9.3, 0, 0, Math.PI / 4, 0);
+  village.add(g);
 }
 
 function buildTree(x, z, s = 1) {
@@ -330,41 +544,45 @@ function buildLamp(x, z) {
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), mats.glow);
   bulb.position.y = 2.7;
   g.add(bulb);
-  const light = new THREE.PointLight(0xffd090, 0.55, 18, 2);
+  const light = new THREE.PointLight(0xffd090, 0.45, 16, 2);
   light.position.y = 2.7;
   g.add(light);
   village.add(g);
 }
 
+const teleports = {
+  gate: new THREE.Vector3(-20, 2.2, 0),
+  plaza: new THREE.Vector3(-10, 2.5, 8),
+  shapes: new THREE.Vector3(-28, 3.5, -22),
+  bridge: new THREE.Vector3(18, 4.5, 0),
+  air: new THREE.Vector3(0, 22, 30),
+};
+
 function buildVillage() {
-  // Ground
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(220, 220), mats.grass);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), mats.grass);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.02;
   village.add(ground);
 
-  // Road grid
   const roadW = 4.2;
-  for (let i = -4; i <= 4; i++) {
-    // along x
-    addBox(village, 180, 0.06, roadW, mats.asphalt, 0, 0.01, i * 14);
-    // along z
-    addBox(village, roadW, 0.06, 180, mats.asphalt, i * 14, 0.015, 0);
-    // center dashes
-    for (let t = -12; t <= 12; t++) {
+  for (let i = -5; i <= 5; i++) {
+    addBox(village, 200, 0.06, roadW, mats.asphalt, 0, 0.01, i * 14);
+    addBox(village, roadW, 0.06, 200, mats.asphalt, i * 14, 0.015, 0);
+    for (let t = -14; t <= 14; t++) {
       addBox(village, 1.2, 0.07, 0.18, mats.mark, t * 6.5, 0.04, i * 14);
       addBox(village, 0.18, 0.07, 1.2, mats.mark, i * 14, 0.04, t * 6.5);
     }
   }
 
-  // Houses in blocks
   let seed = 1;
-  for (let bx = -3; bx <= 3; bx++) {
-    for (let bz = -3; bz <= 3; bz++) {
-      if (bx === 0 || bz === 0) continue; // leave main cross empty-ish
+  for (let bx = -4; bx <= 4; bx++) {
+    for (let bz = -4; bz <= 4; bz++) {
+      if (bx === 0 || bz === 0) continue;
+      // leave NE quadrant partly for shape garden / landmarks
+      if (bx <= -2 && bz <= -1) continue;
+      if (bx >= 2 && Math.abs(bz) <= 1) continue;
       const cx = bx * 14;
       const cz = bz * 14;
-      // four lots per block corner-ish
       const lots = [
         [cx - 4.5, cz - 4.5, 0.2],
         [cx + 4.5, cz - 4.5, -0.3],
@@ -372,7 +590,7 @@ function buildVillage() {
         [cx + 4.5, cz + 4.5, Math.PI + 0.25],
       ];
       for (const [hx, hz, ry] of lots) {
-        if (Math.hypot(hx, hz) < 8) continue;
+        if (Math.hypot(hx, hz) < 10) continue;
         buildHouse(hx, hz, ry, seed++);
         if (seed % 3 === 0) buildTree(hx + 2.2, hz + 1.5, 0.8 + (seed % 5) * 0.08);
       }
@@ -383,29 +601,44 @@ function buildVillage() {
     }
   }
 
-  // Plaza landmark — clock tower
+  // Plaza clock tower
   const tower = new THREE.Group();
-  tower.position.set(0, 0, 0);
   addBox(tower, 3.2, 1.2, 3.2, mats.wall[0], 0, 0.6, 0);
   addBox(tower, 2.0, 8.0, 2.0, mats.wall[2], 0, 5.0, 0);
   addBox(tower, 2.6, 0.5, 2.6, mats.roof[2], 0, 9.2, 0);
   addBox(tower, 0.8, 1.4, 0.8, mats.roof[0], 0, 10.2, 0);
-  // clock faces
   for (const [dx, dz] of [[0, 1.05], [0, -1.05], [1.05, 0], [-1.05, 0]]) {
-    addBox(tower, dx ? 0.08 : 1.1, 1.1, dz ? 0.08 : 1.1, mats.window, dx * 1.0, 7.2, dz * 1.0);
+    addBox(tower, dx ? 0.08 : 1.1, 1.1, dz ? 0.08 : 1.1, mats.window, dx, 7.2, dz);
   }
   village.add(tower);
 
-  // Welcome arch at village entrance
-  addBox(village, 0.4, 5, 0.4, mats.wall[1], -22, 2.5, 5);
-  addBox(village, 0.4, 5, 0.4, mats.wall[1], -22, 2.5, -5);
-  addBox(village, 0.4, 0.5, 10.5, mats.roof[1], -22, 5.2, 0);
+  buildFountain(0, 8);
+  buildChurch(14, -28);
+  buildSilo(-14, 28);
+  buildWaterTower(42, -28);
+  const mill = buildWindmill(-42, 14);
+  buildBridge();
+  buildTrain();
+  buildShapeGarden();
+  buildObelisk(0, -18);
+  buildObelisk(8, -18);
+
+  // Welcome gate
+  addBox(village, 0.5, 5.5, 0.5, mats.wall[1], -24, 2.75, 5.5);
+  addBox(village, 0.5, 5.5, 0.5, mats.wall[1], -24, 2.75, -5.5);
+  addBox(village, 0.5, 0.6, 12, mats.roof[1], -24, 5.6, 0);
+  addMesh(village, new THREE.TorusGeometry(2.2, 0.2, 8, 24, Math.PI), mats.gold, -24, 5.2, 0, 0, Math.PI / 2, 0);
+
+  // floating “signposts” cubes above main road — altitude markers
+  for (let i = 0; i < 6; i++) {
+    const y = 6 + i * 3;
+    addMesh(village, new THREE.OctahedronGeometry(0.6, 0), mats.accent, -12 + i * 8, y, 0);
+  }
+
+  state._windmill = mill;
 }
 
 buildVillage();
-
-// Store original house vertex scales for naive mode — applied to whole village group stretch
-const villageBase = village.scale.clone();
 
 // =============================================================================
 // Relativistic post pass (image-based aberration on cubemap)
@@ -537,35 +770,60 @@ const relQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), relPass.material);
 relScene.add(relQuad);
 
 // =============================================================================
-// Input
+// Input — click-drag on canvas to look; release → free mouse for the panel
+// (No pointer lock. Settings stay usable at any time.)
 // =============================================================================
 const euler = new THREE.Euler(0, 0, 0, "YXZ");
+const lookBadge = $("lookBadge");
+const crosshair = document.querySelector(".crosshair");
 
 function updateCameraOrientation() {
   euler.set(state.pitch, state.yaw, 0, "YXZ");
   camera.quaternion.setFromEuler(euler);
 }
 
-canvas.addEventListener("click", () => {
-  canvas.requestPointerLock?.();
+function setLooking(on) {
+  state.looking = on;
+  canvas.classList.toggle("dragging", on);
+  lookBadge?.classList.toggle("on", on);
+  crosshair?.classList.toggle("on", on);
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return;
+  // Only start look when the event target is the canvas (not the panel)
+  canvas.setPointerCapture?.(e.pointerId);
+  setLooking(true);
+  e.preventDefault();
 });
-document.addEventListener("pointerlockchange", () => {
-  state.pointerLocked = document.pointerLockElement === canvas;
+canvas.addEventListener("pointerup", (e) => {
+  setLooking(false);
+  try { canvas.releasePointerCapture?.(e.pointerId); } catch (_) { /* ok */ }
 });
-document.addEventListener("mousemove", (e) => {
-  if (!state.pointerLocked) return;
-  state.yaw -= e.movementX * 0.0022;
-  state.pitch -= e.movementY * 0.0022;
+canvas.addEventListener("pointercancel", () => setLooking(false));
+canvas.addEventListener("pointermove", (e) => {
+  if (!state.looking) return;
+  // movementX/Y work with pointer capture without locking the OS cursor
+  state.yaw -= e.movementX * 0.003;
+  state.pitch -= e.movementY * 0.003;
   state.pitch = Math.max(-1.45, Math.min(1.45, state.pitch));
   updateCameraOrientation();
   state.cubeNeedsUpdate = true;
 });
+// If pointer leaves while dragging without up (rare), stop looking
+canvas.addEventListener("lostpointercapture", () => setLooking(false));
+
 window.addEventListener("keydown", (e) => {
+  // Don't steal keys while typing in a focused form control
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
   state.keys[e.code] = true;
   if (["Space", "KeyW", "KeyA", "KeyS", "KeyD", "KeyC"].includes(e.code)) e.preventDefault();
 });
 window.addEventListener("keyup", (e) => { state.keys[e.code] = false; });
 window.addEventListener("wheel", (e) => {
+  // Only change FOV when the wheel is over the canvas, not the settings panel
+  if (e.target !== canvas && !canvas.contains(e.target)) return;
   camera.fov = Math.max(40, Math.min(100, camera.fov + e.deltaY * 0.02));
   camera.updateProjectionMatrix();
   state.cubeNeedsUpdate = true;
@@ -585,11 +843,34 @@ function setBeta(b) {
   $("betaVal").textContent = state.beta.toFixed(3);
   const g = 1 / Math.sqrt(Math.max(1e-12, 1 - state.beta * state.beta));
   $("gammaVal").textContent = g.toFixed(3);
+  applyNaiveSquash();
+  state.cubeNeedsUpdate = true;
   updateMeta();
 }
 $("beta").addEventListener("input", () => setBeta(parseFloat($("beta").value)));
 $("thrust").addEventListener("input", () => {
   state.thrustMul = parseFloat($("thrust").value) || 1;
+});
+
+$("betaPresets")?.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-beta]");
+  if (!b) return;
+  setBeta(parseFloat(b.dataset.beta));
+});
+
+$("teleportChips")?.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-tp]");
+  if (!b) return;
+  const p = teleports[b.dataset.tp];
+  if (!p) return;
+  camera.position.copy(p);
+  if (b.dataset.tp === "shapes") { state.yaw = 0.9; state.pitch = -0.2; }
+  else if (b.dataset.tp === "bridge") { state.yaw = 0; state.pitch = -0.15; }
+  else if (b.dataset.tp === "air") { state.yaw = Math.PI; state.pitch = -0.55; }
+  else if (b.dataset.tp === "gate") { state.yaw = 0; state.pitch = -0.08; }
+  else { state.yaw = 0.35; state.pitch = -0.12; }
+  updateCameraOrientation();
+  state.cubeNeedsUpdate = true;
 });
 
 $("fxChips").addEventListener("click", (e) => {
@@ -598,7 +879,6 @@ $("fxChips").addEventListener("click", (e) => {
   const k = b.dataset.fx;
   state.fx[k] = !state.fx[k];
   b.classList.toggle("on", state.fx[k]);
-  // naive squash exclusive hint
   applyNaiveSquash();
   state.cubeNeedsUpdate = true;
   updateMeta();
@@ -668,8 +948,8 @@ function updateMeta() {
     h.innerHTML = `<b style="color:#fbbf24">Deeply relativistic.</b> Forward sky packs into a narrowing cone
       (aberration). Blueshift + headlight ahead; redshift behind. This is closer to “what you see” than pure contraction.`;
   } else {
-    h.innerHTML = `<b style="color:#7dd3fc">W A S D</b> · <b>Space/C</b> altitude · look with mouse.<br>
-      Aberration remaps every ray; Doppler paints color. Compare with <b>Naive squash</b> off/on.`;
+    h.innerHTML = `<b style="color:#7dd3fc">Drag scenery to look</b> · release to move β / toggles.<br>
+      <b>W A S D</b> · <b>Space/C</b>. Visit <b>Shape garden</b> for sphere/cube/torus (Terrell reading).`;
   }
 }
 
@@ -685,6 +965,12 @@ function integrate(dt) {
   updateCameraOrientation();
   camera.getWorldDirection(lookDir);
   rightDir.crossVectors(lookDir, up).normalize();
+
+  // Spin windmill blades slowly (lab-frame motion → interesting under Doppler)
+  if (state._windmill?.userData?.spin) {
+    state._windmill.userData.spin.rotation.z += dt * 0.35;
+    state.cubeNeedsUpdate = true;
+  }
 
   wish.set(0, 0, 0);
   if (state.keys["KeyW"]) wish.add(lookDir);
@@ -794,7 +1080,7 @@ cubeCam.position.copy(camera.position);
 cubeCam.update(renderer, scene);
 render();
 
-console.log(BUILD, "Relativistic Village — cubemap aberration + Doppler · docs/LITERATURE.md");
+console.log(BUILD, "Relativistic Village — click-drag look · shape garden · cubemap SR · docs/LITERATURE.md");
 </script>
 </body>
 </html>
