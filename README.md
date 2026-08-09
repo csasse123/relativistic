@@ -66,9 +66,11 @@ python3 -m http.server 8765
 
 ## Versions
 
-1. **v0.1** — village + free flight + cubemap aberration + Doppler  
-2. **v0.2** — richer town (church, silo, bridge, train, windmill, …)  
-3. **v0.3** — click-drag look (no pointer lock), shape garden, β presets, teleports  
+1. **v0.1** — first village + early cubemap  
+2. **v0.2–0.3** — richer town, click-drag look, shape garden  
+3. **v0.3.1** — fly UX (W / auto-cruise vs β)  
+4. **v0.4** — **correct Lorentz cubemap** (RTR / Weiskopf): FOV rays, 1024³ cube no mip blur,
+   boost along look, bright poles + rings so the tunnel is obvious; mild Doppler without white-out  
 
 Next: light-travel-time façades, recorded paths, night mode, optional VR.
 

@@ -178,13 +178,14 @@
     Hold W to fly · β=0 · classical
   </div>
   <div class="help" id="help">
-    Try: <b>Start at gate</b> → hold <b>W</b> → set <b>β 0.8</b> → drag to look around while flying.
+    <b>Demo:</b> Start at gate → Auto-cruise ON → β <b>0.85</b> → watch gold poles squeeze into a forward tunnel.
+    Side view (drag left) should go red; ahead cooler. If flat, hard-refresh to v0.4.
   </div>
 </div>
 
 <div class="look-badge" id="lookBadge">looking… release for panel</div>
-<div class="hint">Hold W to fly · drag canvas to look · release to change β · should never go pure white</div>
-<div class="build" id="build">v0.3.1</div>
+<div class="hint">v0.4: real Lorentz cubemap · hold W or auto-cruise · β warps the street into a tunnel</div>
+<div class="build" id="build">v0.4.0</div>
 
 <script type="importmap">
 {
@@ -196,9 +197,8 @@
 </script>
 <script type="module">
 import * as THREE from "three";
-import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 
-const BUILD = "v0.3.1";
+const BUILD = "v0.4.0";
 document.getElementById("build").textContent = BUILD;
 
 // =============================================================================
@@ -235,28 +235,33 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x9eb6d4, 0.012);
+scene.fog = new THREE.FogExp2(0xb8cce0, 0.0065); // lighter fog so distance reads under SR
 
 // Free camera (lab position); optical warp is post
-const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.08, 800);
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.08, 900);
 camera.position.set(-18, 2.2, 6);
 
-// Cubemap camera for image-based relativity
-const cubeRes = 512;
+// High-res cubemap for image-based SR (Savage/Weiskopf pipeline)
+// No mipmaps: mip blur was killing all detail and making the warp look like a soft zoom.
+const cubeRes = Math.min(1024, renderer.capabilities.maxCubemapSize || 1024);
 const cubeRT = new THREE.WebGLCubeRenderTarget(cubeRes, {
   format: THREE.RGBAFormat,
-  generateMipmaps: true,
-  minFilter: THREE.LinearMipmapLinearFilter,
+  generateMipmaps: false,
+  minFilter: THREE.LinearFilter,
+  magFilter: THREE.LinearFilter,
+  type: THREE.UnsignedByteType,
 });
-const cubeCam = new THREE.CubeCamera(0.1, 600, cubeRT);
+const cubeCam = new THREE.CubeCamera(0.15, 700, cubeRT);
+// Keep cube camera out of its own reflection path
+cubeCam.renderOrder = -1;
 scene.add(cubeCam);
 
-// Lights
-scene.add(new THREE.AmbientLight(0xb8c8e0, 0.45));
-const sun = new THREE.DirectionalLight(0xfff2dd, 1.15);
+// Lights — bright, clear village (darkness was fighting the demo)
+scene.add(new THREE.HemisphereLight(0xd8e8ff, 0x6a7a50, 0.85));
+const sun = new THREE.DirectionalLight(0xfff5e6, 1.45);
 sun.position.set(40, 80, 20);
 scene.add(sun);
-const fill = new THREE.DirectionalLight(0x88aadd, 0.35);
+const fill = new THREE.DirectionalLight(0xa8c8ff, 0.55);
 fill.position.set(-30, 20, -40);
 scene.add(fill);
 
@@ -649,26 +654,62 @@ function buildVillage() {
     addMesh(village, new THREE.OctahedronGeometry(0.6, 0), mats.accent, -12 + i * 8, y, 0);
   }
 
+  // Bright aberration “ruler” poles along the main road — makes the tunnel unmistakable
+  for (let x = -20; x <= 80; x += 4) {
+    const poleMat = (x / 4) % 2 === 0 ? mats.accent : mats.gold;
+    addBox(village, 0.35, 5.5, 0.35, poleMat, x, 2.75, 3.2);
+    addBox(village, 0.35, 5.5, 0.35, poleMat, x, 2.75, -3.2);
+    // glowing caps
+    addMesh(village, new THREE.SphereGeometry(0.45, 10, 8), mats.glow, x, 5.7, 3.2);
+    addMesh(village, new THREE.SphereGeometry(0.45, 10, 8), mats.glow, x, 5.7, -3.2);
+  }
+  // Concentric rings on the ground ahead of the gate (radial scale cue)
+  for (let r = 6; r <= 40; r += 6) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(r, 0.12, 6, 64),
+      new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xb45309, emissiveIntensity: 0.35, roughness: 0.6 })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(r * 0.15, 0.08, 0);
+    village.add(ring);
+  }
+
   state._windmill = mill;
 }
 
 buildVillage();
 
 // =============================================================================
-// Relativistic post pass (image-based aberration on cubemap)
+// Relativistic optics — image-based method (Weiskopf / Real Time Relativity)
+//
+// For each screen pixel:
+//   1) Build camera-space ray from FOV (not a soft zoom)
+//   2) Lorentz-boost the photon 4-direction into the lab frame
+//   3) Sample a high-res lab cubemap of the village
+//   4) Apply mild Doppler tint (color only)
+//
+// At β=0.9 a 90° side ray maps to ~26° in the lab — a huge, obvious tunnel.
 // =============================================================================
-const RelativityShader = {
-  uniforms: {
-    tCube: { value: null },
-    beta: { value: 0 },
-    betaDir: { value: new THREE.Vector3(1, 0, 0) },
-    camMatrix: { value: new THREE.Matrix3() }, // camera world rotation 3x3
-    invProj: { value: new THREE.Matrix4() },
-    aberration: { value: 1 },
-    doppler: { value: 1 },
-    headlight: { value: 1 },
-    exposure: { value: 1.0 },
-  },
+const relUniforms = {
+  tCube: { value: cubeRT.texture },
+  beta: { value: 0 },
+  betaDir: { value: new THREE.Vector3(1, 0, 0) },
+  // camera basis in world: columns = right, up, -look  (Three.js camera.matrixWorld)
+  camRight: { value: new THREE.Vector3(1, 0, 0) },
+  camUp: { value: new THREE.Vector3(0, 1, 0) },
+  camForward: { value: new THREE.Vector3(0, 0, -1) }, // look direction
+  tanHalfFov: { value: 1 },
+  aspect: { value: 1 },
+  aberration: { value: 1 },
+  doppler: { value: 1 },
+  headlight: { value: 0 },
+  exposure: { value: 1.15 },
+};
+
+const relMaterial = new THREE.ShaderMaterial({
+  uniforms: relUniforms,
+  depthTest: false,
+  depthWrite: false,
   vertexShader: /* glsl */`
     varying vec2 vUv;
     void main() {
@@ -681,100 +722,113 @@ const RelativityShader = {
     uniform samplerCube tCube;
     uniform float beta;
     uniform vec3 betaDir;
-    uniform mat3 camMatrix;
-    uniform mat4 invProj;
+    uniform vec3 camRight;
+    uniform vec3 camUp;
+    uniform vec3 camForward;
+    uniform float tanHalfFov;
+    uniform float aspect;
     uniform float aberration;
     uniform float doppler;
     uniform float headlight;
     uniform float exposure;
     varying vec2 vUv;
 
-    // Inverse Lorentz aberration: camera-frame unit ray nCam → lab-frame nLab
-    // Observer moves at +beta*betaDir in lab; boost from cam to lab uses +beta.
-    vec3 aberrateCamToLab(vec3 nCam, float b, vec3 bDir) {
-      float bb = clamp(b, 0.0, 0.9995);
-      if (bb < 1e-5 || aberration < 0.5) return nCam;
-      vec3 bhat = normalize(bDir);
-      float gamma = 1.0 / sqrt(max(1e-8, 1.0 - bb * bb));
+    // Photon 4-momentum in camera frame: k' = (1, n') with |n'|=1 = ray into the scene.
+    // Camera moves at +β β̂ in the lab. Transform k' → k_lab with a pure boost:
+    //   n_∥' = n'·β̂
+    //   n_lab_∥ = (n_∥' + β) / (1 + β n_∥')
+    //   n_lab_⊥ = n_⊥' / (γ (1 + β n_∥'))
+    // (Savage et al. Real Time Relativity; standard SR aberration.)
+    vec3 lorentzRayCamToLab(vec3 nCam, float b, vec3 bhat) {
+      float bb = clamp(b, 0.0, 0.999);
+      if (bb < 1e-6) return nCam;
+      float g = 1.0 / sqrt(max(1e-10, 1.0 - bb * bb));
       float nPar = dot(nCam, bhat);
       vec3 nPerp = nCam - nPar * bhat;
-      // From observer rest frame to lab: boost by +β
-      float den = 1.0 + bb * nPar;
+      float den = max(1e-6, 1.0 + bb * nPar);
       float nParL = (nPar + bb) / den;
-      vec3 nPerpL = nPerp / (gamma * den);
+      vec3 nPerpL = nPerp / (g * den);
       return normalize(nPerpL + nParL * bhat);
     }
 
-    // Doppler factor D = γ(1 + β·nLab) for camera ray nLab (photon ~ -nLab).
-    // Used for *color* only — never raw D^3 (that whites out the screen).
-    float dopplerFactor(vec3 nLab, float b, vec3 bDir) {
-      float bb = clamp(b, 0.0, 0.995);
-      if (bb < 1e-5) return 1.0;
-      float gamma = 1.0 / sqrt(max(1e-8, 1.0 - bb * bb));
-      vec3 bhat = normalize(bDir);
-      return gamma * (1.0 + bb * dot(bhat, nLab));
+    // Doppler factor for photon energy: D = γ (1 + β · n_cam) equivalently via n_lab.
+    // Use camera-frame form: D = γ (1 + β n_∥') for k'=(1,n').
+    float dopplerD(vec3 nCam, float b, vec3 bhat) {
+      float bb = clamp(b, 0.0, 0.999);
+      if (bb < 1e-6) return 1.0;
+      float g = 1.0 / sqrt(max(1e-10, 1.0 - bb * bb));
+      return g * (1.0 + bb * dot(nCam, bhat));
     }
 
-    // Soft spectral tint: blue ahead / red behind — luminance roughly preserved
-    vec3 dopplerColor(vec3 col, float D) {
+    // Strong, readable color shift without washing to white
+    vec3 applyDoppler(vec3 col, float D) {
       if (doppler < 0.5) return col;
-      float d = clamp(D, 0.25, 4.0);
-      float t = clamp(log(d) * 0.55, -1.0, 1.0); // milder than full log D
-      // cool / warm multipliers near 1 so image stays visible
-      vec3 cool = vec3(0.82, 0.95, 1.22);
-      vec3 warm = vec3(1.22, 0.90, 0.78);
-      vec3 gain = t >= 0.0 ? mix(vec3(1.0), cool, t) : mix(vec3(1.0), warm, -t);
+      // map D→ tint: D>1 blue-cyan, D<1 orange-red
+      float t = clamp((D - 1.0) * 0.85, -1.2, 1.5);
+      vec3 cool = vec3(0.55, 0.85, 1.55);
+      vec3 warm = vec3(1.55, 0.75, 0.45);
+      vec3 gain = t >= 0.0
+        ? mix(vec3(1.0), cool, clamp(t, 0.0, 1.0))
+        : mix(vec3(1.0), warm, clamp(-t, 0.0, 1.0));
       vec3 c = col * gain;
-      // renormalize so average channel stays ~same (anti white-out)
-      float l0 = max(dot(col, vec3(0.299, 0.587, 0.114)), 1e-4);
-      float l1 = max(dot(c, vec3(0.299, 0.587, 0.114)), 1e-4);
-      return c * (l0 / l1);
+      // keep luminance (prevent white / black)
+      float l0 = dot(col, vec3(0.2126, 0.7152, 0.0722));
+      float l1 = max(dot(c, vec3(0.2126, 0.7152, 0.0722)), 1e-4);
+      c *= (l0 + 0.08) / (l1 + 0.08);
+      return c;
     }
 
     void main() {
+      // NDC: vUv is 0..1 bottom-left in Three.js PlaneGeometry
       vec2 ndc = vUv * 2.0 - 1.0;
-      vec4 view = invProj * vec4(ndc, 0.5, 1.0);
-      view.xyz /= view.w;
-      vec3 nCam = normalize(camMatrix * normalize(view.xyz));
+      // Camera-space ray: Three.js looks down −Z; +X right, +Y up
+      vec3 nView = normalize(vec3(
+        ndc.x * tanHalfFov * aspect,
+        ndc.y * tanHalfFov,
+        -1.0
+      ));
+      // World direction of the same ray (classical). camForward = look (−Z_world of camera).
+      vec3 nCamWorld = normalize(
+        camRight * nView.x + camUp * nView.y + camForward * (-nView.z)
+      );
 
-      float b = clamp(beta, 0.0, 0.995);
-      vec3 bDir = length(betaDir) > 1e-5 ? normalize(betaDir) : vec3(1.0, 0.0, 0.0);
+      float b = clamp(beta, 0.0, 0.999);
+      // Boost axis: travel / look — for free flight we pass look so the tunnel is always “ahead”
+      vec3 bhat = length(betaDir) > 1e-6 ? normalize(betaDir) : normalize(camForward);
 
-      vec3 nLab = aberrateCamToLab(nCam, b, bDir);
+      // Aberration ON: Lorentz map observed ray → lab sampling direction
+      // OFF: sample classical world direction
+      vec3 nLab = nCamWorld;
+      if (aberration > 0.5 && b > 1e-4) {
+        nLab = lorentzRayCamToLab(nCamWorld, b, bhat);
+      }
+
       vec3 col = textureCube(tCube, nLab).rgb;
 
-      float D = dopplerFactor(nLab, b, bDir);
-      col = dopplerColor(col, D);
+      float D = dopplerD(nCamWorld, b, bhat);
+      col = applyDoppler(col, D);
 
-      if (headlight > 0.5) {
-        // MILD headlight only — pedagogical, never D^3
-        float d = clamp(D, 0.4, 2.5);
-        float boost = mix(0.75, 1.35, smoothstep(0.5, 2.0, d));
+      if (headlight > 0.5 && b > 1e-4) {
+        // Mild forward brightening only (searchlight cartoon)
+        float along = clamp(dot(nCamWorld, bhat), -1.0, 1.0);
+        float boost = mix(0.85, 1.25, smoothstep(-0.2, 1.0, along));
         col *= boost;
       }
 
-      // Auto-exposure: compensate average forward blueshift so β high stays visible
-      float autoE = 1.0 / (0.65 + 0.35 * clamp(D, 0.5, 2.5));
-      col *= exposure * autoE;
-
-      // Filmic-ish tonemap — hard stop on white-out
+      col *= exposure;
+      // Gentle contrast — keep mid-tones alive (no crushing to black)
       col = max(col, vec3(0.0));
-      col = col / (vec3(1.0) + col * 0.85);
-      col = pow(col, vec3(0.95));
+      col = col * 1.05;
+      // Soft Reinhard only if really hot
+      col = col / (vec3(1.0) + col * 0.25);
       gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }
   `,
-};
+});
 
-// Fullscreen composer path: we render cube, then relativity pass to screen.
-// When beta≈0 and no FX, we can also show a normal render for sharpness.
-const relPass = new ShaderPass(RelativityShader);
-relPass.material.uniforms.tCube.value = cubeRT.texture;
-
-// We'll render relativity pass manually to avoid needing a dummy scene color
 const relScene = new THREE.Scene();
 const relCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-const relQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), relPass.material);
+const relQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), relMaterial);
 relScene.add(relQuad);
 
 // =============================================================================
@@ -1015,29 +1069,36 @@ function integrate(dt) {
 // Render loop
 // =============================================================================
 const clock = new THREE.Clock();
-const camMat3 = new THREE.Matrix3();
-const invProj = new THREE.Matrix4();
-const tmpMat4 = new THREE.Matrix4();
+const _right = new THREE.Vector3();
+const _up = new THREE.Vector3();
+const _fwd = new THREE.Vector3();
 
 function updateRelUniforms() {
-  const u = relPass.material.uniforms;
+  const u = relUniforms;
   u.tCube.value = cubeRT.texture;
-  u.beta.value = state.fx.aberration || state.fx.doppler || state.fx.headlight ? state.beta : 0;
-  // If aberration off but doppler on, still pass beta for color
-  if (!state.fx.aberration && (state.fx.doppler || state.fx.headlight)) {
-    u.beta.value = state.beta;
-  }
-  u.betaDir.value.copy(state.vel);
+  u.beta.value = state.beta;
+  // Optics boost = look direction so the “tunnel” is always in front of the camera
+  // (matches free-flight intuition; travel direction still drives movement)
+  camera.getWorldDirection(_fwd);
+  u.betaDir.value.copy(_fwd);
   u.aberration.value = state.fx.aberration ? 1 : 0;
   u.doppler.value = state.fx.doppler ? 1 : 0;
   u.headlight.value = state.fx.headlight ? 1 : 0;
-  // camera world rotation (columns = camera basis in world)
-  camera.updateMatrixWorld();
-  camMat3.setFromMatrix4(camera.matrixWorld);
-  u.camMatrix.value.copy(camMat3);
-  invProj.copy(camera.projectionMatrix).invert();
-  u.invProj.value.copy(invProj);
-  u.exposure.value = 1.0;
+  u.exposure.value = 1.2;
+
+  camera.updateMatrixWorld(true);
+  const e = camera.matrixWorld.elements;
+  // columns of matrixWorld: X=right, Y=up, Z=back
+  _right.set(e[0], e[1], e[2]).normalize();
+  _up.set(e[4], e[5], e[6]).normalize();
+  _fwd.set(-e[8], -e[9], -e[10]).normalize(); // look = −back
+  u.camRight.value.copy(_right);
+  u.camUp.value.copy(_up);
+  u.camForward.value.copy(_fwd);
+
+  const fovRad = THREE.MathUtils.degToRad(camera.fov);
+  u.tanHalfFov.value = Math.tan(fovRad * 0.5);
+  u.aspect.value = camera.aspect;
 }
 
 function render() {
@@ -1045,44 +1106,38 @@ function render() {
   const dt = Math.min(clock.getDelta(), 0.05);
   integrate(dt);
 
-  // Update cubemap at camera position (lab-frame snapshot of the village)
-  state.cubeInterval -= dt;
-  if (state.cubeNeedsUpdate || state.cubeInterval <= 0) {
+  const optical = state.beta > 0.02 && (state.fx.aberration || state.fx.doppler || state.fx.headlight);
+
+  if (optical) {
+    // Full lab-frame panorama every frame (RTR-style). Quality over thrift.
     cubeCam.position.copy(camera.position);
-    // Hide nothing special; render full scene into cube
     cubeCam.update(renderer, scene);
-    state.cubeNeedsUpdate = false;
-    // refresh more often when moving fast
-    state.cubeInterval = state.beta > 0.3 ? 0.05 : 0.12;
-  }
-
-  updateRelUniforms();
-
-  // When essentially classical and no optical FX, direct render is sharper
-  const optical = state.beta > 0.01 && (state.fx.aberration || state.fx.doppler || state.fx.headlight);
-  if (!optical) {
-    renderer.toneMappingExposure = 1.05;
-    renderer.render(scene, camera);
-  } else {
-    renderer.toneMappingExposure = 1.0;
+    updateRelUniforms();
+    renderer.toneMapping = THREE.NoToneMapping; // we tone in-shader; avoid double crush
+    renderer.toneMappingExposure = 1;
     renderer.render(relScene, relCam);
+  } else {
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    renderer.render(scene, camera);
   }
 }
 
-// Spawn at the gate looking into town
-camera.position.set(-20, 2.2, 0);
+// Spawn at the gate looking into town — ready to demo
+camera.position.set(-22, 2.4, 0);
 state.yaw = 0;
-state.pitch = -0.08;
+state.pitch = -0.06;
+state.autoCruise = false;
 setBeta(0);
 updateCameraOrientation();
 updateMeta();
 if ($("cruiseSpeedVal")) $("cruiseSpeedVal").textContent = state.cruiseSpeed.toFixed(2) + "×";
-// first cube
+// warm cube
 cubeCam.position.copy(camera.position);
 cubeCam.update(renderer, scene);
 render();
 
-console.log(BUILD, "Relativistic Village — hold W to fly · β for optics · no white-out");
+console.log(BUILD, "Relativistic Village — fixed Lorentz cubemap", cubeRes + "³", "· hold W · β for tunnel");
 </script>
 </body>
 </html>
