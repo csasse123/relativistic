@@ -113,63 +113,78 @@
   <div class="badge">Special relativity · optical appearance</div>
   <h1>Relativistic Village</h1>
   <p>
-    Travel free in 3D through a quiet town. Raise <b style="color:#7dd3fc">β = v/c</b> toward light speed
-    and watch <b style="color:#fbbf24">aberration</b> squeeze the forward sky —
-    what you see is not a simple length-contracted postcard.
+    <b style="color:#7dd3fc">Hold W</b> to fly the streets · <b>drag</b> to steer look · raise
+    <b style="color:#fbbf24">β = v/c</b> to warp what you see (aberration tunnel — not a white flash).
   </p>
 </div>
 
 <div class="panel" id="panel">
-  <h2>Speed</h2>
-  <label class="row full">β = |v| / c
-    <input id="beta" type="range" min="0" max="0.99" step="0.005" value="0" />
+  <h2>1 · Fly the village</h2>
+  <div class="help" style="margin:0 0 10px">
+    <b>Hold W</b> = drive forward · <b>A/D</b> strafe · <b>Space/C</b> up/down<br>
+    <b>Drag on scenery</b> = look / steer · release mouse to use this panel<br>
+    <b>Cruise</b> = keep flying without holding W
+  </div>
+  <div class="chips" id="cruiseChips">
+    <button type="button" data-cruise="off" class="on">Manual (hold W)</button>
+    <button type="button" data-cruise="on">Auto-cruise</button>
+  </div>
+  <label class="row full">How fast you move through town
+    <input id="cruiseSpeed" type="range" min="0.2" max="4" step="0.05" value="1.4" />
   </label>
-  <div class="row"><span>β</span><span class="val" id="betaVal">0.000</span></div>
-  <div class="row"><span>γ = 1/√(1−β²)</span><span class="val" id="gammaVal">1.000</span></div>
-  <div class="chips" id="betaPresets" style="margin-top:4px">
-    <button type="button" data-beta="0">0</button>
-    <button type="button" data-beta="0.3">0.3</button>
-    <button type="button" data-beta="0.6">0.6</button>
-    <button type="button" data-beta="0.9">0.9</button>
-    <button type="button" data-beta="0.99">0.99</button>
-  </div>
-
-  <h2>Optics stack</h2>
-  <div class="chips" id="fxChips">
-    <button type="button" data-fx="aberration" class="on" title="Relativistic aberration of light">Aberration</button>
-    <button type="button" data-fx="doppler" class="on" title="Frequency / color shift">Doppler</button>
-    <button type="button" data-fx="headlight" class="on" title="Searchlight brightness">Headlight</button>
-    <button type="button" data-fx="naive" title="Fake: squash meshes along velocity (not a photo)">Naive squash</button>
-  </div>
-
-  <h2>Motion</h2>
-  <div class="chips" id="thrustChips">
-    <button type="button" data-thrust="look" class="on">Thrust = look</button>
-    <button type="button" data-thrust="keys">Thrust = keys only</button>
-  </div>
-  <label class="row full">Thrust power
-    <input id="thrust" type="range" min="0.2" max="3" step="0.05" value="1.2" />
-  </label>
+  <div class="row"><span>Town speed (gameplay)</span><span class="val" id="cruiseSpeedVal">1.4×</span></div>
   <div class="chips" id="teleportChips">
-    <button type="button" data-tp="gate">Gate</button>
+    <button type="button" data-tp="gate">Start at gate</button>
     <button type="button" data-tp="plaza">Plaza</button>
     <button type="button" data-tp="shapes">Shape garden</button>
     <button type="button" data-tp="bridge">Bridge</button>
     <button type="button" data-tp="air">Flyover</button>
   </div>
 
+  <h2>2 · Relativistic speed β</h2>
+  <div class="help" style="margin:0 0 8px">
+    <b>β = v/c</b> is the physics dial for <em>what light does</em> (aberration, color).<br>
+    <b>γ</b> is computed from β — not a separate control.<br>
+    Town speed above is only how quickly you cruise the map.
+  </div>
+  <label class="row full">β = v / c &nbsp;(0 = rest · 1 = light)
+    <input id="beta" type="range" min="0" max="0.95" step="0.005" value="0" />
+  </label>
+  <div class="row"><span>β = v/c</span><span class="val" id="betaVal">0.000</span></div>
+  <div class="row"><span>γ (from β)</span><span class="val" id="gammaVal">1.000</span></div>
+  <div class="chips" id="betaPresets" style="margin-top:4px">
+    <button type="button" data-beta="0">Rest</button>
+    <button type="button" data-beta="0.5">β 0.5</button>
+    <button type="button" data-beta="0.8">β 0.8</button>
+    <button type="button" data-beta="0.9">β 0.9</button>
+    <button type="button" data-beta="0.95">β 0.95</button>
+  </div>
+
+  <h2>3 · What you see</h2>
+  <div class="chips" id="fxChips">
+    <button type="button" data-fx="aberration" class="on" title="Main effect: sky tunnels forward">Aberration</button>
+    <button type="button" data-fx="doppler" class="on" title="Blue ahead, red behind (color only)">Doppler color</button>
+    <button type="button" data-fx="headlight" title="Mild brightening ahead — keep off if too bright">Headlight (mild)</button>
+    <button type="button" data-fx="naive" title="Wrong: squash meshes — not a photograph">Naive squash</button>
+  </div>
+  <div class="help" style="margin:0 0 8px">
+    <b style="color:#7dd3fc">Aberration</b> = geometry warp (the tunnel). Keep this on.<br>
+    <b style="color:#fbbf24">Doppler</b> = colors only (no white-out).<br>
+    <b>Headlight</b> = optional mild glow ahead (off by default).<br>
+    <b style="color:#fb7185">Naive squash</b> = fake textbook contraction for comparison.
+  </div>
+
   <div class="meta" id="meta">
-    β=<b>0</b> · classical · village at rest in lab frame
+    Hold W to fly · β=0 · classical
   </div>
   <div class="help" id="help">
-    <b style="color:#7dd3fc">Drag on the scenery</b> to look · release to use this panel freely.<br>
-    <b>W A S D</b> move · <b>Space / C</b> up / down · scroll FOV. Settings never steal the mouse.
+    Try: <b>Start at gate</b> → hold <b>W</b> → set <b>β 0.8</b> → drag to look around while flying.
   </div>
 </div>
 
-<div class="look-badge" id="lookBadge">looking… release to adjust β</div>
-<div class="hint">Click-drag canvas to look · release mouse to use sliders · docs/LITERATURE.md</div>
-<div class="build" id="build">v0.3.0</div>
+<div class="look-badge" id="lookBadge">looking… release for panel</div>
+<div class="hint">Hold W to fly · drag canvas to look · release to change β · should never go pure white</div>
+<div class="build" id="build">v0.3.1</div>
 
 <script type="importmap">
 {
@@ -183,27 +198,26 @@
 import * as THREE from "three";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 
-const BUILD = "v0.3.0";
+const BUILD = "v0.3.1";
 document.getElementById("build").textContent = BUILD;
 
 // =============================================================================
 // State
 // =============================================================================
 const state = {
-  beta: 0,           // |v|/c
-  thrustMul: 1.2,
-  thrustMode: "look", // look | keys
-  fx: { aberration: true, doppler: true, headlight: true, naive: false },
-  // camera look (yaw/pitch)
-  yaw: 0.35,
-  pitch: -0.12,
-  // velocity direction in lab (unit); magnitude is beta*c with c=1
+  beta: 0,              // |v|/c — physics for optics only
+  cruiseSpeed: 1.4,     // gameplay speed through the village (not β)
+  autoCruise: false,    // continuous forward flight
+  fx: { aberration: true, doppler: true, headlight: false, naive: false },
+  yaw: 0.0,
+  pitch: -0.08,
+  // boost direction for optics = direction of travel when moving, else look
   vel: new THREE.Vector3(1, 0, 0),
   keys: Object.create(null),
-  /** Look only while primary button is held on the canvas — never pointer-lock */
   looking: false,
   cubeNeedsUpdate: true,
   cubeInterval: 0,
+  moving: false,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -691,51 +705,39 @@ const RelativityShader = {
       return normalize(nPerpL + nParL * bhat);
     }
 
-    // Relativistic Doppler factor for light arriving from lab direction nLab
-    // (propagation toward observer ≈ -nLab if nLab is outward ray from camera).
-    // Standard: D = γ (1 - β · n_source_to_obs). Here nCam/nLab is camera look ray
-    // into the scene (propagation of photon is -nLab in lab if we ray-march out).
-    // Photon 4-momentum ~ (1, -nLab) for ray direction nLab from camera.
+    // Doppler factor D = γ(1 + β·nLab) for camera ray nLab (photon ~ -nLab).
+    // Used for *color* only — never raw D^3 (that whites out the screen).
     float dopplerFactor(vec3 nLab, float b, vec3 bDir) {
-      float bb = clamp(b, 0.0, 0.9995);
+      float bb = clamp(b, 0.0, 0.995);
       if (bb < 1e-5) return 1.0;
       float gamma = 1.0 / sqrt(max(1e-8, 1.0 - bb * bb));
-      // Photon energy transform for null vector (1, -nLab) under boost of observer
-      // Observer 4-velocity u = γ(1, β); E' ~ -p·u
       vec3 bhat = normalize(bDir);
-      // p^μ ∝ (1, -nLab)  →  E_lab ∝ 1,  p_lab ∝ -nLab
-      // E_obs / E_lab = γ (1 + β · nLab)   [because p·u = γ(1 + β·nLab) with p=(1,-n)?]
-      // Careful: for ray direction n from camera to object, photon travels along -n toward camera? 
-      // Light collected from direction n (camera looks along n) comes from -n propagation onto the sensor.
-      // Photon direction of propagation k_hat = -nLab.
-      // Doppler: ω_obs = ω_lab * γ (1 - β · k_hat) = ω_lab * γ (1 + β · nLab)
       return gamma * (1.0 + bb * dot(bhat, nLab));
     }
 
-    // Crude spectral shift: map D to RGB gain (blue when D>1, red when D<1)
+    // Soft spectral tint: blue ahead / red behind — luminance roughly preserved
     vec3 dopplerColor(vec3 col, float D) {
       if (doppler < 0.5) return col;
-      float d = clamp(D, 0.15, 6.0);
-      // blueshift D>1 → boost blue/green; redshift → boost red
-      float t = log(d);
-      vec3 cool = vec3(0.75, 0.9, 1.35);
-      vec3 warm = vec3(1.4, 0.85, 0.65);
-      vec3 gain = t >= 0.0 ? mix(vec3(1.0), cool, clamp(t * 0.85, 0.0, 1.0))
-                           : mix(vec3(1.0), warm, clamp(-t * 0.85, 0.0, 1.0));
-      return col * gain;
+      float d = clamp(D, 0.25, 4.0);
+      float t = clamp(log(d) * 0.55, -1.0, 1.0); // milder than full log D
+      // cool / warm multipliers near 1 so image stays visible
+      vec3 cool = vec3(0.82, 0.95, 1.22);
+      vec3 warm = vec3(1.22, 0.90, 0.78);
+      vec3 gain = t >= 0.0 ? mix(vec3(1.0), cool, t) : mix(vec3(1.0), warm, -t);
+      vec3 c = col * gain;
+      // renormalize so average channel stays ~same (anti white-out)
+      float l0 = max(dot(col, vec3(0.299, 0.587, 0.114)), 1e-4);
+      float l1 = max(dot(c, vec3(0.299, 0.587, 0.114)), 1e-4);
+      return c * (l0 / l1);
     }
 
     void main() {
-      // NDC ray
       vec2 ndc = vUv * 2.0 - 1.0;
-      vec4 clip = vec4(ndc, 0.5, 1.0);
-      vec4 view = invProj * clip;
+      vec4 view = invProj * vec4(ndc, 0.5, 1.0);
       view.xyz /= view.w;
-      vec3 nCam = normalize(view.xyz); // camera space, -Z forward in three.js...
-      // Three.js camera looks down -Z; view ray after invProj is in view space
-      nCam = normalize(camMatrix * nCam);
+      vec3 nCam = normalize(camMatrix * normalize(view.xyz));
 
-      float b = beta;
+      float b = clamp(beta, 0.0, 0.995);
       vec3 bDir = length(betaDir) > 1e-5 ? normalize(betaDir) : vec3(1.0, 0.0, 0.0);
 
       vec3 nLab = aberrateCamToLab(nCam, b, bDir);
@@ -745,15 +747,21 @@ const RelativityShader = {
       col = dopplerColor(col, D);
 
       if (headlight > 0.5) {
-        // Intensity ~ D^3 (common pedagogical choice for photon count / solid angle)
-        float d = clamp(D, 0.15, 6.0);
-        col *= pow(d, 3.0);
+        // MILD headlight only — pedagogical, never D^3
+        float d = clamp(D, 0.4, 2.5);
+        float boost = mix(0.75, 1.35, smoothstep(0.5, 2.0, d));
+        col *= boost;
       }
 
-      col *= exposure;
-      // mild tone
-      col = col / (1.0 + col * 0.35);
-      gl_FragColor = vec4(col, 1.0);
+      // Auto-exposure: compensate average forward blueshift so β high stays visible
+      float autoE = 1.0 / (0.65 + 0.35 * clamp(D, 0.5, 2.5));
+      col *= exposure * autoE;
+
+      // Filmic-ish tonemap — hard stop on white-out
+      col = max(col, vec3(0.0));
+      col = col / (vec3(1.0) + col * 0.85);
+      col = pow(col, vec3(0.95));
+      gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }
   `,
 };
@@ -838,24 +846,36 @@ window.addEventListener("resize", () => {
 
 // UI
 function setBeta(b) {
-  state.beta = Math.max(0, Math.min(0.99, b));
-  $("beta").value = state.beta;
-  $("betaVal").textContent = state.beta.toFixed(3);
+  // Cap 0.95 for playable optics (0.99 was extreme white-out territory)
+  state.beta = Math.max(0, Math.min(0.95, b));
+  if ($("beta")) $("beta").value = state.beta;
+  if ($("betaVal")) $("betaVal").textContent = state.beta.toFixed(3);
   const g = 1 / Math.sqrt(Math.max(1e-12, 1 - state.beta * state.beta));
-  $("gammaVal").textContent = g.toFixed(3);
+  if ($("gammaVal")) $("gammaVal").textContent = g.toFixed(3);
   applyNaiveSquash();
   state.cubeNeedsUpdate = true;
   updateMeta();
 }
-$("beta").addEventListener("input", () => setBeta(parseFloat($("beta").value)));
-$("thrust").addEventListener("input", () => {
-  state.thrustMul = parseFloat($("thrust").value) || 1;
+$("beta")?.addEventListener("input", () => setBeta(parseFloat($("beta").value)));
+$("cruiseSpeed")?.addEventListener("input", () => {
+  state.cruiseSpeed = parseFloat($("cruiseSpeed").value) || 1.4;
+  if ($("cruiseSpeedVal")) $("cruiseSpeedVal").textContent = state.cruiseSpeed.toFixed(2) + "×";
 });
 
 $("betaPresets")?.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-beta]");
   if (!b) return;
   setBeta(parseFloat(b.dataset.beta));
+});
+
+$("cruiseChips")?.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-cruise]");
+  if (!b) return;
+  state.autoCruise = b.dataset.cruise === "on";
+  $("cruiseChips").querySelectorAll("button").forEach((x) => {
+    x.classList.toggle("on", (x.dataset.cruise === "on") === state.autoCruise);
+  });
+  updateMeta();
 });
 
 $("teleportChips")?.addEventListener("click", (e) => {
@@ -868,12 +888,12 @@ $("teleportChips")?.addEventListener("click", (e) => {
   else if (b.dataset.tp === "bridge") { state.yaw = 0; state.pitch = -0.15; }
   else if (b.dataset.tp === "air") { state.yaw = Math.PI; state.pitch = -0.55; }
   else if (b.dataset.tp === "gate") { state.yaw = 0; state.pitch = -0.08; }
-  else { state.yaw = 0.35; state.pitch = -0.12; }
+  else { state.yaw = 0; state.pitch = -0.08; }
   updateCameraOrientation();
   state.cubeNeedsUpdate = true;
 });
 
-$("fxChips").addEventListener("click", (e) => {
+$("fxChips")?.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-fx]");
   if (!b) return;
   const k = b.dataset.fx;
@@ -882,15 +902,6 @@ $("fxChips").addEventListener("click", (e) => {
   applyNaiveSquash();
   state.cubeNeedsUpdate = true;
   updateMeta();
-});
-
-$("thrustChips").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-thrust]");
-  if (!b) return;
-  state.thrustMode = b.dataset.thrust;
-  $("thrustChips").querySelectorAll("button").forEach((x) => {
-    x.classList.toggle("on", x.dataset.thrust === state.thrustMode);
-  });
 });
 
 function applyNaiveSquash() {
@@ -922,34 +933,30 @@ function applyNaiveSquash() {
 
 function updateMeta() {
   const g = 1 / Math.sqrt(Math.max(1e-12, 1 - state.beta * state.beta));
-  const v = state.vel;
-  const parts = [];
-  if (state.beta < 0.02) parts.push("classical (β≈0)");
-  else {
-    parts.push(`γ=${g.toFixed(2)}`);
-    if (state.fx.aberration) parts.push("aberration");
-    if (state.fx.doppler) parts.push("Doppler");
-    if (state.fx.headlight) parts.push("headlight");
-    if (state.fx.naive) parts.push("<span class='rose'>naive squash ON</span>");
+  const fly = state.autoCruise ? "auto-cruise" : (state.moving ? "flying (W)" : "stopped — hold W");
+  const fx = [];
+  if (state.fx.aberration) fx.push("aberration");
+  if (state.fx.doppler) fx.push("Doppler");
+  if (state.fx.headlight) fx.push("headlight");
+  if (state.fx.naive) fx.push("<span class='rose'>naive</span>");
+  if ($("meta")) {
+    $("meta").innerHTML =
+      `<b class="gold">${fly}</b> · β=<b class="blue">${state.beta.toFixed(3)}</b> · γ=${g.toFixed(2)} · ` +
+      (fx.length ? fx.join("+") : "optics off");
   }
-  $("meta").innerHTML =
-    `β=<b class="blue">${state.beta.toFixed(3)}</b> · v̂=(${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}) · ` +
-    parts.join(" · ");
-
-  // Help text adapts
   const h = $("help");
-  if (state.beta < 0.05) {
-    h.innerHTML = `<b style="color:#7dd3fc">At rest / slow.</b> Raise β. The village sits still in the lab;
-      you are the traveler. Optical effects turn on with speed.`;
+  if (!h) return;
+  if (!state.moving && !state.autoCruise && state.beta < 0.05) {
+    h.innerHTML = `Start: click <b>Start at gate</b>, <b>hold W</b> to drive in, then set <b>β 0.8</b>.
+      You should see the street tunnel-warp — not a white screen.`;
   } else if (state.fx.naive && !state.fx.aberration) {
-    h.innerHTML = `<b style="color:#fb7185">Naive squash</b> shrinks meshes by 1/γ along velocity —
-      a textbook Lorentz contraction of coordinates, <b>not</b> a photograph. Turn on Aberration to see the real optical tunnel.`;
-  } else if (state.beta > 0.7) {
-    h.innerHTML = `<b style="color:#fbbf24">Deeply relativistic.</b> Forward sky packs into a narrowing cone
-      (aberration). Blueshift + headlight ahead; redshift behind. This is closer to “what you see” than pure contraction.`;
+    h.innerHTML = `<b style="color:#fb7185">Naive squash</b> is the wrong “photo.” Turn <b>Aberration</b> on for the real optical tunnel.`;
+  } else if (state.beta >= 0.75) {
+    h.innerHTML = `<b style="color:#fbbf24">High β</b> — forward world packs into a cone. Keep flying with W;
+      drag to look sideways into the red-shifted rear. Headlight stays mild so detail remains.`;
   } else {
-    h.innerHTML = `<b style="color:#7dd3fc">Drag scenery to look</b> · release to move β / toggles.<br>
-      <b>W A S D</b> · <b>Space/C</b>. Visit <b>Shape garden</b> for sphere/cube/torus (Terrell reading).`;
+    h.innerHTML = `Hold <b>W</b> to travel · drag to look · β changes <em>optics only</em>.
+      Town speed slider changes how fast you cruise the map — not β.`;
   }
 }
 
@@ -966,13 +973,13 @@ function integrate(dt) {
   camera.getWorldDirection(lookDir);
   rightDir.crossVectors(lookDir, up).normalize();
 
-  // Spin windmill blades slowly (lab-frame motion → interesting under Doppler)
   if (state._windmill?.userData?.spin) {
     state._windmill.userData.spin.rotation.z += dt * 0.35;
-    state.cubeNeedsUpdate = true;
   }
 
   wish.set(0, 0, 0);
+  // Auto-cruise: continuous forward along look (the “drive the village” experience)
+  if (state.autoCruise) wish.add(lookDir);
   if (state.keys["KeyW"]) wish.add(lookDir);
   if (state.keys["KeyS"]) wish.sub(lookDir);
   if (state.keys["KeyA"]) wish.sub(rightDir);
@@ -980,38 +987,28 @@ function integrate(dt) {
   if (state.keys["Space"]) wish.y += 1;
   if (state.keys["KeyC"]) wish.y -= 1;
 
-  if (wish.lengthSq() > 1e-6) {
+  state.moving = wish.lengthSq() > 1e-6;
+  if (state.moving) {
     wish.normalize();
-    // World units: c = 1 → moving at beta means speed beta (in "c=1" units).
-    // For playability we map beta to a comfortable units/s: baseCruise * beta-scale
-    // At beta=0, still allow a crawl for exploring; optical effects use beta separately.
-    const explore = 8 * state.thrustMul;
-    const rel = state.beta * 40 * state.thrustMul; // visual speed through village
-    const spd = state.beta < 0.02 ? explore * 0.35 : explore * 0.15 + rel;
+    // Gameplay speed through town — independent of β (optics use β alone)
+    const spd = 12 * state.cruiseSpeed;
     camera.position.addScaledVector(wish, spd * dt);
-    // Soft ground clamp
     camera.position.y = Math.max(0.6, Math.min(60, camera.position.y));
-    // Soft world bounds
-    camera.position.x = THREE.MathUtils.clamp(camera.position.x, -90, 90);
-    camera.position.z = THREE.MathUtils.clamp(camera.position.z, -90, 90);
-
-    if (state.thrustMode === "look") {
-      state.vel.copy(wish);
-    } else {
-      // horizontal keys define velocity; look independent
-      const h = wish.clone(); h.y = 0;
-      if (h.lengthSq() > 1e-6) state.vel.copy(h.normalize());
-      else if (Math.abs(wish.y) > 0.5) state.vel.set(0, Math.sign(wish.y), 0);
-    }
+    camera.position.x = THREE.MathUtils.clamp(camera.position.x, -95, 95);
+    camera.position.z = THREE.MathUtils.clamp(camera.position.z, -95, 95);
+    // Optics boost direction = actual travel direction
+    state.vel.copy(wish);
     state.cubeNeedsUpdate = true;
-  } else if (state.thrustMode === "look" && state.beta > 0.01) {
-    // coast along look when holding speed but not keys? keep last vel
+  } else {
+    // Standing still: boost axis follows look so raising β still shows a tunnel ahead
+    state.vel.copy(lookDir);
   }
-
   if (state.vel.lengthSq() < 1e-8) state.vel.set(1, 0, 0);
   else state.vel.normalize();
 
   applyNaiveSquash();
+  // Meta refresh while flying (throttled via cube interval path is fine every frame cheap)
+  if (state.moving || state.autoCruise) updateMeta();
 }
 
 // =============================================================================
@@ -1072,15 +1069,20 @@ function render() {
   }
 }
 
+// Spawn at the gate looking into town
+camera.position.set(-20, 2.2, 0);
+state.yaw = 0;
+state.pitch = -0.08;
 setBeta(0);
 updateCameraOrientation();
 updateMeta();
+if ($("cruiseSpeedVal")) $("cruiseSpeedVal").textContent = state.cruiseSpeed.toFixed(2) + "×";
 // first cube
 cubeCam.position.copy(camera.position);
 cubeCam.update(renderer, scene);
 render();
 
-console.log(BUILD, "Relativistic Village — click-drag look · shape garden · cubemap SR · docs/LITERATURE.md");
+console.log(BUILD, "Relativistic Village — hold W to fly · β for optics · no white-out");
 </script>
 </body>
 </html>

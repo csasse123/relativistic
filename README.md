@@ -21,19 +21,31 @@ squeezes into a tunnel), **Doppler + searchlight**, and — at higher fidelity �
 See [docs/LITERATURE.md](docs/LITERATURE.md) for the detailed survey and design
 rationale.
 
-## Controls
+## How the experience works
+
+Two separate dials (this is the usual confusion):
+
+| Control | Meaning |
+|---------|---------|
+| **Hold W / Auto-cruise** | You *move through the village* (gameplay) |
+| **Town speed** | How fast that map motion is |
+| **β = v/c** | Physics for *what light does* (aberration tunnel, Doppler colors) |
+| **γ** | Not a slider — computed from β |
+
+**Recipe:** Start at gate → hold **W** → set **β ≈ 0.8** → drag to look. You should see a warped tunnel of streets, not a white screen.
 
 | Input | Action |
 |-------|--------|
-| **Click-drag on the canvas** | Look around (release mouse anytime) |
-| **W A S D** | Move (thrust) |
-| **Space / C** | Up / down (altitude) |
-| **Scroll on canvas** | FOV |
-| **Right panel** | Always free — change β, optics, teleports without Esc |
-| **β presets** | 0 · 0.3 · 0.6 · 0.9 · 0.99 |
-| **Teleports** | Gate · Plaza · Shape garden · Bridge · Flyover |
+| **Hold W** | Fly forward |
+| **Auto-cruise** | Keep flying without holding W |
+| **Click-drag canvas** | Look / steer (release for the panel) |
+| **A D Space C** | Strafe / up / down |
+| **β slider** | Relativistic optics (capped ~0.95 for visibility) |
+| **Aberration** | Main geometric warp — keep on |
+| **Doppler color** | Blue ahead / red behind (no white-out) |
+| **Headlight** | Optional mild glow (off by default) |
 
-**No pointer lock.** Looking only happens while you hold the mouse button on the scenery; the settings panel never steals control.
+**No pointer lock.** Panel is always usable when you release the mouse.
 
 ## Stack
 
