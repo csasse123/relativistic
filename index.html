@@ -188,8 +188,18 @@
 </div>
 
 <div class="look-badge" id="lookBadge">looking… release for panel</div>
-<div class="hint">v0.6 · free look during tour · boost = velocity (not look) · full-sphere capture · drag to see red rear</div>
-<div class="build" id="build">v0.6.0</div>
+<div class="hint" id="hint">v0.7 · prebaked village light field · same warp for every object · free look</div>
+<div class="build" id="build">v0.7.0</div>
+<div id="bakeOverlay" style="position:fixed;inset:0;z-index:100;background:rgba(5,8,14,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#e2e8f0;font-family:DM Sans,system-ui,sans-serif">
+  <div style="font:700 1.1rem Space Grotesk,system-ui,sans-serif">Precomputing the village…</div>
+  <div style="font:500 0.8rem JetBrains Mono,monospace;color:#94a3b8;max-width:36ch;text-align:center;line-height:1.45">
+    Lab-frame panoramas along the tour path (once). Playback is then a Lorentz sample only — sharper, consistent warp for roads, towers, and roof details.
+  </div>
+  <div style="width:min(320px,80vw);height:8px;border-radius:99px;background:#1e293b;overflow:hidden">
+    <div id="bakeBar" style="height:100%;width:0%;background:linear-gradient(90deg,#7dd3fc,#a78bfa);transition:width 0.1s"></div>
+  </div>
+  <div id="bakePct" style="font:600 0.75rem JetBrains Mono,monospace;color:#7dd3fc">0%</div>
+</div>
 
 <script type="importmap">
 {
@@ -202,7 +212,7 @@
 <script type="module">
 import * as THREE from "three";
 
-const BUILD = "v0.6.0";
+const BUILD = "v0.7.0";
 document.getElementById("build").textContent = BUILD;
 
 // =============================================================================
@@ -248,22 +258,27 @@ const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.08, 9
 camera.position.set(-24, 2.4, 0);
 
 // ---------------------------------------------------------------------------
-// Full-sphere lab capture (high-res cubemap).
-// Why not “adaptive frustum”? That method shrinks the capture FOV with β and
-// maps it to the whole screen → pure telephoto ZOOM. Real aberration is an
-// *angle remapping* of a full environment: forward packs, sides shear, rear
-// is visible if you look back (DESY / RTR / Weiskopf). Free look needs 360°.
+// Prebaked light field along the tour (lab-frame cubemaps, no SR yet).
+// Playback: Lorentz sample only — every object uses the same ray map, so
+// roads, towers, roof crosses, and spheres warp consistently.
+// Live CubeCamera only as fallback (manual flight off-path).
 // ---------------------------------------------------------------------------
-const CUBE = Math.min(1536, renderer.capabilities.maxCubemapSize || 1024);
-const cubeRT = new THREE.WebGLCubeRenderTarget(CUBE, {
+// Memory: N × 6 × res² × 4 bytes. 28×512³ ≈ 168 MB — safe on most machines.
+const CUBE = Math.min(512, renderer.capabilities.maxCubemapSize || 512);
+const BAKE_N = 28;
+const cubeOpts = {
   format: THREE.RGBAFormat,
   generateMipmaps: false,
   minFilter: THREE.LinearFilter,
   magFilter: THREE.LinearFilter,
   type: THREE.UnsignedByteType,
-});
-const cubeCam = new THREE.CubeCamera(0.12, 800, cubeRT);
-scene.add(cubeCam);
+};
+/** @type {{ rt: THREE.WebGLCubeRenderTarget, pos: THREE.Vector3, tan: THREE.Vector3 }[]} */
+const baked = [];
+const liveCubeRT = new THREE.WebGLCubeRenderTarget(CUBE, cubeOpts);
+const liveCubeCam = new THREE.CubeCamera(0.12, 800, liveCubeRT);
+scene.add(liveCubeCam);
+let bakeReady = false;
 
 // Lights — bright, clear village
 scene.add(new THREE.HemisphereLight(0xe8f0ff, 0x7a8a55, 1.0));
@@ -666,14 +681,22 @@ function buildVillage() {
     addMesh(village, new THREE.OctahedronGeometry(0.6, 0), mats.accent, -12 + i * 8, y, 0);
   }
 
-  // Bright aberration “ruler” poles along the main road — makes the tunnel unmistakable
+  // Bright aberration “ruler” poles + large crosses (wide angular span → visible bend)
   for (let x = -20; x <= 80; x += 4) {
     const poleMat = (x / 4) % 2 === 0 ? mats.accent : mats.gold;
     addBox(village, 0.35, 5.5, 0.35, poleMat, x, 2.75, 3.2);
     addBox(village, 0.35, 5.5, 0.35, poleMat, x, 2.75, -3.2);
-    // glowing caps
     addMesh(village, new THREE.SphereGeometry(0.45, 10, 8), mats.glow, x, 5.7, 3.2);
     addMesh(village, new THREE.SphereGeometry(0.45, 10, 8), mats.glow, x, 5.7, -3.2);
+    // Large X / cross — same Lorentz map as roads; thin roof antennae are just small angle
+    if (x % 8 === 0) {
+      addBox(village, 2.4, 0.2, 0.2, mats.gold, x, 6.4, 3.2, 0, 0, Math.PI / 4);
+      addBox(village, 2.4, 0.2, 0.2, mats.gold, x, 6.4, 3.2, 0, 0, -Math.PI / 4);
+    }
+  }
+  // Giant reference spheres (Terrell: stay roughly round; position shifts under aberration)
+  for (const [sx, sz] of [[8, 6], [20, -6], [-8, 8]]) {
+    addMesh(village, new THREE.SphereGeometry(2.8, 32, 24), mats.accent2, sx, 2.9, sz);
   }
   // Concentric rings on the ground ahead of the gate (radial scale cue)
   for (let r = 6; r <= 40; r += 6) {
@@ -847,6 +870,58 @@ const TOUR_WAYPOINTS = [
 ];
 const tourCurve = new THREE.CatmullRomCurve3(TOUR_WAYPOINTS, true, "catmullrom", 0.15);
 const tourLen = tourCurve.getLength();
+
+// =============================================================================
+// Prebake lab-frame cubemaps along the tour (no SR) — then only Lorentz at runtime
+// =============================================================================
+const _bakePos = new THREE.Vector3();
+const _bakeTan = new THREE.Vector3();
+
+async function bakeTourLightField() {
+  const bar = $("bakeBar");
+  const pct = $("bakePct");
+  const overlay = $("bakeOverlay");
+  // Temporarily hide observer overlays if any; render village only
+  for (let i = 0; i < BAKE_N; i++) {
+    const t = i / BAKE_N;
+    tourCurve.getPointAt(t, _bakePos);
+    tourCurve.getTangentAt(t, _bakeTan);
+    const rt = new THREE.WebGLCubeRenderTarget(CUBE, cubeOpts);
+    const cam = new THREE.CubeCamera(0.12, 800, rt);
+    cam.position.copy(_bakePos);
+    scene.add(cam);
+    // Ensure lights/scene fully ready
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    cam.update(renderer, scene);
+    scene.remove(cam);
+    baked.push({
+      rt,
+      pos: _bakePos.clone(),
+      tan: _bakeTan.clone().normalize(),
+    });
+    const p = ((i + 1) / BAKE_N) * 100;
+    if (bar) bar.style.width = p.toFixed(1) + "%";
+    if (pct) pct.textContent = `${Math.round(p)}% · sample ${i + 1}/${BAKE_N} · ${CUBE}³`;
+    // Yield so the UI can paint
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  bakeReady = true;
+  if (overlay) {
+    overlay.style.opacity = "0";
+    overlay.style.transition = "opacity 0.45s";
+    setTimeout(() => { overlay.style.display = "none"; }, 500);
+  }
+  console.log(BUILD, "baked", BAKE_N, "cubemaps @", CUBE);
+}
+
+/** Nearest prebaked panorama for current tour parameter t ∈ [0,1) */
+function bakedAtTourT(t) {
+  if (!baked.length) return null;
+  const f = ((t % 1) + 1) % 1;
+  const idx = Math.min(BAKE_N - 1, Math.floor(f * BAKE_N + 1e-9));
+  return baked[idx];
+}
 
 // =============================================================================
 // Input — click-drag on canvas to look; release → free mouse for the panel
@@ -1028,7 +1103,7 @@ function updateMeta() {
   if ($("meta")) {
     $("meta").innerHTML =
       `<b class="gold">${fly}</b> · ${look} · β=<b class="blue">${state.beta.toFixed(3)}</b> · γ=${g.toFixed(2)} · ` +
-      `cube ${CUBE}³ · ` + (fx.length ? fx.join("+") : "optics off");
+      (bakeReady ? `baked ${BAKE_N}×${CUBE}³` : "baking…") + " · " + (fx.length ? fx.join("+") : "optics off");
   }
   const h = $("help");
   if (!h) return;
@@ -1125,15 +1200,15 @@ function updateObserverBasis() {
   _fwd.set(-e[8], -e[9], -e[10]).normalize();
 }
 
-function updateRelUniforms() {
+function updateRelUniforms(cubeTexture) {
   const u = relUniforms;
-  u.tCube.value = cubeRT.texture;
+  u.tCube.value = cubeTexture;
   u.beta.value = state.beta;
   u.aberration.value = state.fx.aberration ? 1 : 0;
   u.doppler.value = state.fx.doppler ? 1 : 0;
   u.headlight.value = state.fx.headlight ? 1 : 0;
-  u.exposure.value = 1.28;
-  // CRITICAL: boost = travel velocity, never look direction
+  u.exposure.value = 1.3;
+  // Boost = travel velocity (tour tangent), never look
   u.betaDir.value.copy(state.vel).normalize();
 
   updateObserverBasis();
@@ -1147,16 +1222,25 @@ function updateRelUniforms() {
 
 function render() {
   requestAnimationFrame(render);
+  if (!bakeReady) return; // wait until light field is ready
   const dt = Math.min(clock.getDelta(), 0.05);
   integrate(dt);
 
   const optical = state.beta > 0.02 && (state.fx.aberration || state.fx.doppler || state.fx.headlight);
 
   if (optical) {
-    // Full lab sphere at observer position — supports free look left/right/back
-    cubeCam.position.copy(camera.position);
-    cubeCam.update(renderer, scene);
-    updateRelUniforms();
+    let tex = liveCubeRT.texture;
+    if (bakeReady && state.tourOn && baked.length) {
+      // Precomputed lab panorama — same for every mesh, only Lorentz changes
+      const sample = bakedAtTourT(state.tourT);
+      if (sample) tex = sample.rt.texture;
+    } else {
+      // Manual flight: live capture (slower, still consistent ray map)
+      liveCubeCam.position.copy(camera.position);
+      liveCubeCam.update(renderer, scene);
+      tex = liveCubeRT.texture;
+    }
+    updateRelUniforms(tex);
     renderer.toneMapping = THREE.NoToneMapping;
     renderer.toneMappingExposure = 1;
     renderer.setRenderTarget(null);
@@ -1167,14 +1251,9 @@ function render() {
     renderer.setRenderTarget(null);
     renderer.render(scene, camera);
   }
-
-  // cheap meta pulse
-  if ((state.tourOn || state.moving) && (Math.floor(performance.now() / 400) % 2 === 0)) {
-    /* skip heavy */ 
-  }
 }
 
-// Start guided tour + free look + mild SR
+// Boot: bake light field, then start tour
 state.tourT = 0;
 tourCurve.getPointAt(0, camera.position);
 tourCurve.getTangentAt(0, state.vel);
@@ -1183,7 +1262,6 @@ state.autoCruise = true;
 state.tourOn = true;
 state.lookMode = "free";
 state.cruiseSpeed = 0.2;
-// Face roughly along first leg so first glance is forward; user can look away
 state.yaw = Math.atan2(-state.vel.x, -state.vel.z);
 state.pitch = -0.05;
 setBeta(0.65);
@@ -1197,11 +1275,25 @@ $("cruiseChips")?.querySelectorAll("button").forEach((x) => {
 $("lookModeChips")?.querySelectorAll("button").forEach((x) => {
   x.classList.toggle("on", x.dataset.look === "free");
 });
-cubeCam.position.copy(camera.position);
-cubeCam.update(renderer, scene);
-render();
 
-console.log(BUILD, "free look + velocity boost · cube", CUBE, "· guided tour");
+// Update help with physics note about angular size
+const helpEl = $("help");
+if (helpEl) {
+  helpEl.innerHTML = `<b>Prebaked tour:</b> the village is captured once along the path.
+    Lorentz warps every ray the same way — large things (roads, towers) show curves more;
+    thin roof details span few pixels so they look “stiffer.” <b>Spheres</b> stay roughly round (Terrell).
+    Drag to look behind → red; ahead → cooler.`;
+}
+
+bakeTourLightField().then(() => {
+  render();
+  console.log(BUILD, "prebaked light field ready ·", BAKE_N, "×", CUBE + "³");
+}).catch((err) => {
+  console.error("bake failed", err);
+  bakeReady = true;
+  if ($("bakeOverlay")) $("bakeOverlay").style.display = "none";
+  render();
+});
 </script>
 </body>
 </html>
