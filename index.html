@@ -119,20 +119,20 @@
 </div>
 
 <div class="panel" id="panel">
-  <h2>1 · Fly the village</h2>
+  <h2>1 · Guided tour (on by default)</h2>
   <div class="help" style="margin:0 0 10px">
-    <b>Hold W</b> = drive forward · <b>A/D</b> strafe · <b>Space/C</b> up/down<br>
-    <b>Drag on scenery</b> = look / steer · release mouse to use this panel<br>
-    <b>Cruise</b> = keep flying without holding W
+    <b>Guided tour</b> flies the streets for you — gentle loop, automatic turns.<br>
+    <b>Drag scenery</b> to look around (tour keeps moving). Release for this panel.<br>
+    Hold <b>W/A/S/D</b> only if you want to take over manually.
   </div>
   <div class="chips" id="cruiseChips">
-    <button type="button" data-cruise="off" class="on">Manual (hold W)</button>
-    <button type="button" data-cruise="on">Auto-cruise</button>
+    <button type="button" data-cruise="on" class="on">Guided tour</button>
+    <button type="button" data-cruise="off">Manual (WASD)</button>
   </div>
-  <label class="row full">How fast you move through town
-    <input id="cruiseSpeed" type="range" min="0.2" max="4" step="0.05" value="1.4" />
+  <label class="row full">Tour / travel speed (gentle)
+    <input id="cruiseSpeed" type="range" min="0.1" max="1.5" step="0.02" value="0.22" />
   </label>
-  <div class="row"><span>Town speed (gameplay)</span><span class="val" id="cruiseSpeedVal">1.4×</span></div>
+  <div class="row"><span>Town speed</span><span class="val" id="cruiseSpeedVal">0.22×</span></div>
   <div class="chips" id="teleportChips">
     <button type="button" data-tp="gate">Start at gate</button>
     <button type="button" data-tp="plaza">Plaza</button>
@@ -147,17 +147,17 @@
     <b>γ</b> is computed from β — not a separate control.<br>
     Town speed above is only how quickly you cruise the map.
   </div>
-  <label class="row full">β = v / c &nbsp;(0 = rest · 1 = light)
-    <input id="beta" type="range" min="0" max="0.95" step="0.005" value="0" />
+  <label class="row full">β = v / c &nbsp;(optics only — not zoom quality)
+    <input id="beta" type="range" min="0" max="0.92" step="0.005" value="0.5" />
   </label>
-  <div class="row"><span>β = v/c</span><span class="val" id="betaVal">0.000</span></div>
-  <div class="row"><span>γ (from β)</span><span class="val" id="gammaVal">1.000</span></div>
+  <div class="row"><span>β = v/c</span><span class="val" id="betaVal">0.500</span></div>
+  <div class="row"><span>γ (from β)</span><span class="val" id="gammaVal">1.155</span></div>
   <div class="chips" id="betaPresets" style="margin-top:4px">
     <button type="button" data-beta="0">Rest</button>
     <button type="button" data-beta="0.5">β 0.5</button>
-    <button type="button" data-beta="0.8">β 0.8</button>
-    <button type="button" data-beta="0.9">β 0.9</button>
-    <button type="button" data-beta="0.95">β 0.95</button>
+    <button type="button" data-beta="0.7">β 0.7</button>
+    <button type="button" data-beta="0.85">β 0.85</button>
+    <button type="button" data-beta="0.92">β 0.92</button>
   </div>
 
   <h2>3 · What you see</h2>
@@ -178,14 +178,14 @@
     Hold W to fly · β=0 · classical
   </div>
   <div class="help" id="help">
-    <b>Demo:</b> Start at gate → Auto-cruise ON → β <b>0.85</b> → watch gold poles squeeze into a forward tunnel.
-    Side view (drag left) should go red; ahead cooler. If flat, hard-refresh to v0.4.
+    Sit back: the tour drives the streets for you at slow speed. Raise β to see aberration
+    without the old “blurry zoom” (v0.5 uses a high-res adaptive lab camera).
   </div>
 </div>
 
 <div class="look-badge" id="lookBadge">looking… release for panel</div>
-<div class="hint">v0.4: real Lorentz cubemap · hold W or auto-cruise · β warps the street into a tunnel</div>
-<div class="build" id="build">v0.4.0</div>
+<div class="hint">v0.5 · guided street tour · high-res adaptive SR (no cubemap mush) · β = optics</div>
+<div class="build" id="build">v0.5.0</div>
 
 <script type="importmap">
 {
@@ -198,25 +198,25 @@
 <script type="module">
 import * as THREE from "three";
 
-const BUILD = "v0.4.0";
+const BUILD = "v0.5.0";
 document.getElementById("build").textContent = BUILD;
 
 // =============================================================================
 // State
 // =============================================================================
 const state = {
-  beta: 0,              // |v|/c — physics for optics only
-  cruiseSpeed: 1.4,     // gameplay speed through the village (not β)
-  autoCruise: false,    // continuous forward flight
+  beta: 0.5,              // start with mild SR so the tour is interesting
+  cruiseSpeed: 0.22,      // gentle — experience, not a race
+  autoCruise: true,       // guided tour on by default
+  tourOn: true,           // follow street waypoints (not just “go forward”)
+  tourT: 0,               // param along tour path
   fx: { aberration: true, doppler: true, headlight: false, naive: false },
   yaw: 0.0,
-  pitch: -0.08,
-  // boost direction for optics = direction of travel when moving, else look
+  pitch: -0.06,
   vel: new THREE.Vector3(1, 0, 0),
   keys: Object.create(null),
   looking: false,
-  cubeNeedsUpdate: true,
-  cubeInterval: 0,
+  userSteer: false,       // true while user is drag-looking (pause auto look)
   moving: false,
 };
 
@@ -237,24 +237,28 @@ renderer.toneMappingExposure = 1.05;
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xb8cce0, 0.0065); // lighter fog so distance reads under SR
 
-// Free camera (lab position); optical warp is post
-const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.08, 900);
-camera.position.set(-18, 2.2, 6);
+// Free camera (observer); optical warp is a post sample of a lab capture
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.08, 900);
+camera.position.set(-24, 2.4, 0);
 
-// High-res cubemap for image-based SR (Savage/Weiskopf pipeline)
-// No mipmaps: mip blur was killing all detail and making the warp look like a soft zoom.
-const cubeRes = Math.min(1024, renderer.capabilities.maxCubemapSize || 1024);
-const cubeRT = new THREE.WebGLCubeRenderTarget(cubeRes, {
+// ---------------------------------------------------------------------------
+// High-quality SR capture: adaptive lab frustum (NOT a stretched cubemap).
+// At high β the whole view maps into a narrow lab cone. Cubemaps then look
+// like a blurry zoom. We instead render a high-res perspective that *only*
+// covers that cone — full pixel budget on what you actually see.
+// ---------------------------------------------------------------------------
+const captureCam = new THREE.PerspectiveCamera(90, 1, 0.1, 900);
+const CAP_W = Math.min(2048, renderer.capabilities.maxTextureSize || 2048);
+const CAP_H = Math.min(2048, renderer.capabilities.maxTextureSize || 2048);
+const captureRT = new THREE.WebGLRenderTarget(CAP_W, CAP_H, {
   format: THREE.RGBAFormat,
-  generateMipmaps: false,
   minFilter: THREE.LinearFilter,
   magFilter: THREE.LinearFilter,
+  generateMipmaps: false,
   type: THREE.UnsignedByteType,
+  anisotropy: renderer.capabilities.getMaxAnisotropy?.() || 1,
 });
-const cubeCam = new THREE.CubeCamera(0.15, 700, cubeRT);
-// Keep cube camera out of its own reflection path
-cubeCam.renderOrder = -1;
-scene.add(cubeCam);
+captureRT.texture.colorSpace = THREE.SRGBColorSpace;
 
 // Lights — bright, clear village (darkness was fighting the demo)
 scene.add(new THREE.HemisphereLight(0xd8e8ff, 0x6a7a50, 0.85));
@@ -680,30 +684,32 @@ function buildVillage() {
 buildVillage();
 
 // =============================================================================
-// Relativistic optics — image-based method (Weiskopf / Real Time Relativity)
+// Relativistic optics — adaptive high-res lab frustum (not cubemap stretch)
 //
-// For each screen pixel:
-//   1) Build camera-space ray from FOV (not a soft zoom)
-//   2) Lorentz-boost the photon 4-direction into the lab frame
-//   3) Sample a high-res lab cubemap of the village
-//   4) Apply mild Doppler tint (color only)
-//
-// At β=0.9 a 90° side ray maps to ~26° in the lab — a huge, obvious tunnel.
+// Problem with cubemaps at high β: the whole screen maps into a tiny lab cone,
+// so you stretch a few texels → blurry “zoom”. Fix: render a perspective of
+// *exactly* that cone at full resolution (up to 2048²), then sample it.
+// Lorentz map: Savage et al. / standard aberration.
 // =============================================================================
 const relUniforms = {
-  tCube: { value: cubeRT.texture },
+  tScene: { value: captureRT.texture },
   beta: { value: 0 },
   betaDir: { value: new THREE.Vector3(1, 0, 0) },
-  // camera basis in world: columns = right, up, -look  (Three.js camera.matrixWorld)
   camRight: { value: new THREE.Vector3(1, 0, 0) },
   camUp: { value: new THREE.Vector3(0, 1, 0) },
-  camForward: { value: new THREE.Vector3(0, 0, -1) }, // look direction
+  camForward: { value: new THREE.Vector3(1, 0, 0) },
   tanHalfFov: { value: 1 },
   aspect: { value: 1 },
+  // Capture camera: maps lab dir → UV
+  capRight: { value: new THREE.Vector3(1, 0, 0) },
+  capUp: { value: new THREE.Vector3(0, 1, 0) },
+  capForward: { value: new THREE.Vector3(1, 0, 0) },
+  capTanHalf: { value: 1 },
+  capAspect: { value: 1 },
   aberration: { value: 1 },
   doppler: { value: 1 },
   headlight: { value: 0 },
-  exposure: { value: 1.15 },
+  exposure: { value: 1.2 },
 };
 
 const relMaterial = new THREE.ShaderMaterial({
@@ -719,108 +725,89 @@ const relMaterial = new THREE.ShaderMaterial({
   `,
   fragmentShader: /* glsl */`
     precision highp float;
-    uniform samplerCube tCube;
+    uniform sampler2D tScene;
     uniform float beta;
     uniform vec3 betaDir;
-    uniform vec3 camRight;
-    uniform vec3 camUp;
-    uniform vec3 camForward;
-    uniform float tanHalfFov;
-    uniform float aspect;
-    uniform float aberration;
-    uniform float doppler;
-    uniform float headlight;
-    uniform float exposure;
+    uniform vec3 camRight, camUp, camForward;
+    uniform float tanHalfFov, aspect;
+    uniform vec3 capRight, capUp, capForward;
+    uniform float capTanHalf, capAspect;
+    uniform float aberration, doppler, headlight, exposure;
     varying vec2 vUv;
 
-    // Photon 4-momentum in camera frame: k' = (1, n') with |n'|=1 = ray into the scene.
-    // Camera moves at +β β̂ in the lab. Transform k' → k_lab with a pure boost:
-    //   n_∥' = n'·β̂
-    //   n_lab_∥ = (n_∥' + β) / (1 + β n_∥')
-    //   n_lab_⊥ = n_⊥' / (γ (1 + β n_∥'))
-    // (Savage et al. Real Time Relativity; standard SR aberration.)
     vec3 lorentzRayCamToLab(vec3 nCam, float b, vec3 bhat) {
-      float bb = clamp(b, 0.0, 0.999);
+      float bb = clamp(b, 0.0, 0.995);
       if (bb < 1e-6) return nCam;
       float g = 1.0 / sqrt(max(1e-10, 1.0 - bb * bb));
       float nPar = dot(nCam, bhat);
       vec3 nPerp = nCam - nPar * bhat;
-      float den = max(1e-6, 1.0 + bb * nPar);
-      float nParL = (nPar + bb) / den;
-      vec3 nPerpL = nPerp / (g * den);
-      return normalize(nPerpL + nParL * bhat);
+      float den = max(1e-5, 1.0 + bb * nPar);
+      return normalize(nPerp / (g * den) + bhat * ((nPar + bb) / den));
     }
 
-    // Doppler factor for photon energy: D = γ (1 + β · n_cam) equivalently via n_lab.
-    // Use camera-frame form: D = γ (1 + β n_∥') for k'=(1,n').
     float dopplerD(vec3 nCam, float b, vec3 bhat) {
-      float bb = clamp(b, 0.0, 0.999);
+      float bb = clamp(b, 0.0, 0.995);
       if (bb < 1e-6) return 1.0;
       float g = 1.0 / sqrt(max(1e-10, 1.0 - bb * bb));
       return g * (1.0 + bb * dot(nCam, bhat));
     }
 
-    // Strong, readable color shift without washing to white
     vec3 applyDoppler(vec3 col, float D) {
       if (doppler < 0.5) return col;
-      // map D→ tint: D>1 blue-cyan, D<1 orange-red
-      float t = clamp((D - 1.0) * 0.85, -1.2, 1.5);
-      vec3 cool = vec3(0.55, 0.85, 1.55);
-      vec3 warm = vec3(1.55, 0.75, 0.45);
-      vec3 gain = t >= 0.0
-        ? mix(vec3(1.0), cool, clamp(t, 0.0, 1.0))
-        : mix(vec3(1.0), warm, clamp(-t, 0.0, 1.0));
+      float t = clamp((D - 1.0) * 0.7, -1.0, 1.2);
+      vec3 cool = vec3(0.65, 0.9, 1.4);
+      vec3 warm = vec3(1.4, 0.8, 0.55);
+      vec3 gain = t >= 0.0 ? mix(vec3(1.0), cool, clamp(t, 0.0, 1.0))
+                           : mix(vec3(1.0), warm, clamp(-t, 0.0, 1.0));
       vec3 c = col * gain;
-      // keep luminance (prevent white / black)
       float l0 = dot(col, vec3(0.2126, 0.7152, 0.0722));
       float l1 = max(dot(c, vec3(0.2126, 0.7152, 0.0722)), 1e-4);
-      c *= (l0 + 0.08) / (l1 + 0.08);
-      return c;
+      return c * ((l0 + 0.1) / (l1 + 0.1));
+    }
+
+    // Project lab unit direction into capture camera UV (0..1). Returns ok flag in .z
+    vec3 labDirToUV(vec3 nLab) {
+      float f = dot(nLab, capForward);
+      if (f < 0.02) return vec3(0.5, 0.5, 0.0); // behind capture
+      vec3 p = nLab / f; // plane z=1 in capture frame
+      float x = dot(p, capRight);
+      float y = dot(p, capUp);
+      float u = 0.5 + 0.5 * (x / (capTanHalf * capAspect));
+      float v = 0.5 + 0.5 * (y / capTanHalf);
+      float ok = (u > 0.0 && u < 1.0 && v > 0.0 && v < 1.0) ? 1.0 : 0.0;
+      return vec3(u, v, ok);
     }
 
     void main() {
-      // NDC: vUv is 0..1 bottom-left in Three.js PlaneGeometry
       vec2 ndc = vUv * 2.0 - 1.0;
-      // Camera-space ray: Three.js looks down −Z; +X right, +Y up
-      vec3 nView = normalize(vec3(
-        ndc.x * tanHalfFov * aspect,
-        ndc.y * tanHalfFov,
-        -1.0
-      ));
-      // World direction of the same ray (classical). camForward = look (−Z_world of camera).
-      vec3 nCamWorld = normalize(
-        camRight * nView.x + camUp * nView.y + camForward * (-nView.z)
-      );
+      vec3 nView = normalize(vec3(ndc.x * tanHalfFov * aspect, ndc.y * tanHalfFov, -1.0));
+      // Observer-frame ray in world components
+      vec3 nObs = normalize(camRight * nView.x + camUp * nView.y + camForward * (-nView.z));
 
-      float b = clamp(beta, 0.0, 0.999);
-      // Boost axis: travel / look — for free flight we pass look so the tunnel is always “ahead”
+      float b = clamp(beta, 0.0, 0.995);
       vec3 bhat = length(betaDir) > 1e-6 ? normalize(betaDir) : normalize(camForward);
 
-      // Aberration ON: Lorentz map observed ray → lab sampling direction
-      // OFF: sample classical world direction
-      vec3 nLab = nCamWorld;
-      if (aberration > 0.5 && b > 1e-4) {
-        nLab = lorentzRayCamToLab(nCamWorld, b, bhat);
+      vec3 nLab = nObs;
+      if (aberration > 0.5 && b > 1e-4) nLab = lorentzRayCamToLab(nObs, b, bhat);
+
+      vec3 uvok = labDirToUV(nLab);
+      vec3 col;
+      if (uvok.z > 0.5) {
+        col = texture2D(tScene, uvok.xy).rgb;
+      } else {
+        // Outside capture (rare) — soft sky fallback
+        col = mix(vec3(0.75, 0.85, 0.95), vec3(0.45, 0.65, 0.9), clamp(nLab.y * 0.5 + 0.5, 0.0, 1.0));
       }
 
-      vec3 col = textureCube(tCube, nLab).rgb;
-
-      float D = dopplerD(nCamWorld, b, bhat);
+      float D = dopplerD(nObs, b, bhat);
       col = applyDoppler(col, D);
-
       if (headlight > 0.5 && b > 1e-4) {
-        // Mild forward brightening only (searchlight cartoon)
-        float along = clamp(dot(nCamWorld, bhat), -1.0, 1.0);
-        float boost = mix(0.85, 1.25, smoothstep(-0.2, 1.0, along));
-        col *= boost;
+        float along = clamp(dot(nObs, bhat), -1.0, 1.0);
+        col *= mix(0.9, 1.2, smoothstep(-0.2, 1.0, along));
       }
-
       col *= exposure;
-      // Gentle contrast — keep mid-tones alive (no crushing to black)
       col = max(col, vec3(0.0));
-      col = col * 1.05;
-      // Soft Reinhard only if really hot
-      col = col / (vec3(1.0) + col * 0.25);
+      col = col / (vec3(1.0) + col * 0.15);
       gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }
   `,
@@ -830,6 +817,44 @@ const relScene = new THREE.Scene();
 const relCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const relQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), relMaterial);
 relScene.add(relQuad);
+
+// --- Lab angle covering observer FOV under aberration (half-angle, radians) ---
+function labHalfAngleForObserver(beta, obsHalfFov) {
+  const b = Math.min(0.995, Math.max(0, beta));
+  if (b < 1e-4) return obsHalfFov;
+  // cos θ_s = (cos θ_o + β) / (1 + β cos θ_o)  at edge of view θ_o = obsHalfFov
+  const co = Math.cos(obsHalfFov);
+  const cs = (co + b) / (1 + b * co);
+  const th = Math.acos(THREE.MathUtils.clamp(cs, -1, 1));
+  // pad so edges never clip
+  return Math.min(Math.PI * 0.48, th * 1.12 + 0.04);
+}
+
+/**
+ * Guided street tour — gentle loop through the village.
+ * Positions are (x, y, z); path is Catmull-Rom through waypoints.
+ */
+const TOUR_WAYPOINTS = [
+  new THREE.Vector3(-26, 2.4, 0),
+  new THREE.Vector3(-10, 2.4, 0),
+  new THREE.Vector3(0, 2.5, 0),
+  new THREE.Vector3(14, 2.5, 0),
+  new THREE.Vector3(28, 3.2, 0),   // toward bridge
+  new THREE.Vector3(28, 3.5, 8),
+  new THREE.Vector3(14, 2.5, 14),
+  new THREE.Vector3(0, 2.5, 14),
+  new THREE.Vector3(-14, 2.5, 14),
+  new THREE.Vector3(-14, 2.5, 0),
+  new THREE.Vector3(-14, 2.5, -14),
+  new THREE.Vector3(0, 2.5, -14),
+  new THREE.Vector3(0, 2.6, -22),  // toward shape garden-ish
+  new THREE.Vector3(-20, 3.0, -22),
+  new THREE.Vector3(-28, 3.2, -18),
+  new THREE.Vector3(-28, 2.8, -8),
+  new THREE.Vector3(-26, 2.4, 0),
+];
+const tourCurve = new THREE.CatmullRomCurve3(TOUR_WAYPOINTS, true, "catmullrom", 0.15);
+const tourLen = tourCurve.getLength();
 
 // =============================================================================
 // Input — click-drag on canvas to look; release → free mouse for the panel
@@ -846,6 +871,7 @@ function updateCameraOrientation() {
 
 function setLooking(on) {
   state.looking = on;
+  state.userSteer = on;
   canvas.classList.toggle("dragging", on);
   lookBadge?.classList.toggle("on", on);
   crosshair?.classList.toggle("on", on);
@@ -900,19 +926,18 @@ window.addEventListener("resize", () => {
 
 // UI
 function setBeta(b) {
-  // Cap 0.95 for playable optics (0.99 was extreme white-out territory)
-  state.beta = Math.max(0, Math.min(0.95, b));
+  // Soft cap: extreme β still works but adaptive frustum keeps quality
+  state.beta = Math.max(0, Math.min(0.92, b));
   if ($("beta")) $("beta").value = state.beta;
   if ($("betaVal")) $("betaVal").textContent = state.beta.toFixed(3);
   const g = 1 / Math.sqrt(Math.max(1e-12, 1 - state.beta * state.beta));
   if ($("gammaVal")) $("gammaVal").textContent = g.toFixed(3);
   applyNaiveSquash();
-  state.cubeNeedsUpdate = true;
   updateMeta();
 }
 $("beta")?.addEventListener("input", () => setBeta(parseFloat($("beta").value)));
 $("cruiseSpeed")?.addEventListener("input", () => {
-  state.cruiseSpeed = parseFloat($("cruiseSpeed").value) || 1.4;
+  state.cruiseSpeed = parseFloat($("cruiseSpeed").value) || 0.22;
   if ($("cruiseSpeedVal")) $("cruiseSpeedVal").textContent = state.cruiseSpeed.toFixed(2) + "×";
 });
 
@@ -926,6 +951,7 @@ $("cruiseChips")?.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-cruise]");
   if (!b) return;
   state.autoCruise = b.dataset.cruise === "on";
+  state.tourOn = state.autoCruise;
   $("cruiseChips").querySelectorAll("button").forEach((x) => {
     x.classList.toggle("on", (x.dataset.cruise === "on") === state.autoCruise);
   });
@@ -937,14 +963,18 @@ $("teleportChips")?.addEventListener("click", (e) => {
   if (!b) return;
   const p = teleports[b.dataset.tp];
   if (!p) return;
+  // Jump tour nearest point
   camera.position.copy(p);
+  state.tourOn = false;
+  state.autoCruise = false;
+  $("cruiseChips")?.querySelectorAll("button").forEach((x) => {
+    x.classList.toggle("on", x.dataset.cruise === "off");
+  });
   if (b.dataset.tp === "shapes") { state.yaw = 0.9; state.pitch = -0.2; }
   else if (b.dataset.tp === "bridge") { state.yaw = 0; state.pitch = -0.15; }
   else if (b.dataset.tp === "air") { state.yaw = Math.PI; state.pitch = -0.55; }
-  else if (b.dataset.tp === "gate") { state.yaw = 0; state.pitch = -0.08; }
-  else { state.yaw = 0; state.pitch = -0.08; }
+  else { state.yaw = 0; state.pitch = -0.06; }
   updateCameraOrientation();
-  state.cubeNeedsUpdate = true;
 });
 
 $("fxChips")?.addEventListener("click", (e) => {
@@ -987,7 +1017,13 @@ function applyNaiveSquash() {
 
 function updateMeta() {
   const g = 1 / Math.sqrt(Math.max(1e-12, 1 - state.beta * state.beta));
-  const fly = state.autoCruise ? "auto-cruise" : (state.moving ? "flying (W)" : "stopped — hold W");
+  const fly = state.tourOn
+    ? "guided tour"
+    : state.autoCruise
+      ? "cruise"
+      : state.moving
+        ? "manual"
+        : "paused";
   const fx = [];
   if (state.fx.aberration) fx.push("aberration");
   if (state.fx.doppler) fx.push("Doppler");
@@ -996,21 +1032,17 @@ function updateMeta() {
   if ($("meta")) {
     $("meta").innerHTML =
       `<b class="gold">${fly}</b> · β=<b class="blue">${state.beta.toFixed(3)}</b> · γ=${g.toFixed(2)} · ` +
-      (fx.length ? fx.join("+") : "optics off");
+      `capture ${CAP_W}² · ` + (fx.length ? fx.join("+") : "optics off");
   }
   const h = $("help");
   if (!h) return;
-  if (!state.moving && !state.autoCruise && state.beta < 0.05) {
-    h.innerHTML = `Start: click <b>Start at gate</b>, <b>hold W</b> to drive in, then set <b>β 0.8</b>.
-      You should see the street tunnel-warp — not a white screen.`;
+  if (state.tourOn) {
+    h.innerHTML = `Guided tour is flying the streets for you (slow). Raise <b>β</b> for the tunnel effect —
+      detail stays sharp because we re-render the lab cone at full resolution (not a stretched cubemap).`;
   } else if (state.fx.naive && !state.fx.aberration) {
-    h.innerHTML = `<b style="color:#fb7185">Naive squash</b> is the wrong “photo.” Turn <b>Aberration</b> on for the real optical tunnel.`;
-  } else if (state.beta >= 0.75) {
-    h.innerHTML = `<b style="color:#fbbf24">High β</b> — forward world packs into a cone. Keep flying with W;
-      drag to look sideways into the red-shifted rear. Headlight stays mild so detail remains.`;
+    h.innerHTML = `<b style="color:#fb7185">Naive squash</b> is the wrong “photo.” Turn <b>Aberration</b> on.`;
   } else {
-    h.innerHTML = `Hold <b>W</b> to travel · drag to look · β changes <em>optics only</em>.
-      Town speed slider changes how fast you cruise the map — not β.`;
+    h.innerHTML = `Manual mode: <b>WASD</b> to move. Switch back to <b>Guided tour</b> for the full loop.`;
   }
 }
 
@@ -1022,18 +1054,42 @@ const rightDir = new THREE.Vector3();
 const wish = new THREE.Vector3();
 const up = new THREE.Vector3(0, 1, 0);
 
-function integrate(dt) {
-  updateCameraOrientation();
-  camera.getWorldDirection(lookDir);
-  rightDir.crossVectors(lookDir, up).normalize();
+const _tourPos = new THREE.Vector3();
+const _tourTan = new THREE.Vector3();
 
+function integrate(dt) {
   if (state._windmill?.userData?.spin) {
     state._windmill.userData.spin.rotation.z += dt * 0.35;
   }
 
+  // ----- Guided street tour (default) -----
+  if (state.tourOn && state.autoCruise) {
+    // Advance slowly along path length (units ≈ meters/s * cruiseSpeed)
+    const spd = 4.5 * state.cruiseSpeed; // gentle
+    state.tourT = (state.tourT + (spd * dt) / tourLen) % 1;
+    tourCurve.getPointAt(state.tourT, _tourPos);
+    tourCurve.getTangentAt(state.tourT, _tourTan);
+    camera.position.copy(_tourPos);
+    state.vel.copy(_tourTan).normalize();
+    // Auto-look along the road unless user is dragging
+    if (!state.userSteer) {
+      state.yaw = Math.atan2(-_tourTan.x, -_tourTan.z);
+      // Keep slight downward glance at houses
+      state.pitch = THREE.MathUtils.lerp(state.pitch, -0.08, 0.05);
+    }
+    state.moving = true;
+    updateCameraOrientation();
+    applyNaiveSquash();
+    updateMeta();
+    return;
+  }
+
+  // ----- Manual flight -----
+  updateCameraOrientation();
+  camera.getWorldDirection(lookDir);
+  rightDir.crossVectors(lookDir, up).normalize();
+
   wish.set(0, 0, 0);
-  // Auto-cruise: continuous forward along look (the “drive the village” experience)
-  if (state.autoCruise) wish.add(lookDir);
   if (state.keys["KeyW"]) wish.add(lookDir);
   if (state.keys["KeyS"]) wish.sub(lookDir);
   if (state.keys["KeyA"]) wish.sub(rightDir);
@@ -1044,25 +1100,19 @@ function integrate(dt) {
   state.moving = wish.lengthSq() > 1e-6;
   if (state.moving) {
     wish.normalize();
-    // Gameplay speed through town — independent of β (optics use β alone)
-    const spd = 12 * state.cruiseSpeed;
+    const spd = 10 * state.cruiseSpeed;
     camera.position.addScaledVector(wish, spd * dt);
     camera.position.y = Math.max(0.6, Math.min(60, camera.position.y));
     camera.position.x = THREE.MathUtils.clamp(camera.position.x, -95, 95);
     camera.position.z = THREE.MathUtils.clamp(camera.position.z, -95, 95);
-    // Optics boost direction = actual travel direction
     state.vel.copy(wish);
-    state.cubeNeedsUpdate = true;
   } else {
-    // Standing still: boost axis follows look so raising β still shows a tunnel ahead
     state.vel.copy(lookDir);
   }
   if (state.vel.lengthSq() < 1e-8) state.vel.set(1, 0, 0);
   else state.vel.normalize();
 
   applyNaiveSquash();
-  // Meta refresh while flying (throttled via cube interval path is fine every frame cheap)
-  if (state.moving || state.autoCruise) updateMeta();
 }
 
 // =============================================================================
@@ -1072,33 +1122,92 @@ const clock = new THREE.Clock();
 const _right = new THREE.Vector3();
 const _up = new THREE.Vector3();
 const _fwd = new THREE.Vector3();
+const _capR = new THREE.Vector3();
+const _capU = new THREE.Vector3();
+const _capF = new THREE.Vector3();
+const _capTarget = new THREE.Vector3();
+const _worldUp = new THREE.Vector3(0, 1, 0);
+
+function updateObserverBasis() {
+  camera.updateMatrixWorld(true);
+  const e = camera.matrixWorld.elements;
+  _right.set(e[0], e[1], e[2]).normalize();
+  _up.set(e[4], e[5], e[6]).normalize();
+  _fwd.set(-e[8], -e[9], -e[10]).normalize();
+}
+
+function renderCapture(beta, boostDir) {
+  // Capture camera at observer position, looking along boost (travel/look)
+  captureCam.position.copy(camera.position);
+  _capF.copy(boostDir).normalize();
+  if (Math.abs(_capF.y) > 0.95) _capR.set(1, 0, 0);
+  else _capR.crossVectors(_worldUp, _capF).normalize();
+  _capU.crossVectors(_capF, _capR).normalize();
+
+  // Adaptive FOV: only the lab cone that aberration needs
+  const obsHalf = THREE.MathUtils.degToRad(camera.fov * 0.5) * 1.05;
+  const useAberr = state.fx.aberration && beta > 0.02;
+  const labHalf = useAberr ? labHalfAngleForObserver(beta, obsHalf) : obsHalf;
+  // Convert half-angle to vertical FOV; keep wide enough for aspect corners
+  const diag = Math.atan(Math.tan(labHalf) * Math.hypot(1, camera.aspect));
+  captureCam.fov = THREE.MathUtils.radToDeg(2 * Math.max(labHalf, diag * 0.92));
+  captureCam.fov = THREE.MathUtils.clamp(captureCam.fov, 12, 150);
+  captureCam.aspect = camera.aspect;
+  captureCam.near = 0.12;
+  captureCam.far = 900;
+  captureCam.up.copy(_capU);
+  _capTarget.copy(captureCam.position).add(_capF);
+  captureCam.lookAt(_capTarget);
+  captureCam.updateProjectionMatrix();
+  captureCam.updateMatrixWorld(true);
+
+  // Match capture RT aspect to view (letterbox unused if square RT)
+  const w = CAP_W;
+  const h = Math.max(64, Math.round(CAP_W / camera.aspect));
+  if (captureRT.height !== h) {
+    captureRT.setSize(w, Math.min(h, CAP_H));
+  }
+
+  renderer.setRenderTarget(captureRT);
+  renderer.setClearColor(0x9ec0e0, 1);
+  renderer.clear();
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.render(scene, captureCam);
+  renderer.setRenderTarget(null);
+}
 
 function updateRelUniforms() {
   const u = relUniforms;
-  u.tCube.value = cubeRT.texture;
+  u.tScene.value = captureRT.texture;
   u.beta.value = state.beta;
-  // Optics boost = look direction so the “tunnel” is always in front of the camera
-  // (matches free-flight intuition; travel direction still drives movement)
-  camera.getWorldDirection(_fwd);
-  u.betaDir.value.copy(_fwd);
   u.aberration.value = state.fx.aberration ? 1 : 0;
   u.doppler.value = state.fx.doppler ? 1 : 0;
   u.headlight.value = state.fx.headlight ? 1 : 0;
-  u.exposure.value = 1.2;
+  u.exposure.value = 1.15;
 
-  camera.updateMatrixWorld(true);
-  const e = camera.matrixWorld.elements;
-  // columns of matrixWorld: X=right, Y=up, Z=back
-  _right.set(e[0], e[1], e[2]).normalize();
-  _up.set(e[4], e[5], e[6]).normalize();
-  _fwd.set(-e[8], -e[9], -e[10]).normalize(); // look = −back
+  updateObserverBasis();
+  // Boost along look (tunnel always “ahead”); travel can differ slightly on tour
+  u.betaDir.value.copy(_fwd);
   u.camRight.value.copy(_right);
   u.camUp.value.copy(_up);
   u.camForward.value.copy(_fwd);
-
   const fovRad = THREE.MathUtils.degToRad(camera.fov);
   u.tanHalfFov.value = Math.tan(fovRad * 0.5);
   u.aspect.value = camera.aspect;
+
+  // Capture basis from captureCam
+  captureCam.updateMatrixWorld(true);
+  const ce = captureCam.matrixWorld.elements;
+  _capR.set(ce[0], ce[1], ce[2]).normalize();
+  _capU.set(ce[4], ce[5], ce[6]).normalize();
+  _capF.set(-ce[8], -ce[9], -ce[10]).normalize();
+  u.capRight.value.copy(_capR);
+  u.capUp.value.copy(_capU);
+  u.capForward.value.copy(_capF);
+  const cFov = THREE.MathUtils.degToRad(captureCam.fov);
+  u.capTanHalf.value = Math.tan(cFov * 0.5);
+  u.capAspect.value = captureCam.aspect;
 }
 
 function render() {
@@ -1106,38 +1215,42 @@ function render() {
   const dt = Math.min(clock.getDelta(), 0.05);
   integrate(dt);
 
-  const optical = state.beta > 0.02 && (state.fx.aberration || state.fx.doppler || state.fx.headlight);
+  const optical = state.beta > 0.015 && (state.fx.aberration || state.fx.doppler || state.fx.headlight);
 
   if (optical) {
-    // Full lab-frame panorama every frame (RTR-style). Quality over thrift.
-    cubeCam.position.copy(camera.position);
-    cubeCam.update(renderer, scene);
+    updateObserverBasis();
+    renderCapture(state.beta, _fwd);
     updateRelUniforms();
-    renderer.toneMapping = THREE.NoToneMapping; // we tone in-shader; avoid double crush
+    renderer.toneMapping = THREE.NoToneMapping;
     renderer.toneMappingExposure = 1;
+    renderer.setRenderTarget(null);
     renderer.render(relScene, relCam);
   } else {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.2;
+    renderer.setRenderTarget(null);
     renderer.render(scene, camera);
   }
 }
 
-// Spawn at the gate looking into town — ready to demo
-camera.position.set(-22, 2.4, 0);
-state.yaw = 0;
-state.pitch = -0.06;
-state.autoCruise = false;
-setBeta(0);
+// Start on guided tour at the gate
+state.tourT = 0;
+tourCurve.getPointAt(0, camera.position);
+state.autoCruise = true;
+state.tourOn = true;
+state.cruiseSpeed = 0.22;
+setBeta(0.5);
 updateCameraOrientation();
 updateMeta();
 if ($("cruiseSpeedVal")) $("cruiseSpeedVal").textContent = state.cruiseSpeed.toFixed(2) + "×";
-// warm cube
-cubeCam.position.copy(camera.position);
-cubeCam.update(renderer, scene);
+if ($("cruiseSpeed")) $("cruiseSpeed").value = state.cruiseSpeed;
+// Sync cruise chip UI
+$("cruiseChips")?.querySelectorAll("button").forEach((x) => {
+  x.classList.toggle("on", x.dataset.cruise === "on");
+});
 render();
 
-console.log(BUILD, "Relativistic Village — fixed Lorentz cubemap", cubeRes + "³", "· hold W · β for tunnel");
+console.log(BUILD, "guided tour + adaptive", CAP_W + "px SR capture · no cubemap mush");
 </script>
 </body>
 </html>
