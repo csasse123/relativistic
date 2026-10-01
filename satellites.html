@@ -51,7 +51,7 @@ import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const BUILD = "v1.8.0";
+const BUILD = "v1.9.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · thirty-two clocks";
 const params = new URLSearchParams(location.search);
@@ -643,7 +643,7 @@ const MCR = mk("mcr");
 // AI VIDEO CLIP SLOTS — assets/clips/<id>.mp4 (docs/AI_VIDEO_PROMPTS.md).
 // Missing clip → the 3D shot underneath plays instead.
 // =============================================================================
-const CLIPS = {}; ["lookup", "drop_a", "drop_b", "pre_wide", "pre_close", "pre_board", "chorus_cheer", "sat_approach", "sat_beauty", "iss_limb", "gps_helix", "hubble_orbit", "crew_lineup", "slr_laser", "scope_track", "glass_write", "glass_wall", "sat_eclipse", "gps_lost"].forEach((id) => {
+const CLIPS = {}; ["lookup", "drop_a", "drop_b", "pre_wide", "pre_close", "pre_board", "chorus_cheer", "sat_approach", "sat_beauty", "iss_limb", "gps_helix", "hubble_orbit", "crew_lineup", "slr_laser", "scope_track", "glass_write", "glass_wall", "sat_eclipse", "gps_lost", "city_rush", "runway_model", "phone_macro", "stadium_phones", "scooter_nav", "rooftop_storm"].forEach((id) => {
   const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.crossOrigin = "anonymous"; const c = { v, ready: false };
   v.addEventListener("loadeddata", () => { c.ready = true; }); v.addEventListener("error", () => {}); v.src = `assets/clips/${id}.mp4`; CLIPS[id] = c; });
 function drawClip(g, t, sh) { const c = sh.clip && CLIPS[sh.clip]; if (!c || !c.ready) return false; const want = (t - sh.t0) + (sh.clipOff ?? 1.0), v = c.v;
@@ -779,12 +779,17 @@ function buildShots() {
   shot(0, T0("look"), E, CAM.eclipse, { near: 0.02, clip: "sat_eclipse", clipOff: 0.2, intro: true });
   shot(T0("look"), T0("clocks") - 0.2, E, CAM.lookUp, { clip: "lookup", glass: "ds² = −c²dτ² + dx² + dy² + dz²" });
   shot(T0("clocks") - 0.2, T0("build"), E, CAM.reveal, { mode: P2S(0.55, 1.4) });
-  shot(T0("build"), T0("drop"), E, CAM.approach, { near: 0.02, clip: "sat_approach", clipOff: 0.2, cap: ["GPS BLOCK III", "20 200 km · 3.874 km/s · 11 h 58 min"] });
+  shot(T0("build"), 22.0, E, CAM.approach, { near: 0.02, clip: "sat_approach", clipOff: 0.2, cap: ["GPS BLOCK III", "20 200 km · 3.874 km/s · 11 h 58 min"] });
+  // 22 s → drop: accelerating beat-cut montage of the busy, phone-lit world talking to the sky
+  { const beats = [3, 3, 2, 2, 2, 1, 1, 1], ids = ["city_rush", "runway_model", "phone_macro", "stadium_phones", "scooter_nav", "rooftop_storm", "runway_model", "city_rush"],
+      eqs = ["|r − rᵢ| = c (t − tᵢ)", "L1 = 1575.42 MHz", "x · y · z · t", "dτ/dt = 1 + Φ/c² − v²/2c²", "Δf/f = ΔΦ/c² − v²/2c²", "c = 299 792 458 m/s", "+38.6 μs / day", "4 satellites · 1 fix"];
+    const unit = (T0("drop") - 22.0) / beats.reduce((a, b) => a + b, 0); let t0 = 22.0;
+    beats.forEach((b, i) => { const t1 = i === beats.length - 1 ? T0("drop") : t0 + b * unit; shot(t0, t1, E, CAM.night, { near: 0.05, clip: ids[i], clipOff: 0.6 + i * 0.35, storm: true, stormEq: eqs[i], beat: unit }); t0 = t1; }); }
   // DROP — instrumental, cut every 4 kicks, photo ↔ schematic on the bar
   const dk = kicksIn(T0("drop") - 0.05, T0("alt") - 0.2), bars = [T0("drop")]; for (let i = 4; i < dk.length; i += 4) bars.push(dk[i]); bars.push(T0("alt"));
   const L = ["earth", "leo"], NC = (id) => ({ near: NASA[id].size * 0.05, nasa: id, capTop: true, cap: [NASA[id].name, `${NASA[id].alt.toLocaleString("en")} km · ${NASA[id].vkm} km/s · clock ${NASA[id].rate > 0 ? "+" : ""}${NASA[id].rate.toFixed(1)} μs/day`] });
   const D = [[CAM.beauty, "photo", 0, E, { clip: "sat_beauty" }], [CAM.explode, "schem", 0, E, { explode: true, tensor: true }], [CAM.nasa("iss", "limb"), "photo", 0, L, { ...NC("iss"), clip: "iss_limb" }], [CAM.panel, P2S(0.45, 0.8), 0, E],
-    [CAM.helix, "photo", 0, E, { clip: "gps_helix", cap: ["L-BAND HELIX ARRAY", "the 'springs': 12 helical antennas send L1 1575.42 MHz to your phone"] }], [CAM.wide, "schem", 0, E, { clip: "drop_a" }],
+    [CAM.helix, "photo", 0, E, { clip: "gps_helix", cap: ["L-BAND HELIX ARRAY", "12 helices (8 outer + 4 inner) beam L1 · L2 · L5 evenly over the whole Earth"] }], [CAM.wide, "schem", 0, E, { clip: "drop_a" }],
     [CAM.nasa("hubble", "orbit"), "photo", 0, L, { ...NC("hubble"), clip: "hubble_orbit" }], [CAM.explode, "schem", 0, E, { explode: true, tensor: true, clip: "drop_b", glass: "|r − rᵢ| = c(t − tᵢ)" }]];
   for (let i = 0; i < bars.length - 1; i++) { const [f, mode, k, use, o] = D[i % D.length]; shot(bars[i], bars[i + 1], use, (t, u) => f(t, u, k), { near: 0.02, mode, kick: true, ...(o || {}) }); }
   shot(T0("alt"), T0("miss"), E, (t, u) => CAM.chase(t, u, 0), { cap: ["IMAGING SWATH", "ground track · 2 orbits per sidereal day"] });
@@ -851,7 +856,7 @@ function digits(g, t) { const a = T0("num"), b = T1("num") + 0.3; if (t < a - 0.
 function caption(g, t, sh) { if (!sh.cap) return; const a = clamp((t - sh.t0 - 0.4) / 0.6) * clamp((sh.t1 - t - 0.2) / 0.5); if (a <= 0) return;
   g.save(); g.globalAlpha = a; const x = 64, y = sh.capTop ? 96 : OH - 92; g.fillStyle = "rgba(255,255,255,.9)"; g.fillRect(x, y - 30, 2, 52); g.font = `600 22px "Helvetica Neue", Arial, sans-serif`; g.fillStyle = "#fff"; g.textAlign = "left";
   g.fillText(sh.cap[0], x + 16, y - 6); g.font = `400 15px "Helvetica Neue", Arial, sans-serif`; g.fillStyle = "rgba(230,240,250,.85)"; g.fillText(sh.cap[1], x + 16, y + 16); g.restore(); }
-const CALL = [["helix", "L-BAND HELIX ARRAY (the 'springs')", "12 helices · L1 = 154 × 10.23 = 1575.42 MHz"], ["clock", "ATOMIC CLOCKS", "Rb-87 6.834 GHz · Cs-133 9.192 GHz"], ["wing1", "SOLAR ARRAY", "sun-tracking wing"], ["dish", "S-BAND TT&C", "uplink: clock corrections"]];
+const CALL = [["helix", "L-BAND HELIX ARRAY (the 'springs')", "12 helices: 8 outer + 4 inner · even signal over the whole Earth"], ["clock", "ATOMIC CLOCKS", "Rb-87 6.834 GHz · Cs-133 9.192 GHz"], ["wing1", "SOLAR ARRAY", "sun-tracking wing"], ["dish", "S-BAND TT&C", "uplink: clock corrections"]];
 function callouts(g, t, sh) { if (!sh.callouts) return; const xl = (WIPE + 1) / 2 * OW;
   CALL.forEach(([k, a, b], i) => { const o = HERO.userData.anchors[k]; if (!o) return; const p = o.getWorldPosition(V(0, 0, 0)).project(camera); if (p.z > 1) return;
     const x = (p.x * 0.5 + 0.5) * OW, y = (-p.y * 0.5 + 0.5) * OH; if (x > xl || x < 0 || x > OW || y < 0 || y > OH) return;
@@ -898,9 +903,24 @@ function tensorGrid(g, t, sh) { const ks = kicksIn(T0("drop") - 0.05, T0("alt"))
     g.font = `500 11px ${MONO}`; g.fillStyle = mirror ? "rgba(255,180,84,.6)" : "rgba(160,230,255,.8)"; g.fillText(mirror ? `= G${IDX[j]}${IDX[i]} (symmetric)` : i === j ? "diagonal" : "off-diagonal", x + cw / 2, y + ch / 2 + 18); }
   g.textAlign = "left"; g.font = `600 14px ${MONO}`; g.fillStyle = "#ffd28a"; g.fillText("16 components − 6 mirrored = 10 independent equations", x0, y0 + ch * 4 + 30);
   g.fillStyle = "rgba(200,240,255,.85)"; g.fillText("each one: second derivatives of gμν, non-linear, coupled", x0, y0 + ch * 4 + 54); g.restore(); }
+function signalStorm(g, t, sh) { const ph = ((t - 22.0) % sh.beat) / sh.beat, punch = Math.exp(-ph * 6), heat = clamp((t - 22.0) / (T0("drop") - 22.0));
+  const sats = Array.from({ length: 7 }, (_, i) => [((hash(i) * OW + t * (40 + hash(i + 3) * 60) * (i % 2 ? -1 : 1)) % OW + OW) % OW, 40 + hash(i + 7) * 120]);
+  g.save(); g.globalCompositeOperation = "lighter";
+  const nb = 22 + Math.floor(heat * 40); for (let k = 0; k < nb; k++) { const x0 = hash(k * 3.1) * OW, y0 = OH * (0.62 + hash(k * 5.7) * 0.36), [sx, sy] = sats[k % sats.length];
+    const cx = (x0 + sx) / 2 + (hash(k) - 0.5) * 200, cy = Math.min(y0, sy) + (y0 - sy) * 0.25; const f = ((t * (0.9 + hash(k * 2) * 0.8) + hash(k * 9)) % 1);
+    g.strokeStyle = `rgba(120,230,255,${0.10 + 0.25 * punch})`; g.lineWidth = 1; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(cx, cy, sx, sy); g.stroke();
+    const q = (a) => [(1 - a) * (1 - a) * x0 + 2 * (1 - a) * a * cx + a * a * sx, (1 - a) * (1 - a) * y0 + 2 * (1 - a) * a * cy + a * a * sy];
+    for (let d = 0; d < 3; d++) { const a = (f + d * 0.07) % 1, [px, py] = q(a); g.fillStyle = `rgba(${d ? 120 : 255},${d ? 230 : 240},255,${(1 - d * 0.3) * (0.6 + 0.4 * punch)})`; g.beginPath(); g.arc(px, py, d ? 1.6 : 2.6, 0, 7); g.fill(); }
+    g.fillStyle = `rgba(255,200,120,${0.5 + 0.5 * punch})`; g.beginPath(); g.arc(x0, y0, 2.5 + 3 * punch, 0, 7); g.fill(); }
+  sats.forEach(([x, y]) => { const r = 4 + 10 * punch; const gr = g.createRadialGradient(x, y, 0, x, y, r * 3); gr.addColorStop(0, "rgba(255,255,255,.95)"); gr.addColorStop(1, "rgba(120,220,255,0)"); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r * 3, 0, 7); g.fill(); });
+  g.restore();
+  g.fillStyle = `rgba(255,255,255,${0.22 * punch * (0.4 + heat)})`; g.fillRect(0, 0, OW, OH);
+  slam(g, t, sh.t0, sh.t1, sh.stormEq, 0.5, 0.5, Math.min(68, 54 + heat * 16), "#ffffff", { w: 600, f: MATH, glow: heat > 0.6 ? "#ff8a1e" : "#38d6f5" }); }
 function drawOverlay(g, t, sh) {
   g.clearRect(0, 0, OW, OH); if (CLEAN) return;
+  if (sh.storm) { const ph = ((t - 22.0) % sh.beat) / sh.beat, punch = Math.exp(-ph * 6); g.save(); g.translate(OW / 2, OH / 2); g.scale(1 + 0.05 * punch, 1 + 0.05 * punch); g.translate(-OW / 2, -OH / 2); }
   const clipOn = drawClip(g, t, sh);
+  if (sh.storm) { g.restore(); signalStorm(g, t, sh); }
   if (!clipOn) blueprint(g, t, sh);
   if (sh.efe === "derive") efeDerive(g, t, T0("c2"), T0("speed")); if (sh.efe === "num") efeNumeric(g, t, T0("height"), T0("p45")); if (sh.ladder) ladder(g, t, sh.t0, sh.t1);
   if (sh.arcs) drawArcs(g, t);
