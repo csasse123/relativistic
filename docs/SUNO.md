@@ -121,6 +121,22 @@ Tips:
 | Chant | 4 | 1:52–2:00 | Cut on every beat: −7.2 / +45.7 / +38.6, FALL MISS TICK FIX |
 | Outro | 4 | 2:00–2:07 | "You are here", Δf/f formula, pull back, black card |
 
+## The take we used (2:12)
+
+Suno sang the intro, verse 1, the pre-chorus, one chorus, verse 2 and "Then height. Less gravity, less pull on time." It left out the rest of verse 3, the second chorus, the chant and the outro. Those ideas now play as pictures over the instrumental drop (114–125 s): +45.7, net +38.6, × c ≈ 11 km, and the 10.22999999543 MHz detune.
+
+| Event | Time |
+|---|---|
+| Attention / Look up / 32 clocks / None of them land | 7.1 / 10.1 / 12.8 / 18.9 s |
+| Drop (kick) | 28.6 s |
+| Verse 1 | 43.2 s |
+| Kick returns on "Cesium heart" | 57.1 s |
+| Pre-chorus "But up there" | 73.1 s |
+| Chorus | 79.0 s |
+| Verse 2 "Speed first" | 93.3 s |
+| Drop 2 + "Then height" | 107.5 / 108.0 s |
+| Breakdown / final hit / fade | 121.5 / 125.0 / 126–132 s |
+
 ## Putting the song on the video
 
 1. Open `satellites.html` (live: https://csasse123.github.io/relativistic/satellites.html).
