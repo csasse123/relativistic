@@ -24,7 +24,8 @@ async function run(path, body, tries = 2) { for (let k = 0; ; k++) { try { const
   catch (e) { if (k >= tries || /credit|insufficient|402/i.test(e.message)) throw e; console.log(`\n  retry (${e.message.slice(0, 80)})`); } } }
 const save = async (url, file) => fs.writeFileSync(file, Buffer.from(await (await fetch(url)).arrayBuffer()));
 const styleOf = (c) => spec.styles?.[c.style || "crew"] || spec.style || "";
-const still = (c) => { const b = { model: "gen4_image", promptText: `${c.image}. ${styleOf(c)}`.slice(0, 1000), ratio: "1920:1080" }; if (c.refs) b.referenceImages = c.refs.map((r) => ({ uri: dataUri(r.file), tag: r.tag })); return run("/text_to_image", b); };
+const still = (c) => { const b = { model: "gen4_image", promptText: `${c.image}. ${styleOf(c)}`.slice(0, 1000), ratio: "1920:1080" }; const refs = (c.refs || []).filter((r) => fs.existsSync(new URL(r.file, root))); if (refs.length) b.referenceImages = refs.map((r) => ({ uri: dataUri(r.file), tag: r.tag }));
+  else b.promptText = b.promptText.replace(/,? ?(like )?@\w+/g, ""); return run("/text_to_image", b); };
 const video = (c, img, d) => run("/image_to_video", { model: "gen4_turbo", promptImage: img, promptText: `${c.motion}. ${styleOf(c)}`.slice(0, 1000), ratio: "1280:720", duration: d });
 const bal = async (w) => { const o = await call("/organization").catch(() => null); if (o && o.creditBalance != null) console.log(`credits ${w}: ${o.creditBalance}`); };
 const fail = (id, e) => { console.error(`\n✗ ${id}: ${e.message}`); if (/credit|insufficient|402/i.test(e.message)) { console.error("Out of Runway credits — top up at dev.runwayml.com and re-run."); process.exit(2); } };

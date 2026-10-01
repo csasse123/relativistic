@@ -127,10 +127,69 @@
    "style": "crew",
    "image": "Young mission control crew in their twenties facing camera at their consoles, warm desk lamps and teal screens",
    "motion": "slow push-in along the line of faces, they look up at the wall screen together"
+  },
+  {
+   "id": "mirror_night",
+   "t": "0:02.5–0:07.0",
+   "style": "future",
+   "duration": 10,
+   "image": "From orbit at dusk: hundreds of flat square mirror satellites (each a thin silver reflective sheet about 50 metres across on a slim frame) fly in a vast sun-synchronous formation along the terminator, every mirror tilted toward the same point, their beams converging into one brilliant shaft of sunlight that lights a large solar farm in bright daylight on the dark night side of Earth, surrounded by orange city lights",
+   "motion": "slow pull-back revealing more and more mirrors joining the formation, beams converge and the lit circle on the ground brightens as each mirror locks on, epic and serene"
+  },
+  {
+   "id": "slr_laser",
+   "t": "1:00.9–1:03.4",
+   "style": "night",
+   "refs": [
+    {
+     "file": "assets/clips/src/ref_telescope.jpg",
+     "tag": "scope"
+    }
+   ],
+   "image": "A professional observatory telescope (open-truss corrected Dall-Kirkham astrograph on a massive direct-drive alt-az mount, like @scope) in a dome on a mountain at night, a thin bright green laser beam fires from the telescope straight up into the starry sky toward a satellite",
+   "motion": "low-angle shot, the dome slit glows, the green ranging laser pulses rhythmically into the stars, the telescope tracks smoothly, stars drift slightly"
+  },
+  {
+   "id": "scope_track",
+   "t": "1:07.2–1:09.6",
+   "style": "night",
+   "refs": [
+    {
+     "file": "assets/clips/src/ref_telescope.jpg",
+     "tag": "scope"
+    }
+   ],
+   "image": "Close-up of a precision research telescope (open carbon-fibre truss, large primary mirror, direct-drive mount, like @scope) tracking across the night sky inside an open observatory, a tiny bright satellite visible as a point between the stars",
+   "motion": "the telescope slews smoothly and locks on, camera slowly orbits the truss, reflections glide across the mirror, stars sharp"
+  },
+  {
+   "id": "dc_swarm",
+   "t": "1:20.7–1:22.4",
+   "style": "future",
+   "duration": 10,
+   "image": "Hundreds of orbital data-center satellites flying in a vast formation over Earth, each a long module with enormous flat radiator wings glowing faintly dull red from waste heat and dark solar arrays, stretching to the horizon like a city in the sky",
+   "motion": "camera glides through the formation as modules pass close by, radiators shimmer with heat glow, sunlight flares across the arrays, epic scale"
+  },
+  {
+   "id": "dc_radiators",
+   "t": "1:26.1–1:27.9",
+   "style": "future",
+   "image": "Close-up of one orbital data-center module: racks visible through a viewport, huge radiator panels glowing deep orange-red with infrared heat haze, coolant pipes, solar wings, Earth's blue limb behind",
+   "motion": "slow push along the glowing radiator fins, heat shimmer, the Earth's limb rotates slowly behind, detailed and believable"
+  },
+  {
+   "id": "mirror_swarm",
+   "t": "0:00–0:02.5",
+   "style": "future",
+   "duration": 10,
+   "image": "Close tracking shot along a line of flat square orbital mirror satellites, thin silver reflective sheets on lightweight frames with small thruster pods, catching blinding sunlight; dozens more stretch away in formation toward Earth's terminator below",
+   "motion": "camera slides past the nearest mirror as it slowly tilts and flashes the sun at the lens, the formation recedes to the horizon"
   }
  ],
  "styles": {
   "crew": "photorealistic cinematic film still, shot on ARRI Alexa 65, anamorphic 40mm, shallow depth of field, dark modern mission control room lit by wall-sized screens of orbit tracks and a glowing Earth plus warm amber practical desk lamps, teal and amber color grade, subtle film grain, private-spaceflight aesthetic, no logos, no brand names, any on-screen text soft and unreadable",
-  "space": "photorealistic NASA documentary photograph from orbit, shot on 70mm, real spacecraft materials: crinkled gold and silver multi-layer insulation, mirrored radiator tiles, deep blue solar cells with fine silver grid lines, bolts and cabling; hard direct sunlight, pure black space, Earth with real clouds and atmosphere glow; no text, no logos"
+  "space": "photorealistic NASA documentary photograph from orbit, shot on 70mm, real spacecraft materials: crinkled gold and silver multi-layer insulation, mirrored radiator tiles, deep blue solar cells with fine silver grid lines, bolts and cabling; hard direct sunlight, pure black space, Earth with real clouds and atmosphere glow; no text, no logos",
+  "night": "photorealistic astrophotography-grade cinematic shot, dark-sky mountain observatory at night, Milky Way overhead, deep blue night with dim red safelights, crisp stars, shot on ARRI Alexa 65 with fast prime lens, no logos, no readable text",
+  "future": "photorealistic near-future space documentary, real engineering detail: truss structures, huge flat radiator panels, solar arrays, cabling, thermal blankets; hard sunlight, black space, Earth with real clouds below; restrained, believable, no logos, no text"
  }
 }
