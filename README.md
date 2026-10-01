@@ -25,6 +25,15 @@ An adaptive narrow frustum shrank with β and filled the screen → pure zoom mu
 | β = v/c | Optics strength |
 | Doppler | Color vs angle to velocity |
 
+## Music video (v0.8)
+
+`video.html` — 118.8 s 3D physics music video locked to `assets/the-math-never-sleeps.mp3`.
+Formula rain, always-moving satellites, GPS clocks (−7 +45 = +38 μs), windshield Schwarzschild, microwave dipoles, smoke-detector alphas, MRI precession.
+
+- Cues cover only lines actually in the audio (intro, V1, pre, chorus, V2, V3, chorus, V4 + stacked drop). Defaults are estimated from the loudness envelope.
+- `video.html?sync` — tap **Space** at each line start while it plays; times are saved and used on reload.
+- **R** / button — export WebM (real-time capture with audio).
+
 ## Develop
 
 ```bash
