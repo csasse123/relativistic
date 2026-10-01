@@ -66,3 +66,7 @@ cd relativistic && python3 -m http.server 8765
 ## License
 
 MIT · cite Terrell, Penrose, Savage et al., Weiskopf, OpenRelativity when teaching.
+
+## Export for X / YouTube
+
+`node tools/render_mp4.mjs` renders `satellites.html` frame by frame, with every AI clip seeked exactly, and encodes `exports/thirty-two-clocks_1080p.mp4`: H.264 High, AAC 192k, 1920×1080, 30 fps, faststart. It needs Google Chrome and ffmpeg (`brew install ffmpeg`), and `npm i -D playwright` the first time.

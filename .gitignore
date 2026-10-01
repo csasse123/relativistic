@@ -3,3 +3,4 @@ node_modules/
 *.log
 # Runway candidate stills (local only; re-pick with: node tools/runway_clips.mjs --animate <id>:<n>)
 assets/clips/takes/
+exports/
