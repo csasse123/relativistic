@@ -37,7 +37,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
-const BUILD = "v0.8.1";
+const BUILD = "v0.8.2";
 document.getElementById("build").textContent = BUILD + " · video";
 const $ = (id) => document.getElementById(id);
 const TOTAL = 118.8, BPM = 132, BEAT = 60 / BPM;
@@ -634,9 +634,16 @@ $("start").onclick = () => { begin(); manualT = null; au.currentTime = 0; au.pla
 $("pp").onclick = () => { if (!running) begin(); if (au.paused) { manualT = null; au.play(); } else au.pause(); $("pp").textContent = au.paused ? "play" : "pause"; };
 $("seek").oninput = (e) => { manualT = +e.target.value; au.currentTime = manualT; };
 window.__seek = (t) => { if (!running) { running = true; $("start").style.display = "none"; tick(); } au.pause(); manualT = t; au.currentTime = t; };
-function startRec() { begin(); manualT = null; au.currentTime = 0; const st = comp.captureStream(30); try { const as = au.captureStream ? au.captureStream() : null; as && as.getAudioTracks().forEach((tr) => st.addTrack(tr)); } catch (e) {}
-  const mr = new MediaRecorder(st, { mimeType: "video/webm;codecs=vp9,opus", videoBitsPerSecond: 12e6 }); const chunks = []; mr.ondataavailable = (e) => chunks.push(e.data);
-  mr.onstop = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(chunks, { type: "video/webm" })); a.download = "the-math-never-sleeps.webm"; a.click(); }; mr.start(); recording = mr; au.play(); $("rec").textContent = "recording…"; }
+let actx = null, adest = null;
+function audioStream() { // route the <audio> through WebAudio so it is both heard and recorded
+  if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); const src = actx.createMediaElementSource(au); adest = actx.createMediaStreamDestination(); src.connect(actx.destination); src.connect(adest); }
+  if (actx.state === "suspended") actx.resume(); return adest.stream; }
+function startRec() { begin(); manualT = null; au.pause(); au.currentTime = 0;
+  const st = comp.captureStream(30); try { audioStream().getAudioTracks().forEach((tr) => st.addTrack(tr)); } catch (e) { console.warn("audio capture failed", e); }
+  const mt = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].find((m) => MediaRecorder.isTypeSupported(m));
+  const mr = new MediaRecorder(st, { mimeType: mt, videoBitsPerSecond: 12e6, audioBitsPerSecond: 192e3 }); const chunks = []; mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  mr.onstop = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(chunks, { type: "video/webm" })); a.download = "the-math-never-sleeps.webm"; a.click(); };
+  mr.start(500); recording = mr; au.play(); $("rec").textContent = "recording… (with audio)"; }
 function stopRec() { recording && recording.stop(); recording = null; $("rec").textContent = "export webm"; }
 $("rec").onclick = () => (recording ? stopRec() : startRec());
 addEventListener("keydown", (e) => { if (e.key === "r" || e.key === "R") $("rec").click(); });
