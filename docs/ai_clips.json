@@ -167,15 +167,27 @@
    "t": "1:20.7–1:22.4",
    "style": "future",
    "duration": 10,
-   "image": "Hundreds of orbital data-center satellites flying in a vast formation over Earth, each a long module with enormous flat radiator wings glowing faintly dull red from waste heat and dark solar arrays, stretching to the horizon like a city in the sky",
-   "motion": "camera glides through the formation as modules pass close by, radiators shimmer with heat glow, sunlight flares across the arrays, epic scale"
+   "image": "Hundreds of orbital data-center satellites in a vast formation over Earth, in the style of @dcref: each a long compute module carrying a kilometre-scale square solar array and a radiator about half that size, the radiators glowing faintly dull red with waste heat, liquid-cooling pipes and trusses visible, the formation stretching to the horizon like a city in the sky",
+   "motion": "camera glides through the formation as modules pass close by, radiators shimmer with heat glow, sunlight flares across the arrays, epic scale",
+   "refs": [
+    {
+     "file": "assets/clips/src/ref_datacenter.jpg",
+     "tag": "dcref"
+    }
+   ]
   },
   {
    "id": "dc_radiators",
    "t": "1:26.1–1:27.9",
    "style": "future",
-   "image": "Close-up of one orbital data-center module: racks visible through a viewport, huge radiator panels glowing deep orange-red with infrared heat haze, coolant pipes, solar wings, Earth's blue limb behind",
-   "motion": "slow push along the glowing radiator fins, heat shimmer, the Earth's limb rotates slowly behind, detailed and believable"
+   "image": "Close-up of one orbital data-center module in the style of @dcref: server racks visible through a viewport, a huge deployable radiator panel glowing deep orange-red with infrared heat, liquid-cooling pipes and heat pipes, a dark solar array behind, Earth's blue limb beyond",
+   "motion": "slow push along the glowing radiator fins, heat shimmer, the Earth's limb rotates slowly behind, detailed and believable",
+   "refs": [
+    {
+     "file": "assets/clips/src/ref_datacenter.jpg",
+     "tag": "dcref"
+    }
+   ]
   },
   {
    "id": "mirror_swarm",
