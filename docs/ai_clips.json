@@ -1,12 +1,151 @@
 {
-  "style": "photorealistic cinematic film still, shot on ARRI Alexa 65, anamorphic 40mm, shallow depth of field, dark modern mission control room lit by wall-sized screens of orbit tracks and a glowing Earth, teal and amber color grade, subtle film grain, private-spaceflight aesthetic, no logos, no brand names, no readable text",
-  "clips": [
-    { "id": "lookup", "t": "0:10.1–0:12.6", "image": "A young female flight engineer in a fitted black technical jacket, headset around her neck, sits at a console in a dark mission control room; her face is lit cyan by screens; she slowly looks up toward a huge wall display of satellite orbits", "motion": "slow push-in on her face as she lifts her eyes to the wall screen, screen light flickers across her face, subtle handheld" },
-    { "id": "drop_a", "t": "0:37.5–0:39.3", "image": "Wide shot of a sleek mission control room: rows of young engineers (mixed genders and ethnicities, stylish, in their twenties) at curved consoles, a giant wall screen showing Earth with 32 glowing orbit lines", "motion": "fast lateral dolly along the console row, engineers typing, screens pulse to the beat, energetic" },
-    { "id": "drop_b", "t": "0:41.1–0:43.2", "image": "Close-up of hands on a backlit keyboard and a monitor showing streaming green and cyan numbers and orbital plots, a young male engineer with rolled-up sleeves leaning in", "motion": "rapid rack focus from the fingers to his intense eyes reflected in the monitor, numbers scroll, kinetic" },
-    { "id": "pre_wide", "t": "1:13.1–1:15.0", "image": "Moody wide shot from the back of a dark mission control room, silhouettes of young engineers in front of a wall-sized screen showing a world map with sine-wave satellite ground tracks", "motion": "slow crane down from ceiling height toward the consoles, calm, atmospheric haze in the screen light" },
-    { "id": "pre_close", "t": "1:15.0–1:17.0", "image": "Extreme close-up of a young woman engineer with glasses; reflected in her lenses are two clocks drifting apart and the number +38.6 microseconds per day", "motion": "very slow push-in, she blinks, the reflected numbers tick, shallow focus, quiet" },
-    { "id": "pre_board", "t": "1:17.0–1:19.0", "image": "Two young engineers, a man and a woman, at a glass whiteboard covered in handwritten relativity equations and orbit sketches, one of them writing with a marker", "motion": "handheld arc around them as she writes and he points at the equation, they exchange a quick look and a smile" },
-    { "id": "chorus_cheer", "t": "1:19.0–1:20.7", "image": "A mission control team of young engineers jumps up from their consoles celebrating, high-fives, the wall screen behind them shows a satellite lock on a glowing Earth", "motion": "explosive cheer and high-fives in slow motion, camera pushes through the group toward the wall screen, euphoric" }
-  ]
+ "clips": [
+  {
+   "id": "lookup",
+   "t": "0:10.1–0:12.6",
+   "image": "A young female flight engineer in a fitted black technical jacket, headset around her neck, sits at a console in a dark mission control room; her face is lit cyan by screens; she slowly looks up toward a huge wall display of satellite orbits",
+   "motion": "slow push-in on her face as she lifts her eyes to the wall screen, screen light flickers across her face, subtle handheld",
+   "style": "crew"
+  },
+  {
+   "id": "drop_a",
+   "t": "0:37.5–0:39.3",
+   "image": "Wide shot of a sleek mission control room staffed by stylish engineers in their twenties, among them @maya and @leo, a mixed crew (Black, white, South Asian, Latina, East Asian, women and men), at curved consoles under a giant wall screen showing Earth with glowing orbit lines",
+   "motion": "fast lateral dolly along the console row, engineers typing, screens pulse to the beat, energetic",
+   "style": "crew",
+   "refs": [
+    {
+     "file": "assets/clips/src/cast_lookup.jpg",
+     "tag": "maya"
+    },
+    {
+     "file": "assets/clips/src/cast_pre_board.jpg",
+     "tag": "leo"
+    }
+   ],
+   "redo": true
+  },
+  {
+   "id": "drop_b",
+   "t": "0:41.1–0:43.2",
+   "image": "Close-up of hands on a backlit keyboard and a monitor showing streaming green and cyan numbers and orbital plots, a young male engineer with rolled-up sleeves leaning in",
+   "motion": "rapid rack focus from the fingers to his intense eyes reflected in the monitor, numbers scroll, kinetic",
+   "style": "crew"
+  },
+  {
+   "id": "pre_wide",
+   "t": "1:13.1–1:15.0",
+   "image": "Moody wide shot from the back of a dark mission control room: a young, mixed crew in their twenties (women and men of different ethnicities, casual-technical clothes, one in a hoodie) seen from behind at consoles, warm amber desk lamps, a wall-sized screen with a world map and sine-wave satellite ground tracks",
+   "motion": "slow crane down from ceiling height toward the consoles, calm, atmospheric haze in the screen light",
+   "style": "crew",
+   "refs": [
+    {
+     "file": "assets/clips/src/cast_lookup.jpg",
+     "tag": "maya"
+    },
+    {
+     "file": "assets/clips/src/cast_pre_board.jpg",
+     "tag": "leo"
+    }
+   ],
+   "redo": true
+  },
+  {
+   "id": "pre_close",
+   "t": "1:15.0–1:17.0",
+   "image": "Extreme close-up of @maya wearing glasses; reflected in her lenses are two analog clocks drifting apart",
+   "motion": "very slow push-in, she blinks, the reflected numbers tick, shallow focus, quiet",
+   "style": "crew",
+   "refs": [
+    {
+     "file": "assets/clips/src/cast_lookup.jpg",
+     "tag": "maya"
+    }
+   ]
+  },
+  {
+   "id": "pre_board",
+   "t": "1:17.0–1:19.0",
+   "image": "Two young engineers, a man and a woman, at a glass whiteboard covered in handwritten relativity equations and orbit sketches, one of them writing with a marker",
+   "motion": "handheld arc around them as she writes and he points at the equation, they exchange a quick look and a smile",
+   "style": "crew"
+  },
+  {
+   "id": "chorus_cheer",
+   "t": "1:19.0–1:20.7",
+   "image": "A mission control team of young engineers jumps up from their consoles celebrating, high-fives, the wall screen behind them shows a satellite lock on a glowing Earth",
+   "motion": "explosive cheer and high-fives in slow motion, camera pushes through the group toward the wall screen, euphoric",
+   "style": "crew"
+  },
+  {
+   "id": "sat_approach",
+   "t": "0:20.0–0:28.6",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/sat_approach.jpg",
+     "tag": "render"
+    }
+   ],
+   "duration": 10,
+   "image": "Photorealistic photograph of the satellite in @render, same satellite design, same camera angle and composition: a GPS navigation satellite with a gold-foil box body and two long solar wings, drifting in medium Earth orbit",
+   "motion": "slow, steady push-in toward the satellite, sunlight glints travel across the gold foil and the solar cells, stars stay fixed, majestic"
+  },
+  {
+   "id": "sat_beauty",
+   "t": "0:28.6–0:30.4",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/sat_beauty.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic close photograph of the satellite in @render, same design and framing: gold multi-layer insulation, silver radiators, deep-blue solar wings",
+   "motion": "fast orbiting camera move around the satellite, a lens flare sweeps as the Sun passes behind a solar wing, punchy"
+  },
+  {
+   "id": "iss_limb",
+   "t": "0:32.0–0:33.8",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/iss_limb.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic photograph of the International Space Station as in @render, same composition, above the curved limb of Earth with a thin blue atmosphere line and clouds below",
+   "motion": "the station glides forward over the Earth's limb, the terminator line slides across the clouds, camera tracks alongside"
+  },
+  {
+   "id": "gps_helix",
+   "t": "0:35.5–0:37.3",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/gps_helix.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic macro photograph of the Earth-facing antenna panel in @render: twelve white helical L-band antennas in a ring on a dark plate, gold-foil satellite body beside them",
+   "motion": "slow macro slide across the helical antennas with shallow depth of field, rack focus from the near helix to the far ones, Earth glow reflects on the metal"
+  },
+  {
+   "id": "hubble_orbit",
+   "t": "0:39.1–0:40.9",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/hubble_orbit.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic photograph of the Hubble Space Telescope as in @render, same framing, silver foil body and solar arrays against the glowing limb of Earth",
+   "motion": "the telescope rotates slowly as the camera arcs around it, sunlight rakes across its silver insulation, serene"
+  }
+ ],
+ "styles": {
+  "crew": "photorealistic cinematic film still, shot on ARRI Alexa 65, anamorphic 40mm, shallow depth of field, dark modern mission control room lit by wall-sized screens of orbit tracks and a glowing Earth plus warm amber practical desk lamps, teal and amber color grade, subtle film grain, private-spaceflight aesthetic, no logos, no brand names, any on-screen text soft and unreadable",
+  "space": "photorealistic NASA documentary photograph from orbit, shot on 70mm, real spacecraft materials: crinkled gold and silver multi-layer insulation, mirrored radiator tiles, deep blue solar cells with fine silver grid lines, bolts and cabling; hard direct sunlight, pure black space, Earth with real clouds and atmosphere glow; no text, no logos"
+ }
 }
