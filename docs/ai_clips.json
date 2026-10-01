@@ -195,12 +195,55 @@
    ],
    "image": "Photorealistic photograph of the GPS satellite in @render, same design: gold multi-layer insulation, solar wings, alone above the dark night side of Earth, lit only by faint Earth-glow, deep black space, lonely and quiet",
    "motion": "the camera slowly pulls away as the satellite recedes and dims into the darkness of space, Earth's limb fades, ending almost black; melancholic, slow"
+  },
+  {
+   "id": "city_rush",
+   "t": "0:22.0–0:23.3 / 0:28.0–0:28.6",
+   "style": "city",
+   "image": "Aerial view of a packed megacity scramble crossing at night in the rain, thousands of people rushing in every direction, nearly every person holding a glowing phone, neon signs, wet reflective asphalt",
+   "motion": "fast drone push down into the crowd, people stream across, phone screens sparkle like stars, kinetic and dense"
+  },
+  {
+   "id": "runway_model",
+   "t": "0:23.3–0:24.7 / 0:27.6–0:28.0",
+   "style": "city",
+   "image": "A striking young fashion model in a sleek futuristic outfit strides down a dark catwalk toward camera holding a glowing smartphone up, hundreds of camera flashes firing from the audience, strobing light",
+   "motion": "powerful runway walk straight toward camera in slow motion, flashes pop in rhythm, hair and fabric moving, confident"
+  },
+  {
+   "id": "phone_macro",
+   "t": "0:24.7–0:25.6",
+   "style": "city",
+   "image": "Extreme macro of a thumb on a smartphone screen showing a dark map with a pulsing blue location dot, neon city bokeh behind, rain drops on the glass",
+   "motion": "tight push-in on the pulsing blue dot as the map zooms, light flares across the screen glass"
+  },
+  {
+   "id": "stadium_phones",
+   "t": "0:25.6–0:26.5",
+   "style": "city",
+   "image": "A stadium concert crowd at night, tens of thousands of raised phones glowing like a field of stars, smoke and laser beams overhead",
+   "motion": "crane rising over the crowd as phones sway to the beat, lasers sweep, euphoric energy"
+  },
+  {
+   "id": "scooter_nav",
+   "t": "0:26.5–0:27.3",
+   "style": "city",
+   "image": "Close tracking shot of a young rider on an electric scooter weaving through neon traffic in the rain, a phone on the handlebar showing turn-by-turn navigation",
+   "motion": "high-speed tracking alongside the rider, neon streaks, rain spray, the phone screen glows, aggressive and fast"
+  },
+  {
+   "id": "rooftop_storm",
+   "t": "0:27.3–0:27.6",
+   "style": "city",
+   "image": "Wide night shot from a rooftop over a glittering skyline under a clear starry sky, a few satellites visible as moving points of light",
+   "motion": "fast push toward the skyline, city lights twinkle, stars wheel slightly, building tension"
   }
  ],
  "styles": {
   "crew": "photorealistic cinematic film still, shot on ARRI Alexa 65, anamorphic 40mm, shallow depth of field, dark modern mission control room lit by wall-sized screens of orbit tracks and a glowing Earth plus warm amber practical desk lamps, teal and amber color grade, subtle film grain, private-spaceflight aesthetic, no logos, no brand names, any on-screen text soft and unreadable",
   "space": "photorealistic NASA documentary photograph from orbit, shot on 70mm, real spacecraft materials: crinkled gold and silver multi-layer insulation, mirrored radiator tiles, deep blue solar cells with fine silver grid lines, bolts and cabling; hard direct sunlight, pure black space, Earth with real clouds and atmosphere glow; no text, no logos",
   "night": "photorealistic astrophotography-grade cinematic shot, dark-sky mountain observatory at night, Milky Way overhead, deep blue night with dim red safelights, crisp stars, shot on ARRI Alexa 65 with fast prime lens, no logos, no readable text",
-  "future": "photorealistic near-future space documentary, real engineering detail: truss structures, huge flat radiator panels, solar arrays, cabling, thermal blankets; hard sunlight, black space, Earth with real clouds below; restrained, believable, no logos, no text"
+  "future": "photorealistic near-future space documentary, real engineering detail: truss structures, huge flat radiator panels, solar arrays, cabling, thermal blankets; hard sunlight, black space, Earth with real clouds below; restrained, believable, no logos, no text",
+  "city": "photorealistic cinematic night footage, shot on ARRI Alexa 35 with fast anamorphic lens, neon city light, motion energy, shallow depth of field, teal and hot amber/red color grade, film grain, every phone screen glowing; no logos, no brand names, any text unreadable"
  }
 }
