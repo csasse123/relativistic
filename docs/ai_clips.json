@@ -129,19 +129,6 @@
    "motion": "slow push-in along the line of faces, they look up at the wall screen together"
   },
   {
-   "id": "slr_laser",
-   "t": "1:00.9–1:03.4",
-   "style": "night",
-   "refs": [
-    {
-     "file": "assets/clips/src/ref_telescope.jpg",
-     "tag": "scope"
-    }
-   ],
-   "image": "A professional observatory telescope (open-truss corrected Dall-Kirkham astrograph on a massive direct-drive alt-az mount, like @scope) in a dome on a mountain at night, a thin bright green laser beam fires from the telescope straight up into the starry sky toward a satellite",
-   "motion": "low-angle shot, the dome slit glows, the green ranging laser pulses rhythmically into the stars, the telescope tracks smoothly, stars drift slightly"
-  },
-  {
    "id": "scope_track",
    "t": "1:07.2–1:09.6",
    "style": "night",
