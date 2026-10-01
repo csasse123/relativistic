@@ -25,6 +25,15 @@ An adaptive narrow frustum shrank with β and filled the screen → pure zoom mu
 | β = v/c | Optics strength |
 | Doppler | Color vs angle to velocity |
 
+## Thirty-Two Clocks (v1.0)
+
+v1.0 is locked to the Suno take `assets/thirty-two-clocks.mp3` (2:12). Cue times come from a Whisper transcription and kick-drum onset detection. The look cuts between photographic and engineering-drawing styles: NASA Blue Marble imagery, night lights, a GPS III-style satellite with MLI foil, solar cells and a 12-helix L-band array, bloom, ACES tone mapping and lens flare, and a scan-line wipe into a blueprint view with callouts. Add `?q=720` on slower machines.
+
+### v0.9
+
+`satellites.html`: a satellites-only music video. It has real coastlines and city lights (`assets/earth_*.jpg`), a 32-satellite GPS constellation, Newton's cannon, a 4-sphere position fix, special relativity (−7.2 μs), general relativity (+45.7 μs), the factory detune and an imaging dive over Berlin.
+The Suno style, lyrics and settings are in [`docs/SUNO.md`](docs/SUNO.md). Drop the Suno mp3 onto the page; `?sync` gives exact line timing and R exports a WebM.
+
 ## Music video (v0.8)
 
 `video.html` — 118.8 s 3D physics music video locked to `assets/the-math-never-sleeps.mp3`.
