@@ -60,3 +60,9 @@ The script prints your credit balance before and after each run. A clip costs ab
 - **Image:** Photorealistic photograph of the Hubble Space Telescope as in @render, same framing, silver foil body and solar arrays against the glowing limb of Earth
 - **Motion:** the telescope rotates slowly as the camera arcs around it, sunlight rakes across its silver insulation, serene
 
+
+## Director workflow (best quality)
+
+1. `node tools/runway_clips.mjs --stills 4`: writes 4 candidate stills per clip to `assets/clips/takes/`.
+2. Look at the takes and pick one per clip. Criteria: composition and depth; photoreal skin and materials; the correct spacecraft; a young, mixed crew; the teal/amber grade; no warped hands, faces or text.
+3. `node tools/runway_clips.mjs --animate lookup:3 drop_a:1 …`: animates each chosen still as a 10 s clip into `assets/clips/<id>.mp4`.
