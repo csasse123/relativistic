@@ -407,6 +407,35 @@ exist in research codes (X-PSI, bender)."*
 
 ---
 
+## 6b. Magnetic field model (added in v1.15)
+
+**What the renderer draws**
+
+1. **Rotating point dipole in vacuum, exact retarded field.**
+   - The field, with c = 1 and the magnetic moment m evaluated at the retarded time t − r:
+
+     ```
+     B = [3n(n·m) − m]/r³ + [3n(n·ṁ) − ṁ]/r² + [n(n·m̈) − m̈]/r
+     ```
+
+     (Jackson §9.3, the magnetic analogue).
+   - Outside the star this matches Deutsch's (1955) vacuum solution, apart from finite-size multipoles.
+   - The pattern is stationary in the frame rotating with Ω. Lines sweep back and wind into a spiral beyond the light cylinder R_LC = c/Ω. That is 67 km at 716 Hz.
+2. **Schwarzschild dipole near the star.** The static term is replaced by the Schwarzschild dipole (Wasserman & Shapiro 1983):
+   - Flux function Ψ = sin²θ F(r), with F(r) = −(3r²/(8M³))[ln(1 − 2M/r) + 2M/r + 2M²/r²].
+   - Equivalently F(r) = (3/r) Σ_{k≥3} (r_s/r)^{k−3}/k, which tends to 1/r far from the star.
+   - At the surface of a 1.4 M☉, 12 km star the radial field is about 1.36× the flat-space value.
+3. **Viewing the lines.** They are seen through the same physics as the surface:
+   - Each point's image is found from a fan of Binet-equation rays: u'' + u = 3Mu² in the plane through the eye, the centre and the point.
+   - The point is placed at its retarded emission time t_obs − (T_ray − T_ref).
+   - Points behind the star are hidden unless bent rays reach them.
+
+**What it leaves out**
+
+- **Plasma.** Real pulsars have plasma-filled, force-free magnetospheres (Goldreich & Julian 1969; Contopoulos, Kazanas & Fendt 1999; Spitkovsky 2006). There the field lines that cross the light cylinder open into a wind with a current sheet. The vacuum picture keeps the near zone right but not the open-field geometry.
+- **Frame dragging.** Its effect on the field (Muslimov & Tsygan 1992) is ignored.
+- **Combining GR with retardation.** The GR correction is evaluated with the retarded moment, as a near-zone approximation.
+
 ## 7. References
 
 (arXiv IDs for Lattimer & Schutz, Lattimer & Prakash, Poutanen & Gierliński, Fonseca+21 and Hessels+06 are from memory [mem]; the rest appeared in search results.)
