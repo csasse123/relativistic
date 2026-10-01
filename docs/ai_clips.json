@@ -167,9 +167,13 @@
    "t": "1:20.7–1:22.4",
    "style": "future",
    "duration": 10,
-   "image": "Hundreds of orbital data-center satellites in a vast formation over Earth, in the style of @dcref: each a long compute module carrying a kilometre-scale square solar array and a radiator about half that size, the radiators glowing faintly dull red with waste heat, liquid-cooling pipes and trusses visible, the formation stretching to the horizon like a city in the sky",
+   "image": "Photorealistic photograph of the formation in @render, same layout and camera angle: hundreds of orbital data-center satellites in a vast grid over Earth, each with a gold-foil compute hall, a large dark square solar array and two vertical radiator wings glowing orange-red with waste heat, Earth's clouds and blue limb below, black space above",
    "motion": "camera glides through the formation as modules pass close by, radiators shimmer with heat glow, sunlight flares across the arrays, epic scale",
    "refs": [
+    {
+     "file": "assets/clips/src/dc_swarm.jpg",
+     "tag": "render"
+    },
     {
      "file": "assets/clips/src/ref_datacenter.jpg",
      "tag": "dcref"

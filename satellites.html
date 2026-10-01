@@ -51,7 +51,7 @@ import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const BUILD = "v1.5.0";
+const BUILD = "v1.6.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · thirty-two clocks";
 const params = new URLSearchParams(location.search);
@@ -395,6 +395,30 @@ const SATS = []; PER.forEach((n, p) => { for (let k = 0; k < n; k++) SATS.push({
 function satPos(i, t, out = V(0, 0, 0)) { const s = SATS[i], a = s.ph + OMEGA * t, x = Math.cos(a) * RG, zz = Math.sin(a) * RG;
   const y = zz * Math.sin(INC), z = zz * Math.cos(INC), O = s.p * Math.PI / 3; return out.set(x * Math.cos(O) + z * Math.sin(O), y, -x * Math.sin(O) + z * Math.cos(O)); }
 const satVel = (i, t) => satPos(i, t + 0.05).sub(satPos(i, t)).normalize();
+// ORBITAL DATA CENTERS — 324 modules in formation: truss spine, compute hall,
+// square solar array, two radiator wings glowing with waste heat (P = εσAT⁴)
+const DC = mk("dc");
+{ const COLS = 27, ROWS = 12, n = COLS * ROWS, alt = R + 550 * R / 6371, d = new THREE.Object3D();
+  const radTex = canvasTex(256, 64, (g) => { const gr = g.createLinearGradient(0, 0, 256, 0); gr.addColorStop(0, "#ff7a2a"); gr.addColorStop(0.5, "#c8401a"); gr.addColorStop(1, "#6a1a0c"); g.fillStyle = gr; g.fillRect(0, 0, 256, 64);
+    g.fillStyle = "rgba(20,8,4,.55)"; for (let x = 0; x < 256; x += 8) g.fillRect(x, 0, 2, 64); });
+  const parts = [
+    [new THREE.BoxGeometry(0.06, 0.06, 2.2), new THREE.MeshStandardMaterial({ color: 0x9aa3ad, metalness: 0.85, roughness: 0.3 }), V(0, 0, 0)],
+    [new THREE.BoxGeometry(0.34, 0.26, 0.7), new THREE.MeshPhysicalMaterial({ color: 0xffe2a8, map: foilC, metalness: 1, roughness: 0.3, normalMap: foilN }), V(0, 0, 0.15)],
+    [new THREE.BoxGeometry(1.5, 0.02, 1.5), new THREE.MeshPhysicalMaterial({ map: cellTex, metalness: 0.4, roughness: 0.18, clearcoat: 1, iridescence: 0.5 }), V(0, 0.2, -0.95)],
+    [new THREE.BoxGeometry(0.015, 0.75, 0.95), new THREE.MeshStandardMaterial({ color: 0x220a04, emissive: 0xffffff, emissiveMap: radTex, emissiveIntensity: 2.2, roughness: 0.6 }), V(0.32, -0.4, 0.6)],
+    [new THREE.BoxGeometry(0.015, 0.75, 0.95), new THREE.MeshStandardMaterial({ color: 0x220a04, emissive: 0xffffff, emissiveMap: radTex, emissiveIntensity: 2.2, roughness: 0.6 }), V(-0.32, -0.4, 0.6)]];
+  DC.inst = parts.map(([geo, mat]) => { const m = noCull(new THREE.InstancedMesh(geo, mat, n)); DC.root.add(m); return m; });
+  // formation: a sheet riding along the orbit (rows along-track, columns cross-track), slight waves
+  const base = SUN.clone().applyAxisAngle(V(0, 1, 0), THREE.MathUtils.degToRad(70)).normalize(), along = V(0, 1, 0).cross(base).normalize(), cross = base.clone().cross(along).normalize();
+  DC.center = base.clone().multiplyScalar(alt); DC.along = along; DC.cross = cross; DC.up = base;
+  const r = rng(77); let k = 0;
+  for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++, k++) { const a = (i - ROWS / 2) * 2.6 / alt, c = (j - COLS / 2) * 2.0 + (r() - 0.5) * 0.3;
+    const pos = base.clone().applyAxisAngle(cross, a).multiplyScalar(alt + (r() - 0.5) * 0.4).addScaledVector(cross, c);
+    const upv = pos.clone().normalize(), al = along.clone().addScaledVector(upv, -along.dot(upv)).normalize(), cx = al.clone().cross(upv).normalize(); d.position.copy(pos); d.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(cx, upv, al)); d.rotateY((r() - 0.5) * 0.06); d.updateMatrix();
+    parts.forEach(([, , off], pi) => { const m = d.matrix.clone().multiply(new THREE.Matrix4().makeTranslation(off.x, off.y, off.z)); DC.inst[pi].setMatrixAt(k, m); }); }
+  DC.glow = glow(0xff6a2a, 12, 0.06); DC.glow.position.copy(DC.center); DC.root.add(DC.glow);
+  DC.update = (t) => { const p = 0.85 + 0.15 * Math.sin(t * 2.0); DC.inst[3].material.emissiveIntensity = DC.inst[4].material.emissiveIntensity = 2.2 * p; };
+}
 // MEGA-CONSTELLATION — 120 000 satellites propagated on the GPU (shells 340–1200 km)
 const MEGA = mk("mega");
 { const N = 120000, r = rng(99), a = new Float32Array(N * 4), shells = [[340, 53], [550, 53], [550, 70], [570, 97.6], [1150, 53.5], [1200, 87.9]];
@@ -691,6 +715,8 @@ const hb = (t, k = 0) => { const H = satPos(k, t), up = H.clone().normalize(), v
 const at3 = (b, x, y, z) => b.H.clone().addScaledVector(b.v, x).addScaledVector(b.up, y).addScaledVector(b.side, z);
 const nb = (id) => { const s = NASA[id]; const up = s.pos.clone().normalize(), side = s.vel.clone().cross(up).normalize(); return { P: s.pos, up, v: s.vel, side, d: s.size }; };
 const CAM = {
+  dcfly(t, u) { const C = DC.center, e = sm(u); const p = C.clone().addScaledVector(DC.up, lerp(3.2, 7, e)).addScaledVector(DC.along, lerp(-19, -14, e)).addScaledVector(DC.cross, lerp(-8, 3, e));
+    camera.up.copy(DC.up); look(p.add(shake(t, 0.01)), C.clone().addScaledVector(DC.along, 4).addScaledVector(DC.up, -2.5), lerp(-0.1, 0.04, e)); camera.up.set(0, 1, 0); },
   nasa(id, style = "orbit") { return (t, u) => { const s = NASA[id]; if (!s || !s.obj) return CAM.wide(t, u); const b = nb(id), d = b.d, at = (x, y, z) => b.P.clone().addScaledVector(b.v, x * d).addScaledVector(b.up, y * d).addScaledVector(b.side, z * d);
     if (style === "limb") look(at(-2.6 + u * 1.4, 0.35, -1.6).add(shake(t, 0.004)), at(0.8, -0.25, 0), 0.04);
     else if (style === "under") look(at(-1.2 + u * 0.8, -1.5, 1.1), at(0, 0.2, 0), -0.1);
@@ -740,7 +766,7 @@ let SHOTS = [];
 function buildShots() {
   SHOTS = []; const shot = (t0, t1, use, cam, o = {}) => { if (t1 > t0 + 0.001) SHOTS.push({ t0, t1, use, cam, mode: "photo", ...o }); };
   const E = ["earth", "con"], P2S = (at = 0.3, dur = 0.9) => ({ from: -1.25, to: 1.25, at, dur }), S2P = (at = 0.3, dur = 0.9) => ({ from: 1.25, to: -1.25, at, dur });
-  shot(0, 3.6, [...E, "mega"], CAM.reveal, { clip: "dc_swarm", clipOff: 0.3, cap: ["ORBITAL DATA CENTERS", "proposed · cooled only by radiating heat"], formula: ["P = ε σ A T⁴", "1 MW at 300 K → ≈ 1 200 m² of radiator"] }); shot(3.6, T0("look"), E, CAM.night, { clip: "mirror_night", clipOff: 0.5, cap: ["SUNLIGHT AT NIGHT", "hundreds of mirrors, one spot on the ground"], formula: ["spot ≈ h · 0.0093  ·  brightness ∝ N", "the Sun is 0.53° wide → a ~5 km spot from 600 km"] });
+  shot(0, 3.6, [...E, "mega", "dc"], CAM.dcfly, { near: 0.02, clip: "dc_swarm", clipOff: 0.3, cap: ["ORBITAL DATA CENTERS", "proposed · cooled only by radiating heat"], formula: ["P = ε σ A T⁴", "1 MW at 300 K → ≈ 1 200 m² of radiator"] }); shot(3.6, T0("look"), E, CAM.night, { clip: "mirror_night", clipOff: 0.5, cap: ["SUNLIGHT AT NIGHT", "hundreds of mirrors, one spot on the ground"], formula: ["spot ≈ h · 0.0093  ·  brightness ∝ N", "the Sun is 0.53° wide → a ~5 km spot from 600 km"] });
   shot(T0("look"), T0("clocks") - 0.2, E, CAM.lookUp, { clip: "lookup", glass: "ds² = −c²dτ² + dx² + dy² + dz²" });
   shot(T0("clocks") - 0.2, T0("build"), E, CAM.reveal, { mode: P2S(0.55, 1.4) });
   shot(T0("build"), T0("drop"), E, CAM.approach, { near: 0.02, clip: "sat_approach", clipOff: 0.2, cap: ["GPS BLOCK III", "20 200 km · 3.874 km/s · 11 h 58 min"] });
@@ -894,7 +920,7 @@ function renderFrame(t) {
   sh.cam(t, u); camera.updateMatrixWorld();
   setWipe(wipeFor(sh, t));
   // reflections + earthshine follow the hero
-  const H = sh.nasa && NASA[sh.nasa] ? NASA[sh.nasa].pos : satPos(0, t), eDir = space ? H.clone().normalize().negate() : V(0, -1, 0); updateEnv(eDir);
+  const H = sh.use.includes("dc") ? DC.center : sh.nasa && NASA[sh.nasa] ? NASA[sh.nasa].pos : satPos(0, t), eDir = space ? H.clone().normalize().negate() : V(0, -1, 0); updateEnv(eDir);
   const tgt = space ? H : V(0, 0, 0); earthLight.target.position.copy(tgt); earthLight.position.copy(tgt).addScaledVector(eDir, 10);
   const rp = rainP(t), rs = space ? 6 : sh.use.includes("well") ? 5 : sh.use.includes("lab") || sh.use.includes("map") ? 2 : 1, sa = schemAmt();
   rainMat.uniforms.uFall.value = fallAt(t); rainMat.uniforms.uAlpha.value = rp.a * lerp(0.12, 1, sa) * (space ? 0.6 : 1) * (sh.efe || sh.ladder ? 0.35 : 1); rainMat.uniforms.uDens.value = rp.dens; rainMat.uniforms.uShear.value = rp.sh; rainMat.uniforms.uTint.value = rp.tint;
