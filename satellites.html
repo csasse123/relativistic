@@ -51,7 +51,7 @@ import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const BUILD = "v1.2.0";
+const BUILD = "v1.2.1";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · thirty-two clocks";
 const params = new URLSearchParams(location.search);
@@ -608,7 +608,7 @@ const MCR = mk("mcr");
 // AI VIDEO CLIP SLOTS — assets/clips/<id>.mp4 (docs/AI_VIDEO_PROMPTS.md).
 // Missing clip → the 3D shot underneath plays instead.
 // =============================================================================
-const CLIPS = {}; ["lookup", "drop_a", "drop_b", "pre_wide", "pre_close", "pre_board", "chorus_cheer", "sat_approach", "sat_beauty", "iss_limb", "gps_helix", "hubble_orbit"].forEach((id) => {
+const CLIPS = {}; ["lookup", "drop_a", "drop_b", "pre_wide", "pre_close", "pre_board", "chorus_cheer", "sat_approach", "sat_beauty", "iss_limb", "gps_helix", "hubble_orbit", "crew_lineup"].forEach((id) => {
   const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.crossOrigin = "anonymous"; const c = { v, ready: false };
   v.addEventListener("loadeddata", () => { c.ready = true; }); v.addEventListener("error", () => {}); v.src = `assets/clips/${id}.mp4`; CLIPS[id] = c; });
 function drawClip(g, t, sh) { const c = sh.clip && CLIPS[sh.clip]; if (!c || !c.ready) return false; const want = (t - sh.t0) + (sh.clipOff || 0.4), v = c.v;
@@ -754,7 +754,7 @@ function buildShots() {
   shot(T0("c2"), T0("c3"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
   shot(T0("c3"), (T0("c3") + T0("c4")) / 2, L, CAM.nasa("iss", "orbit"), { ...NC("iss"), efe: "derive" });
   shot((T0("c3") + T0("c4")) / 2, T0("c4"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
-  shot(T0("c4"), T0("speed"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
+  shot(T0("c4"), T0("c4") + 1.2, ["mcr"], CAM.mcr("low"), { clip: "crew_lineup", near: 0.05 }); shot(T0("c4") + 1.2, T0("speed"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
   // VERSE 2 — special relativity
   shot(T0("speed"), T0("moving"), L, CAM.nasa("icesat2", "flyby"), NC("icesat2")); shot(T0("moving"), T0("gamma"), L, CAM.nasa("aqua", "under"), NC("aqua"));
   shot(T0("gamma"), T0("m7"), L, CAM.nasa("landsat8", "orbit"), { ...NC("landsat8"), mode: P2S(0.0, 0.8), ladder: true, cap: null });

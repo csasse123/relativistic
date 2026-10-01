@@ -10,20 +10,9 @@
   {
    "id": "drop_a",
    "t": "0:37.5–0:39.3",
-   "image": "Wide shot of a sleek mission control room staffed by stylish engineers in their twenties, among them @maya and @leo, a mixed crew (Black, white, South Asian, Latina, East Asian, women and men), at curved consoles under a giant wall screen showing Earth with glowing orbit lines",
+   "image": "Wide shot of a sleek mission control room: rows of young engineers (mixed genders and ethnicities, stylish, in their twenties) at curved consoles, a giant wall screen showing Earth with 32 glowing orbit lines",
    "motion": "fast lateral dolly along the console row, engineers typing, screens pulse to the beat, energetic",
-   "style": "crew",
-   "refs": [
-    {
-     "file": "assets/clips/src/cast_lookup.jpg",
-     "tag": "maya"
-    },
-    {
-     "file": "assets/clips/src/cast_pre_board.jpg",
-     "tag": "leo"
-    }
-   ],
-   "redo": true
+   "style": "crew"
   },
   {
    "id": "drop_b",
@@ -37,18 +26,7 @@
    "t": "1:13.1–1:15.0",
    "image": "Moody wide shot from the back of a dark mission control room: a young, mixed crew in their twenties (women and men of different ethnicities, casual-technical clothes, one in a hoodie) seen from behind at consoles, warm amber desk lamps, a wall-sized screen with a world map and sine-wave satellite ground tracks",
    "motion": "slow crane down from ceiling height toward the consoles, calm, atmospheric haze in the screen light",
-   "style": "crew",
-   "refs": [
-    {
-     "file": "assets/clips/src/cast_lookup.jpg",
-     "tag": "maya"
-    },
-    {
-     "file": "assets/clips/src/cast_pre_board.jpg",
-     "tag": "leo"
-    }
-   ],
-   "redo": true
+   "style": "crew"
   },
   {
    "id": "pre_close",
@@ -142,6 +120,13 @@
    ],
    "image": "Photorealistic photograph of the Hubble Space Telescope as in @render, same framing, silver foil body and solar arrays against the glowing limb of Earth",
    "motion": "the telescope rotates slowly as the camera arcs around it, sunlight rakes across its silver insulation, serene"
+  },
+  {
+   "id": "crew_lineup",
+   "t": "1:29.6–1:30.8",
+   "style": "crew",
+   "image": "Young mission control crew in their twenties facing camera at their consoles, warm desk lamps and teal screens",
+   "motion": "slow push-in along the line of faces, they look up at the wall screen together"
   }
  ],
  "styles": {
