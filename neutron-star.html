@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Spinning Neutron Star · ray traced</title>
+<style>
+  :root {
+    --bg: #04060b;
+    --panel: rgba(10, 16, 28, 0.88);
+    --line: rgba(125, 211, 252, 0.22);
+    --ink: #e8eef8;
+    --muted: #8b9bb0;
+    --accent: #7dd3fc;
+    --warm: #fbbf24;
+    --hot: #fb7185;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink);
+    font-family: "DM Sans", system-ui, sans-serif; }
+  canvas#c { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+  canvas#c.dragging { cursor: grabbing; }
+  .top {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+    padding: 16px 20px 28px; pointer-events: none;
+    background: linear-gradient(180deg, rgba(3,5,10,0.9) 0%, transparent 100%);
+  }
+  .badge {
+    display: inline-block; font: 700 0.62rem/1 "JetBrains Mono", monospace;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: #061018; background: linear-gradient(90deg, #7dd3fc, #a78bfa);
+    border-radius: 999px; padding: 4px 10px; margin-bottom: 8px;
+  }
+  h1 { font: 700 1.45rem/1.15 "Space Grotesk", system-ui, sans-serif; letter-spacing: -0.02em; }
+  .top p { margin-top: 6px; max-width: 54ch; font-size: 0.82rem; color: var(--muted); line-height: 1.45; }
+  .panel {
+    position: fixed; z-index: 6; top: 12px; right: 12px; width: min(340px, 92vw);
+    max-height: calc(100vh - 24px); overflow: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 14px 14px 16px; backdrop-filter: blur(12px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  }
+  .panel.hidden { display: none; }
+  .panel h2 {
+    font: 700 0.68rem/1 "JetBrains Mono", monospace; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent); margin: 14px 0 8px;
+  }
+  .panel h2:first-child { margin-top: 0; }
+  .row {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+    font-size: 0.76rem; color: #c8d4e4; margin-bottom: 2px;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); margin-bottom: 6px; }
+  .val { font: 600 0.7rem "JetBrains Mono", monospace; color: #a5f3fc; min-width: 3.2rem; text-align: right; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .chips button {
+    border: 1px solid var(--line); background: rgba(15, 23, 42, 0.8); color: #cbd5e1;
+    border-radius: 999px; padding: 5px 9px; font-size: 0.7rem; cursor: pointer;
+  }
+  .chips button.on { border-color: var(--accent); color: #e0f2fe; background: rgba(14, 116, 144, 0.3); }
+  .chips.fx button.on { border-color: #a78bfa; background: rgba(109, 40, 217, 0.28); }
+  .chips button.gr { border-style: dashed; }
+  .meta {
+    font: 500 0.66rem/1.55 "JetBrains Mono", monospace; color: #94a3b8;
+    background: rgba(0,0,0,0.28); border-radius: 10px; padding: 8px 10px; margin-top: 6px;
+  }
+  .meta b { color: #e2e8f0; }
+  .meta .blue { color: #7dd3fc; } .meta .gold { color: #fbbf24; } .meta .rose { color: #fb7185; }
+  .help {
+    font-size: 0.71rem; line-height: 1.45; color: #a8b8cc; margin: 0 0 8px;
+    padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(125,211,252,0.15);
+    background: rgba(8, 16, 28, 0.65);
+  }
+  #pulse { width: 100%; height: 92px; display: block; background: rgba(0,0,0,0.3); border-radius: 10px; }
+  .caption {
+    position: fixed; left: 20px; bottom: 46px;
+    z-index: 5; max-width: min(640px, calc(100vw - 400px)); text-align: center; pointer-events: none;
+    background: rgba(5,8,14,0.72); border: 1px solid rgba(125,211,252,0.2); border-radius: 14px;
+    padding: 10px 16px; transition: opacity 0.4s;
+  }
+  .caption .step { font: 700 0.62rem "JetBrains Mono", monospace; letter-spacing: 0.14em; color: #a78bfa; text-transform: uppercase; }
+  .caption .t { font: 700 1.05rem "Space Grotesk", system-ui, sans-serif; margin: 3px 0 4px; }
+  .caption .d { font-size: 0.78rem; color: #a8b8cc; line-height: 1.45; }
+  .hint {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    z-index: 5; font-size: 0.68rem; color: #64748b; pointer-events: none; text-align: center; max-width: 90vw;
+  }
+  .build { position: fixed; left: 12px; bottom: 12px; z-index: 5; font: 600 0.62rem "JetBrains Mono", monospace; color: #475569; }
+  .toggle {
+    position: fixed; z-index: 7; top: 12px; right: 12px; display: none;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    border-radius: 999px; padding: 7px 12px; font: 600 0.7rem "JetBrains Mono", monospace; cursor: pointer;
+  }
+  .toggle.show { display: block; }
+  .warn { color: #fb7185; font-weight: 700; }
+  @media (max-width: 720px) {
+    .top p { display: none; }
+    .panel { top: auto; bottom: 0; right: 0; left: 0; width: 100%; max-height: 46vh; border-radius: 16px 16px 0 0; }
+    .caption { bottom: calc(46vh + 8px); left: 8px; right: 8px; max-width: none; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="top">
+  <div class="badge">Special + general relativity · per-pixel geodesic ray tracing</div>
+  <h1>Spinning Neutron Star</h1>
+  <p>
+    Every pixel is a photon traced <b>backwards</b> through curved spacetime to the star's surface. Switch the physics
+    on one effect at a time, from <b style="color:#7dd3fc">Newton</b> to <b style="color:#a78bfa">everything</b>, then look with <b style="color:#fbbf24">two eyes</b>.
+    Drag to orbit · wheel to zoom.
+  </p>
+</div>
+<button class="toggle" id="showPanel" type="button">⚙ panel (H)</button>
+
+<div class="panel" id="panel">
+  <h2>1 · Physics ladder</h2>
+  <div class="help">
+    Each step <b>adds</b> one effect to the one before it, like Newton → contraction → Terrell → Doppler in the village.
+    <b>Guided</b> steps through them by itself. Keys <b>0–8</b>.
+  </div>
+  <div class="chips" id="ladder"></div>
+  <div class="chips">
+    <button type="button" id="guided" class="on">Guided ladder ▶</button>
+    <button type="button" id="pause">Pause (Space)</button>
+  </div>
+  <div class="help" style="margin-bottom:4px">Or switch single effects (dashed = general relativity):</div>
+  <div class="chips fx" id="fx"></div>
+
+  <h2>2 · View</h2>
+  <div class="chips" id="views">
+    <button type="button" data-view="0" class="on">Mono</button>
+    <button type="button" data-view="1">Newton | current</button>
+    <button type="button" data-view="2">Anaglyph 🟥🟦</button>
+    <button type="button" data-view="3">Cross-eye</button>
+    <button type="button" data-view="4">Parallel</button>
+  </div>
+  <label class="row"><span>Eye baseline (two eyes, km)</span><span class="val" id="sepVal"></span></label>
+  <input id="sep" type="range" min="0.2" max="12" step="0.1" value="2.0" />
+  <label class="row"><span>Inclination i (spin axis ↔ you)</span><span class="val" id="incVal"></span></label>
+  <input id="inc" type="range" min="2" max="178" step="1" value="62" />
+  <label class="row"><span>Your distance (km from centre)</span><span class="val" id="distVal"></span></label>
+  <input id="dist" type="range" min="20" max="400" step="1" value="58" />
+  <label class="row"><span>Field of view</span><span class="val" id="fovVal"></span></label>
+  <input id="fov" type="range" min="10" max="90" step="1" value="34" />
+  <label class="row"><span>Playback (turns per second, slow motion)</span><span class="val" id="turnsVal"></span></label>
+  <input id="turns" type="range" min="0.02" max="2" step="0.01" value="0.22" />
+  <label class="row"><span>Exposure</span><span class="val" id="expoVal"></span></label>
+  <input id="expo" type="range" min="-3" max="3" step="0.05" value="0" />
+  <label class="row"><span>Render resolution</span><span class="val" id="resVal"></span></label>
+  <input id="res" type="range" min="0.3" max="1.5" step="0.05" value="0.75" />
+  <div class="chips">
+    <button type="button" id="gridBtn" class="on">Lat/long grid</button>
+    <button type="button" id="skyBtn" class="on">Star field</button>
+    <button type="button" id="autoRes" class="on">Auto resolution</button>
+    <button type="button" id="autoExpo" class="on" title="Adapts like an eye; switch off to compare absolute brightness between steps">Auto exposure</button>
+  </div>
+
+  <h2>3 · The star</h2>
+  <div class="chips" id="presets"></div>
+  <label class="row"><span>Spin f (Hz)</span><span class="val" id="fVal"></span></label>
+  <input id="f" type="range" min="1" max="6000" step="1" value="716" />
+  <label class="row"><span><b style="color:#fbbf24">Equator speed v/c</b> (sets f, like β in the village)</span><span class="val" id="betaVal"></span></label>
+  <input id="beta" type="range" min="0" max="0.97" step="0.005" value="0.22" />
+  <div class="chips" id="betaPresets"></div>
+  <label class="row"><span>Mass M (M☉)</span><span class="val" id="mVal"></span></label>
+  <input id="m" type="range" min="0.6" max="2.4" step="0.01" value="1.4" />
+  <label class="row"><span>Equatorial radius R (km)</span><span class="val" id="rVal"></span></label>
+  <input id="r" type="range" min="8" max="16" step="0.05" value="12" />
+  <label class="row"><span>Magnetic tilt (hot caps)</span><span class="val" id="tiltVal"></span></label>
+  <input id="tilt" type="range" min="0" max="90" step="1" value="48" />
+  <label class="row"><span>Hot-cap angular radius</span><span class="val" id="spotVal"></span></label>
+  <input id="spot" type="range" min="4" max="40" step="1" value="20" />
+
+  <h2>4 · Pulse profile (what NICER measures)</h2>
+  <canvas id="pulse" width="620" height="184"></canvas>
+  <div class="meta" id="pulseMeta">collecting one turn…</div>
+
+  <h2>5 · Numbers</h2>
+  <div class="meta" id="meta"></div>
+  <div class="help" style="margin-top:8px">
+    Colours are <b>false-colour blackbody</b>: surface X-ray temperatures (~1–4 MK) are scaled ×1/400 into
+    visible light, then shifted exactly as the physics shifts them (a blackbody at <i>T</i> is seen as a blackbody at <i>gT</i>).
+    Time is slowed to a watchable rate, but every delay is computed at the true spin, so all phases are real.
+    Literature: <code>docs/NEUTRON_STAR_LITERATURE.md</code>.
+  </div>
+</div>
+
+<div class="caption" id="caption"><div class="step" id="capStep"></div><div class="t" id="capT"></div><div class="d" id="capD"></div></div>
+<div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
+<div class="build" id="build">v1.14.0</div>
+
+<script id="fs" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+precision highp int;
+out vec4 outColor;
+
+uniform vec2  uRes;
+uniform int   uView;        // 0 mono, 1 split Newton|current, 2 anaglyph, 3 cross-eye, 4 parallel
+uniform int   uPulse;       // 1 = flux pass (linear, star only)
+uniform vec3  uEyeP[2];
+uniform vec3  uEyeR[2];
+uniform vec3  uEyeU[2];
+uniform vec3  uEyeF[2];
+uniform int   uMask[2];     // physics bitmask: [0] current, [1] comparison (Newton)
+uniform float uTan;         // tan(vertical fov / 2)
+uniform float uCx;          // horizontal principal-point shift (keeps the star clear of the panel)
+uniform float uRs;          // Schwarzschild radius 2GM/c^2 (km)
+uniform float uReq;         // equatorial radius (km)
+uniform float uO2;          // oblateness R(θ)=Req(1+o2 cos²θ)
+uniform float uOm;          // spin Ω in rad per km of light travel
+uniform float uJ;           // angular momentum (geometric, km²): ω(r)=2J/r³
+uniform float uT;           // observer coordinate time (km)
+uniform vec3  uMag;         // magnetic axis, body frame
+uniform float uSpot;        // hot-cap angular radius (rad)
+uniform vec4  uTemps;       // crust, cool dots, hot caps, beacon (display K)
+uniform float uExpo;
+uniform float uGrid;
+uniform float uSky;
+uniform float uPix;         // radians per pixel
+uniform sampler2D uLut;     // blackbody → linear sRGB, log T
+uniform vec2  uLutRange;
+
+const float PI = 3.14159265359;
+
+bool F(int m, int b) { return ((m >> b) & 1) == 1; }
+// bits: 0 contraction, 1 light-travel time, 2 aberration, 3 Doppler, 4 beaming,
+//       5 light bending, 6 grav. redshift + time dilation, 7 Shapiro, 8 oblateness, 9 frame dragging
+
+float hash13(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+vec4 hash43(vec3 p) {
+  vec4 q = fract(vec4(p.xyzx) * vec4(0.1031, 0.1030, 0.0973, 0.1099));
+  q += dot(q, q.wzxy + 33.33);
+  return fract((q.xxyz + q.yzzw) * q.zywx);
+}
+float vnoise(vec3 p) {
+  vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash13(i), b = hash13(i + vec3(1,0,0)), c = hash13(i + vec3(0,1,0)), d = hash13(i + vec3(1,1,0));
+  float e = hash13(i + vec3(0,0,1)), g = hash13(i + vec3(1,0,1)), h = hash13(i + vec3(0,1,1)), k = hash13(i + vec3(1,1,1));
+  return mix(mix(mix(a,b,f.x), mix(c,d,f.x), f.y), mix(mix(e,g,f.x), mix(h,k,f.x), f.y), f.z);
+}
+vec3 bb(float T) {
+  float x = (log(max(T, 1.0)) - uLutRange.x) / (uLutRange.y - uLutRange.x);
+  return texture(uLut, vec2(clamp(x, 0.0, 1.0), 0.5)).rgb;
+}
+float lum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+
+// ---------------------------------------------------------------- geodesics
+// Null geodesics of Schwarzschild written in Cartesian form (same orbit as u''+u = 3/2 r_s u²):
+//   d²x/dλ² = -3/2 r_s h² x / r⁵ ,  h = |x × dx/dλ| ,  dt/dλ = 1/(1 - r_s/r)  (E = 1)
+float gRs, gBend, gO2;
+vec3 acc(vec3 x, float h2) { float r2 = dot(x, x); return -1.5 * gRs * gBend * h2 * x / (r2 * r2 * sqrt(r2)); }
+float rSurf(vec3 x) { float c = x.z * x.z / dot(x, x); return uReq * (1.0 + gO2 * c); }
+void rk4(inout vec3 x, inout vec3 v, float dl, float h2) {
+  vec3 a1 = acc(x, h2);
+  vec3 v2 = v + 0.5 * dl * a1;  vec3 a2 = acc(x + 0.5 * dl * v, h2);
+  vec3 v3 = v + 0.5 * dl * a2;  vec3 a3 = acc(x + 0.5 * dl * v2, h2);
+  vec3 v4 = v + dl * a3;        vec3 a4 = acc(x + dl * v3, h2);
+  x += dl / 6.0 * (v + 2.0 * v2 + 2.0 * v3 + v4);
+  v += dl / 6.0 * (a1 + 2.0 * a2 + 2.0 * a3 + a4);
+}
+vec3 rotZ(vec3 p, float a) { float c = cos(a), s = sin(a); return vec3(c * p.x - s * p.y, s * p.x + c * p.y, p.z); }
+
+// weak-field remainder from point x along v to infinity: Δ = r_s/b (1 - x̂·v̂), toward the centre
+vec3 escapeDir(vec3 x, vec3 v) {
+  vec3 vn = normalize(v);
+  vec3 bv = x - dot(x, vn) * vn; float b = max(length(bv), 1e-4);
+  float D = gBend * gRs / b * (1.0 - dot(normalize(x), vn));
+  return normalize(vn - D * bv / b);
+}
+
+// Trace backwards from the eye. Returns true on hitting the surface.
+bool trace(int m, vec3 x0, vec3 dLoc, out vec3 X, out vec3 V, out float T, out vec3 sky) {
+  bool shap = F(m, 7), drag = F(m, 9);
+  gRs = uRs; gBend = F(m, 5) ? 1.0 : 0.0; gO2 = F(m, 8) ? uO2 : 0.0;
+  float rc = length(x0); vec3 rh = x0 / rc;
+  vec3 v = dLoc;
+  if (gBend > 0.5) { float vr = dot(dLoc, rh); v = vr * rh + (dLoc - vr * rh) / sqrt(1.0 - uRs / rc); }
+  vec3 L = cross(x0, v); float h2 = dot(L, L);
+  X = vec3(0); V = vec3(0); T = 0.0;
+  float rEsc = 4.0 * uReq;
+  if (h2 > rEsc * rEsc) { sky = escapeDir(x0, v); return false; }
+  vec3 x = x0; float t = 0.0;
+  for (int i = 0; i < 260; i++) {
+    float r = length(x);
+    if (r > rEsc && dot(x, v) > 0.0) { sky = escapeDir(x, v); return false; }
+    float dist = r - rSurf(x);
+    float dl = clamp(max(0.6 * dist, 0.022 * r), 0.004 * uReq, 0.25 * r);
+    vec3 xp = x, vp = v;
+    rk4(x, v, dl, h2);
+    float rm = 0.5 * (r + length(x));
+    float dtf = shap ? 1.0 / (1.0 - uRs / rm) : 0.5 * (length(vp) + length(v));
+    if (length(x) < rSurf(x)) {
+      float lo = 0.0, hi = dl;
+      for (int k = 0; k < 8; k++) {
+        float mid = 0.5 * (lo + hi); vec3 xt = xp, vt = vp; rk4(xt, vt, mid, h2);
+        if (length(xt) < rSurf(xt)) hi = mid; else lo = mid;
+      }
+      x = xp; v = vp; rk4(x, v, hi, h2);
+      t += hi * dtf;
+      if (drag) { float w = -2.0 * uJ / (rm * rm * rm) * hi * dtf; x = rotZ(x, w); v = rotZ(v, w); }
+      X = x; V = v; T = t; return true;
+    }
+    t += dl * dtf;
+    // Lense–Thirring: the forward photon is dragged by +ω dt, so the backward ray turns by −ω dt
+    if (drag) { float w = -2.0 * uJ / (rm * rm * rm) * dl * dtf; x = rotZ(x, w); v = rotZ(v, w); }
+  }
+  sky = normalize(v); return false;
+}
+
+// ---------------------------------------------------------------- surface
+// Angular distance from u to c, with lengths along the spin direction stretched by γ:
+// a feature of fixed proper size looks 1/γ narrower along its motion (length contraction).
+float cdist(vec3 u, vec3 c, vec3 eph, float g) {
+  float cs = clamp(dot(u, c), -1.0, 1.0); float d = acos(cs);
+  vec3 tv = c - u * cs; float tl = length(tv);
+  if (tl < 1e-6) return d;
+  float bp = dot(tv, eph) / tl;
+  return d * sqrt(1.0 + (g * g - 1.0) * bp * bp);
+}
+vec3 sph(float th, float ph) { return vec3(sin(th) * cos(ph), sin(th) * sin(ph), cos(th)); }
+
+float surfaceT(vec3 u, float gc) {
+  vec3 eph = normalize(vec3(-u.y, u.x, 0.0) + 1e-7);
+  float n = 0.6 * vnoise(u * 9.0) + 0.4 * vnoise(u * 27.0);
+  float T = uTemps.x * (0.92 + 0.14 * n);
+  float th = acos(clamp(u.z, -1.0, 1.0)), ph = atan(u.y, u.x);
+  if (uGrid > 0.5) {
+    float st = PI / 6.0;
+    float dth = abs(th - st * floor(th / st + 0.5));
+    float dph = abs(ph - st * floor(ph / st + 0.5)) * sin(th) * gc;
+    float line = 1.0 - smoothstep(0.006, 0.011, min(dth, dph));
+    T = mix(T, T * 0.8, line);
+  }
+  // three rows of painted cool dots (proper radius fixed)
+  for (int row = 0; row < 3; row++) {
+    float thr = row == 0 ? 0.87 : (row == 1 ? PI * 0.5 : PI - 0.87);
+    float off = row == 1 ? 0.0 : PI / 8.0;
+    float k = floor((ph - off) / (PI / 4.0) + 0.5);
+    float phc = off + k * PI / 4.0;
+    vec3 c = sph(thr, phc);
+    float d = cdist(u, c, eph, gc);
+    bool beacon = row == 1 && abs(mod(k, 8.0)) < 0.5;
+    float rad = beacon ? 0.16 : 0.085;
+    float s = 1.0 - smoothstep(rad * 0.8, rad, d);
+    T = mix(T, beacon ? uTemps.w : uTemps.y, s);
+  }
+  // magnetic hot caps (antipodal)
+  float d1 = cdist(u, uMag, eph, gc), d2 = cdist(u, -uMag, eph, gc);
+  float sp = 1.0 - smoothstep(uSpot * 0.82, uSpot, min(d1, d2));
+  float core = 1.0 - smoothstep(0.0, uSpot * 0.8, min(d1, d2));
+  T = mix(T, uTemps.z * (0.9 + 0.1 * core), sp);
+  return T;
+}
+
+vec3 shadeHit(int m, vec3 X, vec3 V, float T, vec3 eye) {
+  float r = length(X); vec3 rh = X / r;
+  // photon direction at emission in the local static frame (forward = −V)
+  vec3 fw = -V; float vr = dot(fw, rh); vec3 vt = fw - vr * rh;
+  float lapseB = F(m, 5) ? sqrt(1.0 - uRs / r) : 1.0;
+  vec3 k = normalize(vr * rh + vt * lapseB);
+  // surface normal of the oblate surface r = Req(1 + o2 z²/r²)
+  float o2 = F(m, 8) ? uO2 : 0.0;
+  // (static orthonormal frame: the tangential tilt grows by 1/√(1 − r_s/r), Morsink et al. 2007)
+  vec3 nf = rh - uReq * o2 * (2.0 * X.z / (r * r) * vec3(0, 0, 1) - 2.0 * X.z * X.z / (r * r * r * r) * X);
+  float nr = dot(nf, rh);
+  vec3 n = normalize(nr * rh + (nf - nr * rh) / lapseB);
+  float cosA = max(dot(k, n), 0.0);
+  // surface speed: β_Ω = Ωρ/N against the static frame, β_Z = (Ω − ω)ρ/N against the local ZAMO.
+  // g = N √(1 − β_Z²) / (1 − β_Ω cos ξ)  (slow-rotation metric; reduces to δ = 1/γ(1 − β cos ξ) without dragging)
+  float rho = length(X.xy);
+  vec3 ephi = rho > 1e-6 ? vec3(-X.y, X.x, 0.0) / rho : vec3(0.0);
+  float w = F(m, 9) ? 2.0 * uJ / (r * r * r) : 0.0;
+  float N = F(m, 6) ? sqrt(1.0 - uRs / r) : 1.0;
+  float betaO = clamp(uOm * rho / N, 0.0, 0.995);
+  float betaZ = clamp((uOm - w) * rho / N, 0.0, 0.995);
+  float gam = inversesqrt(1.0 - betaZ * betaZ);
+  float delta = 1.0 / (gam * (1.0 - betaO * dot(k, ephi)));
+  float mu = F(m, 2) ? clamp(delta * cosA, 0.0, 1.0) : cosA;     // aberration: cos α' = δ cos α
+  // emission time → rotation phase of the surface when this photon left
+  float rc = length(eye);
+  float Tref = (rc - uReq) + (F(m, 7) ? uRs * log((rc - uRs) / (uReq - uRs)) : 0.0);
+  float te = uT - (F(m, 1) ? (T - Tref) : 0.0);
+  vec3 pb = rotZ(rh, -uOm * te);
+  float Tb = surfaceT(pb, F(m, 0) ? gam : 1.0);
+  // shifts: Doppler δ and gravitational sqrt(1 - r_s/R) / sqrt(1 - r_s/r_eye)
+  float g = (F(m, 3) ? delta : 1.0) * (F(m, 6) ? sqrt(1.0 - uRs / r) / sqrt(1.0 - uRs / rc) : 1.0);
+  vec3 col = bb(Tb * g);                                              // I_ν = g³ I'_{ν/g}  ⇒ blackbody at gT
+  if (!F(m, 4)) col *= lum(bb(Tb)) / max(lum(col), 1e-8);             // colour only, rest-frame brightness
+  col *= (1.0 + 2.06 * mu) / 3.06;                                    // electron-scattering limb darkening
+  return col;
+}
+
+// ---------------------------------------------------------------- sky
+vec3 faceDir(int f, vec2 uv) {
+  if (f == 0) return vec3(1, uv); if (f == 1) return vec3(-1, uv);
+  if (f == 2) return vec3(uv.x, 1, uv.y); if (f == 3) return vec3(uv.x, -1, uv.y);
+  if (f == 4) return vec3(uv, 1); return vec3(uv, -1);
+}
+vec3 starLayer(vec3 d, float N, float dens, float bright) {
+  vec3 a = abs(d); int f; vec2 uv;
+  if (a.x >= a.y && a.x >= a.z) { uv = d.yz / a.x; f = d.x > 0.0 ? 0 : 1; }
+  else if (a.y >= a.z) { uv = d.xz / a.y; f = d.y > 0.0 ? 2 : 3; }
+  else { uv = d.xy / a.z; f = d.z > 0.0 ? 4 : 5; }
+  vec2 c0 = floor(uv * N);
+  vec3 col = vec3(0);
+  float sig = max(uPix * 0.75, 0.00035);
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec2 c = c0 + vec2(i, j);
+    vec4 h = hash43(vec3(c, float(f) * 17.0 + N));
+    if (h.z > dens) continue;
+    vec3 sd = normalize(faceDir(f, (c + 0.15 + 0.7 * h.xy) / N));
+    float ang = length(d - sd);
+    float I = bright * pow(h.w, 3.0) * exp(-0.5 * ang * ang / (sig * sig));
+    vec3 tint = bb(2800.0 + 9000.0 * fract(h.w * 7.13)); tint /= max(lum(tint), 1e-6);
+    col += I * tint;
+  }
+  return col;
+}
+vec3 skyCol(vec3 d) {
+  if (uSky < 0.5) return vec3(0.0);
+  vec3 col = starLayer(d, 14.0, 0.10, 9.0) + starLayer(d, 40.0, 0.08, 2.5) + starLayer(d, 110.0, 0.06, 0.9);
+  vec3 ng = normalize(vec3(0.35, -0.55, 0.76));
+  float band = exp(-pow(dot(d, ng), 2.0) / 0.018);
+  float cl = 0.45 + 0.55 * vnoise(d * 7.0) * vnoise(d * 17.0 + 3.0);
+  col += band * cl * vec3(0.022, 0.024, 0.034);
+  return col;
+}
+
+// ---------------------------------------------------------------- camera
+vec3 renderEye(int e, int m, vec2 ndc, float aspect, out bool hit) {
+  vec3 d = normalize(uEyeF[e] + (ndc.x + uCx) * uTan * aspect * uEyeR[e] + ndc.y * uTan * uEyeU[e]);
+  vec3 X, V, sky; float T;
+  hit = trace(m, uEyeP[e], d, X, V, T, sky);
+  return hit ? shadeHit(m, X, V, T, uEyeP[e]) : skyCol(sky);
+}
+// hue-preserving filmic curve on luminance, so a blue-shifted hot cap stays blue instead of clipping white
+vec3 tone(vec3 c) {
+  c *= uExpo;
+  float L = lum(c);
+  if (L <= 0.0) return vec3(0.0);
+  float Lt = clamp((L * (2.51 * L + 0.03)) / (L * (2.43 * L + 0.59) + 0.14), 0.0, 1.0);
+  c *= Lt / L;
+  float mx = max(c.r, max(c.g, c.b));
+  if (mx > 1.0) c = mix(c / mx, vec3(1.0), clamp((mx - 1.0) * 0.5, 0.0, 1.0));
+  return pow(clamp(c, 0.0, 1.0), vec3(1.0 / 2.2));
+}
+
+void main() {
+  vec2 fc = gl_FragCoord.xy;
+  bool hit;
+  if (uPulse == 1) {
+    vec2 ndc = fc / uRes * 2.0 - 1.0;
+    vec3 c = renderEye(0, uMask[0], ndc, 1.0, hit);
+    outColor = hit ? vec4(c, 1.0) : vec4(0.0);
+    return;
+  }
+  if (uView == 0 || uView == 2) {
+    vec2 ndc = fc / uRes * 2.0 - 1.0; float asp = uRes.x / uRes.y;
+    if (uView == 0) { outColor = vec4(tone(renderEye(0, uMask[0], ndc, asp, hit)), 1.0); return; }
+    vec3 L = tone(renderEye(0, uMask[0], ndc, asp, hit));
+    vec3 R = tone(renderEye(1, uMask[0], ndc, asp, hit));
+    outColor = vec4(lum(L), R.g, R.b, 1.0);   // half-colour red/cyan anaglyph
+    return;
+  }
+  float hw = uRes.x * 0.5;
+  bool left = fc.x < hw;
+  vec2 ndc = vec2((left ? fc.x : fc.x - hw) / hw, fc.y / uRes.y) * 2.0 - 1.0;
+  float asp = hw / uRes.y;
+  int e = 0, m = uMask[0];
+  if (uView == 1) { m = left ? uMask[1] : uMask[0]; }
+  else if (uView == 3) { e = left ? 1 : 0; }          // cross-eye: right eye on the left
+  else { e = left ? 0 : 1; }                          // parallel
+  vec3 c = tone(renderEye(e, m, ndc, asp, hit));
+  if (abs(fc.x - hw) < 1.0) c = vec3(0.25, 0.32, 0.42);
+  outColor = vec4(c, 1.0);
+}
+</script>
+
+<script>
+"use strict";
+const BUILD = "v1.14.0";
+document.getElementById("build").textContent = BUILD;
+const $ = (id) => document.getElementById(id);
+
+// ============================================================================ constants
+const C_KM = 299792.458;          // km/s
+const RS_SUN = 2.953250;          // 2GM☉/c² in km
+const GM_SUN = 1.32712440018e20;  // m³/s²
+const T_SCALE = 1 / 400;          // X-ray K → display K
+
+// ============================================================================ effects + ladder
+const FX = [
+  { key: "contract", bit: 0, label: "Length contraction" },
+  { key: "retard",   bit: 1, label: "Light-travel time" },
+  { key: "aberr",    bit: 2, label: "Aberration" },
+  { key: "doppler",  bit: 3, label: "Doppler colour" },
+  { key: "beam",     bit: 4, label: "Beaming g³" },
+  { key: "bend",     bit: 5, label: "Light bending", gr: true },
+  { key: "grz",      bit: 6, label: "Grav. redshift", gr: true },
+  { key: "shapiro",  bit: 7, label: "Shapiro delay", gr: true },
+  { key: "oblate",   bit: 8, label: "Oblate shape", gr: true },
+  { key: "drag",     bit: 9, label: "Frame dragging", gr: true },
+];
+const LADDER = [
+  { name: "Newton", add: [], t: "Newton: a rigid ball, light is instant",
+    d: "Straight rays, no light delay, no colour change. You see exactly half the surface, and the pattern turns like a painted globe." },
+  { name: "+ contraction", add: ["contract"], t: "Length contraction (Ehrenfest)",
+    d: "Convention: each painted dot has a fixed proper size, so moving at v it is 1/γ shorter along the spin (Ehrenfest). Dots and grid lines narrow in longitude, most at the equator, not at the poles. At real spins γ ≈ 1.02, so raise f to see it." },
+  { name: "+ light time", add: ["retard"], t: "Light-travel time (Rømer delay)",
+    d: "Light from the limb left ~R/c ≈ 40 µs earlier than light from the centre. At 716 Hz that is ~10° of rotation, so the pattern you see is sheared: the limbs show the past." },
+  { name: "+ aberration", add: ["aberr"], t: "Aberration → Terrell–Penrose",
+    d: "Each patch emits in its own moving frame: cos α′ = δ cos α. With the light delay this is the Terrell–Penrose effect: the approaching limb faces you more, the receding limb turns away." },
+  { name: "+ Doppler", add: ["doppler"], t: "Relativistic Doppler shift",
+    d: "δ = 1 / γ(1 − β cos ξ). The approaching limb is bluer, the receding limb redder: one side of the star is a different colour from the other." },
+  { name: "+ beaming", add: ["beam"], t: "Relativistic beaming",
+    d: "Iν/ν³ is invariant, so a blackbody at T is seen as one at δT. The approaching side is much brighter; this skews the pulse profile below." },
+  { name: "+ bending", add: ["bend"], t: "General relativity: light bending",
+    d: "Photons follow Schwarzschild null geodesics. The star looks bigger (R/√(1−r_s/R)), and you can see beyond the poles and around the back: about 3/4 of the surface at once." },
+  { name: "+ redshift", add: ["grz", "shapiro"], t: "Gravitational redshift + Shapiro delay",
+    d: "Everything is redshifted by √(1 − r_s/R) ≈ 0.81, the surface clocks run slow (so v = ΩR sinθ/√(1 − r_s/R)), and light climbing out of the well is delayed." },
+  { name: "Everything", add: ["oblate", "drag"], t: "Everything: oblate star + frame dragging",
+    d: "The spinning star bulges at the equator (oblate-Schwarzschild shape, AlGendy & Morsink 2014) and spacetime itself is dragged around (Lense–Thirring, slow-rotation). That is the NICER pulse-fit physics, plus frame dragging, which those fits usually leave out." },
+];
+function ladderMask(step) {
+  let m = 0;
+  for (let i = 1; i <= step; i++) for (const k of LADDER[i].add) m |= 1 << FX.find((f) => f.key === k).bit;
+  return m;
+}
+
+const PRESETS = [
+  { name: "J1748−2446ad · 716 Hz", f: 716, M: 1.4, R: 12.0, inc: 62, tilt: 48 },
+  { name: "J0030+0451 · NICER", f: 205.53, M: 1.34, R: 12.71, inc: 54, tilt: 60 },
+  { name: "J0740+6620 · 2.08 M☉", f: 346.53, M: 2.08, R: 12.39, inc: 87, tilt: 70 },
+  { name: "J0437−4715", f: 173.69, M: 1.418, R: 11.36, inc: 42.5, tilt: 40 },
+  { name: "Hypothetical 2 kHz", f: 2000, M: 1.4, R: 12.0, inc: 70, tilt: 50 },
+  { name: "Hypothetical v = 0.9c", beta: 0.9, M: 1.4, R: 12.0, inc: 70, tilt: 50 },
+];
+
+// ============================================================================ state
+const S = {
+  step: 8, mask: ladderMask(8), guided: true, guideT: 0, paused: false,
+  view: 0, sep: 2.0, inc: 62, az: 0.4, dist: 58, fov: 34, turns: 0.22, expo: 0, res: 0.75, autoRes: true,
+  grid: true, sky: true, beta: null, autoExpo: true, ae: 0.9, capT: 0,
+  f: 716, M: 1.4, R: 12.0, tilt: 48, spot: 20,
+  tKm: 0,
+};
+
+// ============================================================================ GL
+const canvas = $("c");
+const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, powerPreference: "high-performance" });
+if (!gl) { document.body.innerHTML = "<p style='padding:40px'>WebGL2 is required.</p>"; throw new Error("no webgl2"); }
+const hasFloatRT = !!gl.getExtension("EXT_color_buffer_float");
+
+const VS = `#version 300 es
+void main(){ vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
+function compile(type, src) {
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { const log = gl.getShaderInfoLog(s); console.error(log); throw new Error(log); }
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, $("fs").textContent));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+gl.bindVertexArray(gl.createVertexArray());
+const U = {};
+for (let i = 0, n = gl.getProgramParameter(prog, gl.ACTIVE_UNIFORMS); i < n; i++) {
+  const name = gl.getActiveUniform(prog, i).name.replace(/\[0\]$/, "");
+  U[name] = gl.getUniformLocation(prog, name);
+}
+
+// ---------------------------------------------------------------- blackbody LUT (CIE 1931, Wyman et al. 2013 fit)
+const LUT_N = 512, LT0 = Math.log(300), LT1 = Math.log(120000);
+function cmf(l) {
+  const g = (x, m, s1, s2) => { const t = (x - m) / (x < m ? s1 : s2); return Math.exp(-0.5 * t * t); };
+  return [
+    1.056 * g(l, 599.8, 37.9, 31.0) + 0.362 * g(l, 442.0, 16.0, 26.7) - 0.065 * g(l, 501.1, 20.4, 26.2),
+    0.821 * g(l, 568.8, 46.9, 40.5) + 0.286 * g(l, 530.9, 16.3, 31.1),
+    1.217 * g(l, 437.0, 11.8, 36.0) + 0.681 * g(l, 459.0, 26.0, 13.8),
+  ];
+}
+function bbXYZ(T) {
+  let X = 0, Y = 0, Z = 0;
+  for (let l = 380; l <= 780; l += 4) {
+    const B = Math.pow(l, -5) / Math.expm1(1.4387769e7 / (l * T));
+    const c = cmf(l); X += B * c[0]; Y += B * c[1]; Z += B * c[2];
+  }
+  return [X, Y, Z];
+}
+const Y_REF = bbXYZ(6000)[1];
+const lutData = new Float32Array(LUT_N * 4);
+for (let i = 0; i < LUT_N; i++) {
+  const T = Math.exp(LT0 + (LT1 - LT0) * i / (LUT_N - 1));
+  const [X, Y, Z] = bbXYZ(T).map((v) => v / Y_REF);
+  let r = 3.2406 * X - 1.5372 * Y - 0.4986 * Z, g = -0.9689 * X + 1.8758 * Y + 0.0415 * Z, b = 0.0557 * X - 0.2040 * Y + 1.0570 * Z;
+  const mn = Math.min(r, g, b);
+  if (mn < 0) { const k = Y / Math.max(Y - mn, 1e-30); r = (r - mn) * k; g = (g - mn) * k; b = (b - mn) * k; } // desaturate into gamut, keep Y
+  lutData.set([Math.min(r, 6e4), Math.min(g, 6e4), Math.min(b, 6e4), 1], i * 4);
+}
+const lutTex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, lutTex);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, LUT_N, 1, 0, gl.RGBA, gl.FLOAT, lutData);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.uniform1i(U.uLut, 0);
+gl.uniform2f(U.uLutRange, LT0, LT1);
+
+// ---------------------------------------------------------------- pulse (flux) render target
+const PN = 64;
+let pulseFbo = null;
+if (hasFloatRT) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, PN, PN, 0, gl.RGBA, gl.FLOAT, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  pulseFbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, pulseFbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) pulseFbo = null;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.bindTexture(gl.TEXTURE_2D, lutTex);
+}
+const pulsePix = new Float32Array(PN * PN * 4);
+const NB = 96;
+let bins = new Float32Array(NB).fill(NaN), pulseSig = "", lastPh = null, lastFlux = 0;
+
+// ============================================================================ physics (JS side)
+function phys() {
+  const { M, R, f } = S;
+  const rs = RS_SUN * M, x = rs / 2 / R, lapse = Math.sqrt(1 - rs / R);
+  const Om = 2 * Math.PI * f, OmKm = Om / C_KM;
+  const fK = 1080 * Math.sqrt(M) * Math.pow(10 / R, 1.5);           // break-up estimate, Haensel et al. 2009 (R non-rotating; R_eq used here)
+  const fO = Math.min(f, fK);                                       // oblateness fit only valid below break-up
+  const Obar2 = Math.pow(2 * Math.PI * fO, 2) * Math.pow(R * 1e3, 3) / (GM_SUN * M);
+  const o2 = Obar2 * (-0.788 + 1.030 * x);                          // AlGendy & Morsink 2014, Eq. 20
+  const mr = M / R, kappa = 0.237 * (1 + 4.2 * mr + 90 * mr ** 4);  // I/MR², Lattimer & Schutz 2005
+  const J = kappa * (rs / 2) * R * R * OmKm;                        // km²
+  const wS = 2 * J / R ** 3;                                        // frame-dragging rate at surface
+  const cosPsiMax = 1 - 1 / (1 - rs / R);                           // Beloborodov 2002, α = 90°
+  const visGR = cosPsiMax < -1 ? 1 : (1 - cosPsiMax) / 2;
+  return { rs, x, lapse, Om, OmKm, fK, o2, kappa, J, wS, visGR };
+}
+let P = phys();
+
+// ============================================================================ UI
+function chip(parent, label, onClick, cls) {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = label;
+  if (cls) b.classList.add(cls);
+  b.addEventListener("click", onClick); parent.appendChild(b); return b;
+}
+const ladderBtns = LADDER.map((L, i) => chip($("ladder"), `${i} ${L.name}`, () => { setGuided(false); setStep(i); }));
+const fxBtns = FX.map((f) => chip($("fx"), f.label, () => { setGuided(false); S.mask ^= 1 << f.bit; S.step = -1; syncUI(); }, f.gr ? "gr" : null));
+PRESETS.forEach((p) => chip($("presets"), p.name, () => {
+  Object.assign(S, { M: p.M, R: p.R, inc: p.inc, tilt: p.tilt });
+  if (p.beta) setBeta(p.beta); else { S.f = p.f; S.beta = null; }
+  for (const k of ["f", "inc", "tilt"]) $(k).value = S[k];
+  $("m").value = S.M; $("r").value = S.R; syncUI();
+}));
+
+function setStep(i) { S.step = i; S.mask = ladderMask(i); showCaption(i); syncUI(); }
+function setGuided(on) { S.guided = on; S.guideT = 0; $("guided").classList.toggle("on", on); $("guided").textContent = on ? "Guided ladder ▶" : "Guided ladder"; }
+function showCaption(i) {
+  const L = LADDER[i];
+  $("capStep").textContent = `step ${i} of ${LADDER.length - 1}`;
+  $("capT").textContent = L.t; $("capD").textContent = L.d;
+  $("caption").style.opacity = 1; S.capT = 0;
+}
+$("guided").addEventListener("click", () => { setGuided(!S.guided); if (S.guided) setStep(0); });
+$("pause").addEventListener("click", () => { S.paused = !S.paused; $("pause").classList.toggle("on", S.paused); });
+document.querySelectorAll("#views button").forEach((b) => b.addEventListener("click", () => { S.view = +b.dataset.view; syncUI(); }));
+$("gridBtn").addEventListener("click", () => { S.grid = !S.grid; syncUI(); });
+$("skyBtn").addEventListener("click", () => { S.sky = !S.sky; syncUI(); });
+$("autoRes").addEventListener("click", () => { S.autoRes = !S.autoRes; syncUI(); });
+$("autoExpo").addEventListener("click", () => { S.autoExpo = !S.autoExpo; syncUI(); });
+$("showPanel").addEventListener("click", () => togglePanel());
+function togglePanel() { $("panel").classList.toggle("hidden"); $("showPanel").classList.toggle("show", $("panel").classList.contains("hidden")); }
+
+const sliders = {
+  sep: (v) => `${v.toFixed(1)} km`, inc: (v) => `${v.toFixed(0)}°`, dist: (v) => `${v.toFixed(0)} km`,
+  fov: (v) => `${v.toFixed(0)}°`, turns: (v) => `${v.toFixed(2)}/s`, expo: (v) => `${v >= 0 ? "+" : ""}${v.toFixed(2)} EV`,
+  res: (v) => `${Math.round(v * 100)}%`, f: (v) => `${v.toFixed(0)} Hz`, m: (v) => `${v.toFixed(2)}`, r: (v) => `${v.toFixed(2)}`,
+  tilt: (v) => `${v.toFixed(0)}°`, spot: (v) => `${v.toFixed(0)}°`,
+};
+const keyOf = { m: "M", r: "R" };
+for (const id of Object.keys(sliders)) {
+  $(id).addEventListener("input", () => {
+    S[keyOf[id] || id] = parseFloat($(id).value);
+    if (id === "res") S.autoRes = false;
+    if (id === "f") S.beta = null;                                  // f set directly: v/c follows f
+    syncUI();
+  });
+}
+
+// equator speed against the static frame: β = 2πfR / (c N), N = √(1 − r_s/R) when GR clocks are on
+function eqN() { return S.mask & (1 << 6) ? Math.sqrt(1 - RS_SUN * S.M / S.R) : 1; }
+function setBeta(b) { S.beta = b; S.f = Math.max(1, Math.round(b * C_KM * eqN() / (2 * Math.PI * S.R))); }
+$("beta").addEventListener("input", () => { setBeta(parseFloat($("beta").value)); syncUI(); });
+[0.1, 0.3, 0.5, 0.7, 0.9].forEach((b) => chip($("betaPresets"), `${b}c`, () => { setBeta(b); syncUI(); }));
+
+function syncUI() {
+  if (S.beta != null) setBeta(S.beta);                              // v/c dial set: hold v/c, re-derive f
+  P = phys();
+  ladderBtns.forEach((b, i) => b.classList.toggle("on", i === S.step));
+  fxBtns.forEach((b, i) => b.classList.toggle("on", !!(S.mask & (1 << FX[i].bit))));
+  document.querySelectorAll("#views button").forEach((b) => b.classList.toggle("on", +b.dataset.view === S.view));
+  $("gridBtn").classList.toggle("on", S.grid); $("skyBtn").classList.toggle("on", S.sky); $("autoRes").classList.toggle("on", S.autoRes); $("autoExpo").classList.toggle("on", S.autoExpo);
+  for (const id of Object.keys(sliders)) { const k = keyOf[id] || id; $(id).value = S[k]; $(id + "Val").textContent = sliders[id](S[k]); }
+  if (S.step < 0) $("caption").style.opacity = 0;
+  const m = S.mask, on = (k) => !!(m & (1 << FX.find((f) => f.key === k).bit));
+  const N = on("grz") ? P.lapse : 1, betaO = P.OmKm * S.R / N;
+  if (betaO > 0.97) { S.f = Math.floor(0.97 * C_KM * N / (2 * Math.PI * S.R)); return syncUI(); }  // keep v < c
+  $("beta").value = betaO; $("betaVal").textContent = `${betaO.toFixed(3)} c`;
+  const beta = (P.OmKm - (on("drag") ? P.wS : 0)) * S.R / N;
+  const gam = 1 / Math.sqrt(1 - beta * beta), dHi = 1 / (gam * (1 - betaO)), dLo = 1 / (gam * (1 + betaO));
+  const z1 = on("grz") ? 1 / P.lapse : 1;
+  const period = 1e6 / S.f, crossUs = S.R / C_KM * 1e6;
+  const over = S.f > P.fK;
+  $("meta").innerHTML =
+    `M <b>${S.M.toFixed(2)} M☉</b> · R<sub>eq</sub> <b>${S.R.toFixed(2)} km</b> · r<sub>s</sub> <b>${P.rs.toFixed(2)} km</b><br>` +
+    `compactness GM/Rc² <b>${P.x.toFixed(3)}</b> · 1+z <b class="rose">${(1 / P.lapse).toFixed(3)}</b><br>` +
+    `f <b>${S.f.toFixed(1)} Hz</b> · P <b>${(period / 1000).toFixed(3)} ms</b> · f<sub>K</sub> ≈ <b>${P.fK.toFixed(0)} Hz</b>` +
+    (over ? ` <span class="warn">beyond break-up (hypothetical)</span>` : "") + `<br>` +
+    `v<sub>eq</sub>/c <b class="gold">${betaO.toFixed(3)}</b> · γ <b>${gam.toFixed(3)}</b> · δ <b class="blue">${dHi.toFixed(3)}</b> / <b class="rose">${dLo.toFixed(3)}</b><br>` +
+    `observed colour factor g ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>]<br>` +
+    `R/c <b>${crossUs.toFixed(1)} µs</b> = <b class="gold">${(360 * crossUs / period).toFixed(1)}°</b> of spin (light-time shear)<br>` +
+    `R<sub>pole</sub> <b>${(S.R * (1 + (on("oblate") ? P.o2 : 0))).toFixed(2)} km</b> (o₂ ${P.o2.toFixed(3)}) · ω<sub>drag</sub>/Ω <b>${(P.wS / P.OmKm).toFixed(3)}</b><br>` +
+    `I/MR² <b>${P.kappa.toFixed(3)}</b> · surface visible <b>${on("bend") ? (100 * P.visGR).toFixed(0) : 50}%</b>` +
+    ` · real ${S.f.toFixed(0)} turns/s shown at ${S.turns.toFixed(2)}/s (×1/${Math.round(S.f / S.turns).toLocaleString()})`;
+}
+
+// ---------------------------------------------------------------- orbit controls
+let drag = null; const pointers = new Map();
+canvas.addEventListener("pointerdown", (e) => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); drag = { x: e.clientX, y: e.clientY }; canvas.classList.add("dragging"); });
+canvas.addEventListener("pointerup", (e) => { pointers.delete(e.pointerId); if (!pointers.size) { drag = null; canvas.classList.remove("dragging"); } });
+canvas.addEventListener("pointercancel", (e) => { pointers.delete(e.pointerId); drag = null; });
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (pointers.size === 2) {
+    const prev = [...pointers.values()]; pointers.set(e.pointerId, [e.clientX, e.clientY]); const now = [...pointers.values()];
+    const d0 = Math.hypot(prev[0][0] - prev[1][0], prev[0][1] - prev[1][1]), d1 = Math.hypot(now[0][0] - now[1][0], now[0][1] - now[1][1]);
+    if (d0 > 0) { S.dist = Math.min(400, Math.max(20, S.dist * d0 / d1)); syncUI(); }
+    return;
+  }
+  pointers.set(e.pointerId, [e.clientX, e.clientY]);
+  S.az -= (e.clientX - drag.x) * 0.006;
+  S.inc = Math.min(178, Math.max(2, S.inc - (e.clientY - drag.y) * 0.3));
+  drag = { x: e.clientX, y: e.clientY }; syncUI();
+});
+canvas.addEventListener("wheel", (e) => { e.preventDefault(); S.dist = Math.min(400, Math.max(20, S.dist * Math.exp(e.deltaY * 0.001))); syncUI(); }, { passive: false });
+window.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key >= "0" && e.key <= "8") { setGuided(false); setStep(+e.key); }
+  else if (e.key === " ") { e.preventDefault(); $("pause").click(); }
+  else if (e.key === "g" || e.key === "G") $("guided").click();
+  else if (e.key === "v" || e.key === "V") { S.view = (S.view + 1) % 5; syncUI(); }
+  else if (e.key === "h" || e.key === "H") togglePanel();
+});
+
+// ---------------------------------------------------------------- camera
+function basis(pos) {
+  const r = Math.hypot(...pos), F = pos.map((v) => -v / r);
+  let R = [F[1] * 1 - F[2] * 0, F[2] * 0 - F[0] * 1, 0]; // F × ẑ
+  let n = Math.hypot(...R); if (n < 1e-6) { R = [1, 0, 0]; n = 1; }
+  R = R.map((v) => v / n);
+  const Up = [R[1] * F[2] - R[2] * F[1], R[2] * F[0] - R[0] * F[2], R[0] * F[1] - R[1] * F[0]];
+  return { F, R, U: Up };
+}
+function eyes() {
+  const i = S.inc * Math.PI / 180, d = S.dist;
+  const c = [d * Math.sin(i) * Math.cos(S.az), d * Math.sin(i) * Math.sin(S.az), d * Math.cos(i)];
+  const b = basis(c);
+  if (S.view < 2) return [{ p: c, ...b }, { p: c, ...b }];
+  return [-1, 1].map((s) => { const p = c.map((v, k) => v + s * b.R[k] * S.sep / 2); return { p, ...basis(p) }; });
+}
+
+// ---------------------------------------------------------------- frame
+function resize() {
+  const s = S.res * Math.min(devicePixelRatio || 1, 2);
+  const w = Math.max(64, Math.round(innerWidth * s)), h = Math.max(64, Math.round(innerHeight * s));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+}
+function setCommon(eyeList, mask0, mask1, tanHalf) {
+  const flat = (k) => new Float32Array([...eyeList[0][k], ...eyeList[1][k]]);
+  gl.uniform3fv(U.uEyeP, flat("p")); gl.uniform3fv(U.uEyeR, flat("R"));
+  gl.uniform3fv(U.uEyeU, flat("U")); gl.uniform3fv(U.uEyeF, flat("F"));
+  gl.uniform1iv(U.uMask, new Int32Array([mask0, mask1]));
+  gl.uniform1f(U.uTan, tanHalf);
+  gl.uniform1f(U.uRs, P.rs); gl.uniform1f(U.uReq, S.R); gl.uniform1f(U.uO2, P.o2);
+  gl.uniform1f(U.uOm, P.OmKm); gl.uniform1f(U.uJ, P.J); gl.uniform1f(U.uT, S.tKm);
+  const t = S.tilt * Math.PI / 180;
+  gl.uniform3f(U.uMag, 0, Math.sin(t), Math.cos(t));
+  gl.uniform1f(U.uSpot, S.spot * Math.PI / 180);
+  gl.uniform4f(U.uTemps, 2.0e6 * T_SCALE, 1.3e6 * T_SCALE, 2.8e6 * T_SCALE, 3.6e6 * T_SCALE);
+  gl.uniform1f(U.uGrid, S.grid ? 1 : 0);
+}
+
+function pulsePass(eyeList) {
+  if (!pulseFbo) return;
+  const c = eyeList[0].p, r = Math.hypot(...c);
+  const sinA = Math.min(0.995, 1.5 * S.R / r), tanP = Math.min(4, sinA / Math.sqrt(1 - sinA * sinA));
+  const mono = [{ p: c, ...basis(c) }, { p: c, ...basis(c) }];
+  setCommon(mono, S.mask, 0, tanP);
+  gl.uniform1i(U.uPulse, 1); gl.uniform1f(U.uSky, 0); gl.uniform1f(U.uCx, 0);
+  gl.uniform2f(U.uRes, PN, PN); gl.uniform1f(U.uPix, 2 * tanP / PN);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, pulseFbo); gl.viewport(0, 0, PN, PN);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.readPixels(0, 0, PN, PN, gl.RGBA, gl.FLOAT, pulsePix);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  let flux = 0, ySum = 0, nHit = 0;
+  for (let j = 0; j < PN; j++) for (let i = 0; i < PN; i++) {
+    const k = (j * PN + i) * 4, x = ((i + 0.5) / PN * 2 - 1) * tanP, y = ((j + 0.5) / PN * 2 - 1) * tanP;
+    const Y = 0.2126 * pulsePix[k] + 0.7152 * pulsePix[k + 1] + 0.0722 * pulsePix[k + 2];
+    flux += Y * Math.pow(1 + x * x + y * y, -1.5);                // pixel solid angle ∝ cos³
+    if (pulsePix[k + 3] > 0.5) { ySum += Math.log(Y + 1e-4); nHit++; }
+  }
+  if (nHit) S.ae += (0.42 / Math.exp(ySum / nHit) - S.ae) * 0.12;   // log-average key like an eye adapting
+  const sig = [S.mask, S.M, S.R, S.f, S.inc, S.tilt, S.spot, S.dist, S.grid].join(",");
+  if (sig !== pulseSig) { pulseSig = sig; bins.fill(NaN); lastPh = null; }
+  const ph = (((P.OmKm * S.tKm) / (2 * Math.PI)) % 1 + 1) % 1;
+  const i1 = Math.floor(ph * NB) % NB;
+  if (lastPh !== null) {                                             // fill bins skipped between samples
+    const i0 = Math.floor(lastPh * NB) % NB, gap = (i1 - i0 + NB) % NB;
+    if (gap > 1 && gap < NB / 4) for (let k = 1; k < gap; k++) bins[(i0 + k) % NB] = lastFlux + (flux - lastFlux) * k / gap;
+  }
+  bins[i1] = flux; lastPh = ph; lastFlux = flux;
+  drawPulse(ph);
+}
+function drawPulse(ph) {
+  const cv = $("pulse"), c = cv.getContext("2d"), W = cv.width, H = cv.height;
+  c.clearRect(0, 0, W, H);
+  let mx = 0, mn = Infinity, filled = 0;
+  for (const v of bins) if (!isNaN(v)) { mx = Math.max(mx, v); mn = Math.min(mn, v); filled++; }
+  c.strokeStyle = "rgba(125,211,252,0.15)"; c.lineWidth = 1;
+  for (let k = 1; k < 4; k++) { c.beginPath(); c.moveTo(W * k / 4, 0); c.lineTo(W * k / 4, H); c.stroke(); }
+  if (mx > 0) {
+    c.strokeStyle = "#a78bfa"; c.lineWidth = 3; c.beginPath(); let pen = false;
+    for (let k = 0; k < NB * 2; k++) {
+      const v = bins[k % NB]; if (isNaN(v)) { pen = false; continue; }
+      const lo = mn - 0.15 * (mx - mn + 1e-9), x = (k + 0.5) / (NB * 2) * W, y = H - 10 - ((v - lo) / (mx - lo)) * (H - 22);
+      pen ? c.lineTo(x, y) : c.moveTo(x, y); pen = true;
+    }
+    c.stroke();
+  }
+  c.fillStyle = "#fbbf24"; const px = ph / 2 * W; c.fillRect(px - 1, 0, 2, H); c.fillRect(px + W / 2 - 1, 0, 2, H);
+  c.fillStyle = "#64748b"; c.font = "20px JetBrains Mono, monospace"; c.fillText("flux (min→max) · phase 0 → 2", 10, 24);
+  $("pulseMeta").innerHTML = filled < NB * 0.9 ? `collecting one turn… ${Math.round(100 * filled / NB)}%` :
+    `pulsed fraction (max−min)/(max+min) <b>${((mx - mn) / (mx + mn) * 100).toFixed(1)}%</b> · flux from a 64² trace of the same physics`;
+}
+
+let last = performance.now(), fpsAvg = 16, frame = 0;
+function loop(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  fpsAvg = fpsAvg * 0.95 + (dt * 1000) * 0.05;
+  if (!S.paused && S.f > 0) S.tKm += dt * S.turns / S.f * C_KM;
+  S.capT += dt;
+  if (!S.guided && S.capT > 8) $("caption").style.opacity = 0;
+  if (S.guided) {
+    S.guideT += dt;
+    if (S.guideT > 11) { S.guideT = 0; setStep((S.step + 1) % LADDER.length); }
+  }
+  frame++;
+  if (S.autoRes && frame % 30 === 0) {
+    if (fpsAvg > 40 && S.res > 0.35) { S.res = Math.max(0.35, S.res - 0.05); syncUI(); }
+    else if (fpsAvg < 22 && S.res < 1.0) { S.res = Math.min(1.0, S.res + 0.05); syncUI(); }
+  }
+  resize();
+  const E = eyes();
+  if (frame % 2 === 0) pulsePass(E);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  setCommon(E, S.mask, 0, Math.tan(S.fov * Math.PI / 360));
+  gl.uniform1i(U.uPulse, 0); gl.uniform1i(U.uView, S.view);
+  gl.uniform2f(U.uRes, canvas.width, canvas.height);
+  gl.uniform1f(U.uPix, 2 * Math.tan(S.fov * Math.PI / 360) / canvas.height);
+  gl.uniform1f(U.uSky, S.sky ? 1 : 0);
+  gl.uniform1f(U.uExpo, (S.autoExpo ? S.ae : 0.9) * Math.pow(2, S.expo));
+  const panelOpen = !$("panel").classList.contains("hidden") && innerWidth > 720;
+  gl.uniform1f(U.uCx, panelOpen && (S.view === 0 || S.view === 2) ? Math.min(0.5, ($("panel").offsetWidth + 24) / innerWidth) : 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  requestAnimationFrame(loop);
+}
+setGuided(true); setStep(0);
+syncUI();
+requestAnimationFrame(loop);
+window.__ns = { S, phys, setStep, setGuided, syncUI };
+</script>
+</body>
+</html>
