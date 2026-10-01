@@ -51,7 +51,7 @@ import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const BUILD = "v1.11.0";
+const BUILD = "v1.12.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · thirty-two clocks";
 const params = new URLSearchParams(location.search);
@@ -970,7 +970,6 @@ function drawOverlay(g, t, sh) {
   digits(g, t);
   if (sh.kick || (t > T0("height") && t < T0("born"))) { const d = lastKick(t); if (d < 0.1) { g.fillStyle = `rgba(220,248,255,${0.16 * (1 - d / 0.1)})`; g.fillRect(0, 0, OW, OH); } }
   for (const id of ["drop", "height", "hit"]) { const d = t - T0(id); if (d >= 0 && d < 0.35) { g.fillStyle = `rgba(230,250,255,${0.75 * (1 - d / 0.35)})`; g.fillRect(0, 0, OW, OH); } }
-  if (t < 2.5) { g.fillStyle = `rgba(0,0,0,${1 - sm(t / 2.5)})`; g.fillRect(0, 0, OW, OH); }
   if (sh.end) { const k = sm((t - (TOTAL - 3.6)) / 1.6); g.fillStyle = `rgba(0,0,0,${k})`; g.fillRect(0, 0, OW, OH);
     const c = clamp((t - (TOTAL - 2.7)) / 0.6) * (1 - sm((t - (TOTAL - 0.5)) / 0.45)); if (c > 0) { g.save(); g.globalAlpha = c; g.font = `700 50px ${MONO}`; g.textAlign = "center"; g.fillStyle = "#ddf8ff"; g.shadowColor = "#38d6f5"; g.shadowBlur = 18;
       g.fillText("WITHOUT GENERAL RELATIVITY", OW / 2, OH * 0.47); g.font = `600 20px ${MONO}`; g.fillText("GPS WOULD NOT SURVIVE A SINGLE DAY", OW / 2, OH * 0.47 + 50); g.restore(); } }
