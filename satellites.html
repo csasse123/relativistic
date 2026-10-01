@@ -48,8 +48,10 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const BUILD = "v1.0.0";
+const BUILD = "v1.1.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · thirty-two clocks";
 const params = new URLSearchParams(location.search);
@@ -540,11 +542,154 @@ const MAP = mk("map");
 // =============================================================================
 // CAMERA
 // =============================================================================
+// =============================================================================
+// NASA SATELLITES — real public models (github.com/nasa/NASA-3D-Resources),
+// each parked at its real altitude (1 unit = 63.71 km).
+// =============================================================================
+const gltf = new GLTFLoader(); { const d = new DRACOLoader(); d.setDecoderPath("https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/gltf/"); gltf.setDRACOLoader(d); }
+const KM = R / 6371, GMe = 3.986004418e14, C2 = 299792458 ** 2, PHI0 = -6.96927e-10;
+const clockRate = (hKm) => { const r = (6371 + hKm) * 1e3; return (-1.5 * GMe / (r * C2) - PHI0) * 86400e6; }; // μs/day vs. a clock on the geoid (circular orbit)
+const NASA_LIST = [ // id, name, altitude km, visual size, angle from Sun (deg), latitude tilt, speed km/s
+  ["iss", "INTERNATIONAL SPACE STATION", 420, 0.016, 78, 0.18, 7.66], ["hubble", "HUBBLE SPACE TELESCOPE", 540, 0.006, 96, -0.12, 7.59],
+  ["landsat8", "LANDSAT 8", 705, 0.006, 62, 0.42, 7.50], ["aqua", "AQUA", 705, 0.007, 52, -0.3, 7.50], ["icesat2", "ICESAT-2", 500, 0.006, 86, 0.5, 7.61],
+  ["grace", "GRACE", 490, 0.004, 108, 0.08, 7.61], ["sentinel6", "SENTINEL-6 MICHAEL FREILICH", 1336, 0.005, 70, -0.42, 7.21], ["goes", "GOES · GEOSTATIONARY", 35786, 0.007, 32, 0, 3.07]];
+const LEO = mk("leo"); const NASA = {};
+function prepModel(obj, size) {
+  const b = new THREE.Box3().setFromObject(obj), s = b.getSize(V(0, 0, 0)), c = b.getCenter(V(0, 0, 0)), g = new THREE.Group();
+  obj.position.sub(c); g.add(obj); g.scale.setScalar(size / Math.max(s.x, s.y, s.z));
+  obj.traverse((o) => { if (!o.isMesh) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.clippingPlanes = [P_PHOTO]; m.envMapIntensity = 1.5; if (m.map) m.map.anisotropy = 8; m.needsUpdate = true; });
+    const n = o.geometry.index ? o.geometry.index.count / 3 : o.geometry.attributes.position.count / 3; if (n < 60000) o.add(new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 32), M.edge)); });
+  return g;
+}
+NASA_LIST.forEach(([id, name, alt, size, ang, lat, vkm]) => {
+  const dir = SUN.clone().applyAxisAngle(V(0, 1, 0), THREE.MathUtils.degToRad(ang)); dir.y = id === "goes" ? 0 : lat; dir.normalize();
+  const pos = dir.clone().multiplyScalar(R + alt * KM), vel = V(0, 1, 0).cross(dir).normalize().applyAxisAngle(dir, lat * 0.8);
+  const rec = { id, name, alt, size, pos, vel, vkm, rate: clockRate(alt), obj: null }; NASA[id] = rec;
+  pending++; gltf.load(`assets/models/${id}.glb`, (gl) => { const m = prepModel(gl.scene, size); m.position.copy(pos); m.up.copy(vel); m.lookAt(0, 0, 0); m.rotateY(hash(alt) * 6.28); LEO.root.add(m); rec.obj = m; pending--; }, undefined, () => { pending--; });
+});
+LEO.update = (t) => { for (const k in NASA) { const s = NASA[k]; if (s.obj) s.obj.rotation.z += 0.0004; } };
+
+// =============================================================================
+// MISSION CONTROL — NASA JSC Mission Control Room + live wall display
+// =============================================================================
+const MCR = mk("mcr");
+{
+  const wall = document.createElement("canvas"); wall.width = 2048; wall.height = 640; const wg = wall.getContext("2d"); const wtex = new THREE.CanvasTexture(wall); wtex.colorSpace = THREE.SRGBColorSpace;
+  const mapImg = new Image(); mapImg.src = "assets/nasa_day.jpg";
+  MCR.wallDraw = (t) => { wg.fillStyle = "#020a10"; wg.fillRect(0, 0, 2048, 640); const mw = 1300, mh = 650 * 0.92;
+    if (mapImg.complete && mapImg.naturalWidth) { wg.globalAlpha = 0.55; wg.drawImage(mapImg, 20, 20, mw, mh * 0.92); wg.globalAlpha = 1; }
+    wg.strokeStyle = "rgba(60,180,220,.25)"; for (let x = 0; x <= 12; x++) { wg.beginPath(); wg.moveTo(20 + x * mw / 12, 20); wg.lineTo(20 + x * mw / 12, 20 + mh * 0.92); wg.stroke(); }
+    const ll = (p) => { const q = p.clone().applyAxisAngle(V(0, 1, 0), -EROT(t)).normalize(); const lat = Math.asin(q.y), u = Math.atan2(q.z, -q.x) / (2 * Math.PI); return [20 + ((u + 1) % 1) * mw, 20 + (0.5 - lat / Math.PI) * mh * 0.92]; };
+    for (let i = 0; i < SATS.length; i++) { wg.strokeStyle = i ? "rgba(120,230,255,.35)" : "rgba(255,200,120,.9)"; wg.lineWidth = i ? 1.5 : 3; wg.beginPath(); let px = null;
+      for (let k = 0; k <= 60; k++) { const [x, y] = ll(satPos(i, t - 60 + k)); if (px !== null && Math.abs(x - px) > mw / 2) wg.moveTo(x, y); else k ? wg.lineTo(x, y) : wg.moveTo(x, y); px = x; } wg.stroke();
+      const [x, y] = ll(satPos(i, t)); wg.fillStyle = i ? "#bff6ff" : "#ffd28a"; wg.beginPath(); wg.arc(x, y, i ? 5 : 9, 0, 7); wg.fill(); }
+    wg.fillStyle = "#7fe6ff"; wg.font = "700 34px monospace"; wg.fillText("GPS CONSTELLATION · 32 SV · LIVE", 1360, 70); wg.font = "26px monospace";
+    const rows = [["GPS TIME", (1440000000 + t).toFixed(3)], ["SV CLOCK Δ", "+38.6 μs/day"], ["SR (speed)", "−7.2 μs/day"], ["GR (height)", "+45.7 μs/day"], ["L1", "1575.42 MHz"], ["Δf/f", "−4.4647e−10"], ["PDOP", (1.6 + 0.2 * Math.sin(t)).toFixed(2)], ["FIX", "52.5200 N 13.4050 E ±0.3 m"]];
+    rows.forEach(([a, b], k) => { wg.fillStyle = "rgba(190,240,255,.75)"; wg.fillText(a, 1360, 130 + k * 58); wg.fillStyle = k === 1 ? "#ffd28a" : "#ffffff"; wg.fillText(b, 1640, 130 + k * 58); });
+    wtex.needsUpdate = true; };
+  MCR.screen = new THREE.Mesh(new THREE.PlaneGeometry(12, 3.75), new THREE.MeshBasicMaterial({ map: wtex, toneMapped: false, side: THREE.DoubleSide })); MCR.root.add(MCR.screen);
+  MCR.lights = [new THREE.PointLight(0x5fb8ff, 160, 0, 1.6), new THREE.PointLight(0xffb070, 45, 0, 1.8), new THREE.PointLight(0x9fd8ff, 70, 0, 1.8)]; MCR.lights.forEach((l) => MCR.root.add(l)); MCR.root.add(new THREE.HemisphereLight(0x2a4058, 0x05070a, 0.35));
+  const consoleTex = canvasTex(512, 256, (g) => { const r = rng(61); g.fillStyle = "#03080d"; g.fillRect(0, 0, 512, 256); for (let k = 0; k < 4; k++) { const x0 = 8 + k * 126; g.strokeStyle = "rgba(90,210,255,.8)"; g.strokeRect(x0, 10, 118, 236);
+    g.beginPath(); for (let i = 0; i < 110; i++) g.lineTo(x0 + 4 + i, 70 - Math.sin(i * 0.15 + k) * 22 * r()); g.stroke(); g.fillStyle = "rgba(160,235,255,.85)"; for (let j = 0; j < 9; j++) g.fillRect(x0 + 6, 110 + j * 14, 30 + r() * 70, 6); g.fillStyle = "#ffb454"; g.fillRect(x0 + 6, 230, 40, 8); } });
+  const MAT = { _: null, screen: new THREE.MeshStandardMaterial({ color: 0x050a0e, emissive: 0xffffff, emissiveMap: consoleTex, emissiveIntensity: 1.5, roughness: 0.2 }), floor: new THREE.MeshStandardMaterial({ color: 0x0b0e13, roughness: 0.32, metalness: 0.3 }),
+    wall: new THREE.MeshStandardMaterial({ color: 0x141920, roughness: 0.85 }), consoleM: new THREE.MeshStandardMaterial({ color: 0x20262e, roughness: 0.4, metalness: 0.55 }), lamp: new THREE.MeshBasicMaterial({ color: 0xfff1d8 }), other: new THREE.MeshStandardMaterial({ color: 0x1a2028, roughness: 0.6, metalness: 0.3 }) };
+  MCR.bounds = new THREE.Box3(V(-7, 0, -12), V(7, 6, 12));
+  pending++; gltf.load("assets/models/mcr.glb", (gl) => { const m = gl.scene; MCR.root.add(m); const b = new THREE.Box3().setFromObject(m); MCR.bounds = b; const c = b.getCenter(V(0, 0, 0)), s = b.getSize(V(0, 0, 0));
+    let ws = null; m.traverse((o) => { if (o.isMesh && /wall_screen|^screen$/i.test(o.material.name || "") && !ws) ws = o; }); m.updateMatrixWorld(true);
+    m.traverse((o) => { if (!o.isMesh) return; const n = (o.material.name || "").toLowerCase();
+      o.material = /face|screens|^screen|keyboard/.test(n) ? MAT.screen : /floor/.test(n) ? MAT.floor : /console|crstation|cabnet|desk/.test(n) ? MAT.consoleM : /lights/.test(n) ? MAT.lamp : /wall|ceiling|right|mid|far|edge|picture|projector/.test(n) ? MAT.wall : MAT.other; });
+    const wb = ws ? new THREE.Box3().setFromObject(ws) : new THREE.Box3(V(c.x - 6, b.min.y + 1, b.max.z - 0.3), V(c.x + 6, b.min.y + 4.5, b.max.z)), wc = wb.getCenter(V(0, 0, 0)), wsz = wb.getSize(V(0, 0, 0));
+    const toward = c.z < wc.z ? -1 : 1; MCR.screen.position.set(wc.x, wc.y, wc.z + toward * 0.35); MCR.screen.rotation.y = toward < 0 ? Math.PI : 0; MCR.screen.scale.set(Math.max(wsz.x, 4) / 12, Math.max(wsz.y, 1.5) / 3.75, 1); MCR.front = wc.clone();
+    MCR.lights[0].position.set(c.x, b.max.y - 0.8, b.max.z - 3); MCR.lights[1].position.set(c.x - s.x * 0.3, b.min.y + 2, c.z + 3); MCR.lights[2].position.set(c.x + s.x * 0.3, b.max.y - 0.6, c.z); pending--; }, undefined, () => { pending--; });
+  MCR.update = (t) => { if (frameNo % 3 === 0 || manualT !== null) MCR.wallDraw(t); MCR.lights[0].intensity = 22 + 6 * pulse(t, 0.25); };
+}
+
+// =============================================================================
+// AI VIDEO CLIP SLOTS — assets/clips/<id>.mp4 (docs/AI_VIDEO_PROMPTS.md).
+// Missing clip → the 3D shot underneath plays instead.
+// =============================================================================
+const CLIPS = {}; ["lookup", "drop_a", "drop_b", "pre_wide", "pre_close", "pre_board", "chorus_cheer"].forEach((id) => {
+  const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.crossOrigin = "anonymous"; const c = { v, ready: false };
+  v.addEventListener("loadeddata", () => { c.ready = true; }); v.addEventListener("error", () => {}); v.src = `assets/clips/${id}.mp4`; CLIPS[id] = c; });
+function drawClip(g, t, sh) { const c = sh.clip && CLIPS[sh.clip]; if (!c || !c.ready) return false; const want = (t - sh.t0) + (sh.clipOff || 0.4), v = c.v;
+  if (playing()) { if (v.paused) v.play().catch(() => {}); if (Math.abs(v.currentTime - want) > 0.25) v.currentTime = want; } else { if (!v.paused) v.pause(); if (Math.abs(v.currentTime - want) > 0.04) v.currentTime = want; }
+  const ar = v.videoWidth / v.videoHeight || 16 / 9, w = Math.max(OW, OH * ar), h = w / ar; g.drawImage(v, (OW - w) / 2, (OH - h) / 2, w, h); return true; }
+
+// =============================================================================
+// LIVE SOLVERS — Einstein field equations (derivation + numerics), orbit ladder
+// =============================================================================
+const RE = 6.371e6, RGPS = 2.656175e7;
+function simpson(f, a, b, n) { const h = (b - a) / n; let s = f(a) + f(b); for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 ? 4 : 2); return s * h / 3; }
+const EFE_STEPS = [
+  ["Gμν + Λgμν = (8πG/c⁴) Tμν", "Einstein field equations"], ["vacuum outside Earth:  Tμν = 0, Λ ≈ 0  ⇒  Rμν = 0", "10 coupled PDEs"],
+  ["ds² = −e^{2α(r)} c²dt² + e^{2β(r)} dr² + r² dΩ²", "static, spherical ansatz"],
+  ["Γᵗₜᵣ = α′    Γʳₜₜ = c²α′e^{2(α−β)}    Γʳᵣᵣ = β′", "Christoffel symbols"], ["Γʳ_θθ = −r e^{−2β}    Γ^θ_rθ = 1/r    Γ^φ_θφ = cot θ", ""],
+  ["Rₜₜ = e^{2(α−β)} (α″ + α′² − α′β′ + 2α′/r)", "Ricci tensor"], ["Rᵣᵣ = −α″ − α′² + α′β′ + 2β′/r", ""],
+  ["e^{−2(α−β)}Rₜₜ + Rᵣᵣ = 2(α′+β′)/r = 0  ⇒  α = −β", "solve"], ["(r e^{2α})′ = 1  ⇒  e^{2α} = 1 − r_s/r", "Schwarzschild"],
+  ["r_s = 2GM/c² = 8.870 mm  (Earth)", ""], ["g₀₀ ≈ −(1 + 2Φ/c²)  ⇒  dτ/dt = 1 + Φ/c² − v²/2c²", "weak field"], ["Δf/f = ΔΦ/c² − v²/2c²", "→ the GPS clock"]];
+function panelBox(g, x, y, w, h, title) { g.fillStyle = "rgba(2,12,18,.78)"; g.fillRect(x, y, w, h); g.strokeStyle = "rgba(110,225,255,.55)"; g.lineWidth = 1; g.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  g.fillStyle = "rgba(110,225,255,.18)"; g.fillRect(x, y, w, 26); g.fillStyle = "#bff6ff"; g.font = `700 13px ${MONO}`; g.textAlign = "left"; g.fillText(title, x + 10, y + 18); }
+function efeDerive(g, t, a, b) { if (t < a || t > b) return; const al = clamp((t - a) / 0.4) * clamp((b - t) / 0.4); g.save(); g.globalAlpha = al;
+  const x = 28, y = 58, w = 560, h = 560; panelBox(g, x, y, w, h, "EINSTEIN FIELD EQUATIONS · SOLVING LIVE"); const n = EFE_STEPS.length, per = (b - a - 0.6) / n;
+  EFE_STEPS.forEach(([eqs, note], i) => { const ts = a + 0.3 + i * per; if (t < ts) return; const k = clamp((t - ts) / (per * 0.7)), yy = y + 52 + i * 40, cur = t < ts + per;
+    if (cur) { g.fillStyle = "rgba(110,225,255,.12)"; g.fillRect(x + 4, yy - 22, w - 8, 34); }
+    g.font = `${i === 0 ? 700 : 400} ${i === 0 ? 21 : 17}px ${MATH}`; g.fillStyle = cur ? "#ffffff" : "rgba(200,240,255,.8)"; g.fillText(eqs.slice(0, Math.ceil(eqs.length * k)) + (cur && k < 1 ? "▍" : ""), x + 14, yy);
+    if (note && k > 0.6) { g.font = `500 11px ${MONO}`; g.fillStyle = "#ffb454"; g.textAlign = "right"; g.fillText(note.toUpperCase(), x + w - 12, yy - 12); g.textAlign = "left"; } });
+  // live metric component at the GPS radius
+  const rs = 2 * GMe / C2, gtt = -(1 - rs / RGPS), grr = 1 / (1 - rs / RGPS), jit = Math.floor(t * 30);
+  g.font = `500 12px ${MONO}`; g.fillStyle = "rgba(160,235,255,.85)"; g.fillText(`g_tt(r_GPS) = ${gtt.toFixed(12)}   g_rr = ${grr.toFixed(12)}   iter ${jit}`, x + 14, y + h - 14); g.restore(); }
+function efeNumeric(g, t, a, b) { if (t < a || t > b) return; const al = clamp((t - a) / 0.4) * clamp((b - t) / 0.4); g.save(); g.globalAlpha = al;
+  const x = 28, y = 58, w = 600, h = 580; panelBox(g, x, y, w, h, "ΔΦ = ∫ GM/r² dr  ·  RK4 GEODESIC  ·  LIVE"); const u = clamp((t - a) / (b - a - 0.5));
+  g.font = `400 19px ${MATH}`; g.fillStyle = "#fff"; g.fillText("ΔΦ = ∫_{R⊕}^{r_GPS} GM / r′² dr′", x + 14, y + 56);
+  const f = (r) => GMe / (r * r), exact = GMe * (1 / RE - 1 / RGPS); const kmax = 2 + Math.floor(u * 13); g.font = `500 13px ${MONO}`;
+  for (let k = 1; k <= Math.min(kmax, 12); k++) { const N = 2 ** k, v = simpson(f, RE, RGPS, N), us = v / C2 * 86400e6; const yy = y + 84 + (k - 1) * 20;
+    g.fillStyle = k === Math.min(kmax, 12) ? "#ffffff" : "rgba(180,235,255,.7)"; g.fillText(`N=${String(N).padStart(5)}  ΔΦ=${v.toExponential(9)} m²/s²  → ${us.toFixed(5)} μs/day  err ${(Math.abs(v - exact) / exact).toExponential(1)}`, x + 14, yy); }
+  if (kmax >= 12) { g.font = `700 22px ${MONO}`; g.fillStyle = "#ffd28a"; g.fillText(`GR: +${(exact / C2 * 86400e6).toFixed(2)} μs/day   (+ Earth spin → +45.7)`, x + 14, y + 352); }
+  // RK4 in Schwarzschild: d²r/dτ² = −GM/r² + L²/r³ − 3GM L²/(c² r⁴)
+  g.font = `400 16px ${MATH}`; g.fillStyle = "#fff"; g.fillText("d²r/dτ² = −GM/r² + L²/r³ − 3GM L²/(c²r⁴)", x + 14, y + 392);
+  let r = RGPS * 1.0005, vr = 0, ph = 0; const L = Math.sqrt(GMe * RGPS), dt = 120, steps = Math.floor((t - a) * 90);
+  const acc = (r) => -GMe / (r * r) + L * L / (r ** 3) - 3 * GMe * L * L / (C2 * r ** 4); const rows = [];
+  for (let i = 0; i <= steps; i++) { if (i % Math.max(1, Math.floor(steps / 7)) === 0 || i === steps) rows.push([i * dt, r, ph]);
+    const k1v = acc(r), k1r = vr, k2v = acc(r + k1r * dt / 2), k2r = vr + k1v * dt / 2, k3v = acc(r + k2r * dt / 2), k3r = vr + k2v * dt / 2, k4v = acc(r + k3r * dt), k4r = vr + k3v * dt;
+    r += (k1r + 2 * k2r + 2 * k3r + k4r) * dt / 6; vr += (k1v + 2 * k2v + 2 * k3v + k4v) * dt / 6; ph += L / (r * r) * dt; }
+  g.font = `500 12px ${MONO}`; rows.slice(-8).forEach(([tau, rr, pp], i) => { const dtdtau = 1 / Math.sqrt(1 - 3 * GMe / (rr * C2)); g.fillStyle = "rgba(180,235,255,.8)";
+    g.fillText(`τ=${String(tau).padStart(7)} s  r=${(rr / 1e3).toFixed(3)} km  φ=${(pp % 6.2832).toFixed(5)}  dt/dτ−1=${(dtdtau - 1).toExponential(6)}`, x + 14, y + 420 + i * 18); });
+  g.restore(); }
+function ladder(g, t, a, b) { if (t < a || t > b) return; const al = clamp((t - a) / 0.4) * clamp((b - t) / 0.4); g.save(); g.globalAlpha = al;
+  const x = 690, y = 58, w = 560, h = 580; panelBox(g, x, y, w, h, "ORBIT LADDER · CLOCK RATE vs ALTITUDE · COMPUTED LIVE");
+  const px = (d) => x + 60 + (d + 35) / 90 * (w - 90), py = (hk) => y + h - 40 - (Math.log10(hk) - Math.log10(200)) / (Math.log10(50000) - Math.log10(200)) * (h - 90);
+  g.strokeStyle = "rgba(110,225,255,.25)"; g.font = `500 11px ${MONO}`; g.fillStyle = "rgba(180,235,255,.7)";
+  for (const d of [-30, -15, 0, 15, 30, 45]) { g.beginPath(); g.moveTo(px(d), y + 40); g.lineTo(px(d), y + h - 40); g.stroke(); g.fillText((d > 0 ? "+" : "") + d, px(d) - 8, y + h - 24); }
+  for (const hk of [300, 1000, 3000, 10000, 30000]) { g.beginPath(); g.moveTo(x + 60, py(hk)); g.lineTo(x + w - 30, py(hk)); g.stroke(); g.fillText(hk >= 1000 ? hk / 1000 + "k km" : hk + " km", x + 8, py(hk) + 4); }
+  g.fillText("μs / day →", x + w - 100, y + h - 8);
+  const u = clamp((t - a) / ((b - a) * 0.55)); g.strokeStyle = "#ffffff"; g.lineWidth = 2.5; g.beginPath(); let first = true;
+  for (let i = 0; i <= 200 * u; i++) { const hk = 200 * Math.pow(250, i / 200), d = clockRate(hk); first ? g.moveTo(px(d), py(hk)) : g.lineTo(px(d), py(hk)); first = false; } g.stroke(); g.lineWidth = 1;
+  // bisection for the crossover, shown live
+  let lo = 300, hi = 20000; const it = Math.min(24, Math.floor(clamp((t - a - (b - a) * 0.3) / ((b - a) * 0.4)) * 24));
+  for (let k = 0; k < it; k++) { const m = (lo + hi) / 2; clockRate(m) < 0 ? lo = m : hi = m; }
+  if (it > 0) { const hc = (lo + hi) / 2; g.strokeStyle = "#ffb454"; g.setLineDash([6, 5]); g.beginPath(); g.moveTo(x + 60, py(hc)); g.lineTo(x + w - 30, py(hc)); g.stroke(); g.setLineDash([]);
+    g.fillStyle = "#ffb454"; g.font = `700 13px ${MONO}`; g.fillText(`CROSSOVER  h = ${hc.toFixed(1)} km  (bisection ${it}/24)`, x + 70, py(hc) - 8); }
+  const marks = [["ISS", 420], ["HUBBLE", 540], ["LANDSAT 8", 705], ["SENTINEL-6", 1336], ["GPS", 20180], ["GOES", 35786]];
+  marks.forEach(([n, hk], i) => { if (u < (i + 1) / marks.length) return; const d = clockRate(hk); g.fillStyle = d < 0 ? "#7dd3fc" : "#ffd28a"; g.beginPath(); g.arc(px(d), py(hk), 5, 0, 7); g.fill();
+    g.font = `700 12px ${MONO}`; g.fillText(`${n}  ${d > 0 ? "+" : ""}${d.toFixed(1)}`, px(d) + 9, py(hk) + (i % 2 ? 14 : -4)); });
+  g.font = `500 12px ${MONO}`; g.fillStyle = "rgba(180,235,255,.85)"; g.fillText("Δ = −GM/(rc²) − v²/2c² − Φ₀/c²,  v² = GM/r,  Φ₀/c² = −6.96927×10⁻¹⁰", x + 14, y + 46); g.restore(); }
+
 const look = (p, tgt, roll = 0) => { camera.position.copy(p); camera.lookAt(tgt); if (roll) camera.rotateZ(roll); };
 const shake = (t, a = 1) => V(Math.sin(t * 1.7) + Math.sin(t * 3.1) * 0.5, Math.sin(t * 1.3 + 1) + Math.sin(t * 2.7) * 0.5, Math.sin(t * 1.9 + 2)).multiplyScalar(0.02 * a);
 const hb = (t, k = 0) => { const H = satPos(k, t), up = H.clone().normalize(), v = satVel(k, t), side = v.clone().cross(up).normalize(); return { H, up, v, side }; };
 const at3 = (b, x, y, z) => b.H.clone().addScaledVector(b.v, x).addScaledVector(b.up, y).addScaledVector(b.side, z);
+const nb = (id) => { const s = NASA[id]; const up = s.pos.clone().normalize(), side = s.vel.clone().cross(up).normalize(); return { P: s.pos, up, v: s.vel, side, d: s.size }; };
 const CAM = {
+  nasa(id, style = "orbit") { return (t, u) => { const s = NASA[id]; if (!s || !s.obj) return CAM.wide(t, u); const b = nb(id), d = b.d, at = (x, y, z) => b.P.clone().addScaledVector(b.v, x * d).addScaledVector(b.up, y * d).addScaledVector(b.side, z * d);
+    if (style === "limb") look(at(-2.6 + u * 1.4, 0.35, -1.6).add(shake(t, 0.004)), at(0.8, -0.25, 0), 0.04);
+    else if (style === "under") look(at(-1.2 + u * 0.8, -1.5, 1.1), at(0, 0.2, 0), -0.1);
+    else if (style === "flyby") look(at(lerp(-5, 3, u), 0.6, 1.4), at(0, 0, 0), 0.08);
+    else { const a = t * 0.3 + hash(s.alt) * 6; look(at(Math.cos(a) * 2.3, 0.75, Math.sin(a) * 2.3).add(shake(t, 0.004)), at(0, -0.1, 0), Math.sin(t * 0.3) * 0.05); } }; },
+  mcr(style = "dolly") { return (t, u) => { const b = MCR.bounds, c = b.getCenter(V(0, 0, 0)), F = MCR.front || V(c.x, b.min.y + 2.5, b.max.z), din = V(c.x - F.x, 0, c.z - F.z).normalize(), lat = V(-din.z, 0, din.x), eye = b.min.y + 1.55;
+    const at = (d, y, l) => F.clone().addScaledVector(din, d).addScaledVector(lat, l).setY(y);
+    if (style === "wide") look(at(lerp(12, 10, u), eye + 1.9, Math.sin(t * 0.2) * 1.5), F.clone().setY(F.y - 0.3));
+    else if (style === "low") look(at(5.5, eye - 0.4, lerp(-2, -0.8, u)), F.clone().setY(F.y + 0.2), 0.04);
+    else look(at(lerp(7.5, 4.2, u), eye, lerp(1.2, -0.8, u)), F, Math.sin(t * 0.4) * 0.02); }; },
   night(t, u) { const P = pinWorld(t, 0), n = P.clone().normalize(), east = V(0, 1, 0).cross(n).normalize(), north = n.clone().cross(east);
     const pos = P.clone().add(n.clone().multiplyScalar(lerp(44, 32, u))).add(north.clone().multiplyScalar(-62 + u * 12)).add(east.clone().multiplyScalar(Math.sin(t * 0.2) * 4));
     look(pos, P.clone().add(north.clone().multiplyScalar(12)), Math.sin(t * 0.3) * 0.03); },
@@ -585,34 +730,39 @@ function buildShots() {
   SHOTS = []; const shot = (t0, t1, use, cam, o = {}) => { if (t1 > t0 + 0.001) SHOTS.push({ t0, t1, use, cam, mode: "photo", ...o }); };
   const E = ["earth", "con"], P2S = (at = 0.3, dur = 0.9) => ({ from: -1.25, to: 1.25, at, dur }), S2P = (at = 0.3, dur = 0.9) => ({ from: 1.25, to: -1.25, at, dur });
   shot(0, T0("look"), E, CAM.night, { cap: ["NIGHT SIDE · EUROPE", "from medium Earth orbit"] });
-  shot(T0("look"), T0("clocks") - 0.2, E, CAM.lookUp);
+  shot(T0("look"), T0("clocks") - 0.2, E, CAM.lookUp, { clip: "lookup" });
   shot(T0("clocks") - 0.2, T0("build"), E, CAM.reveal, { mode: P2S(0.55, 1.4) });
   shot(T0("build"), T0("drop"), E, CAM.approach, { near: 0.02, cap: ["GPS BLOCK III", "20 200 km · 3.874 km/s · 11 h 58 min"] });
   // DROP — instrumental, cut every 4 kicks, photo ↔ schematic on the bar
   const dk = kicksIn(T0("drop") - 0.05, T0("alt") - 0.2), bars = [T0("drop")]; for (let i = 4; i < dk.length; i += 4) bars.push(dk[i]); bars.push(T0("alt"));
-  const D = [[CAM.beauty, "photo", 0], [CAM.explode, "schem", 0, { explode: true, callouts: true }], [CAM.overEarth, "photo", 0], [CAM.panel, P2S(0.45, 0.8), 0], [CAM.helix, "photo", 0, { callouts: true }],
-    [CAM.wide, "schem", 0], [CAM.beauty, S2P(0.2, 0.7), 3], [CAM.explode, "schem", 0, { explode: true, callouts: true }]];
-  for (let i = 0; i < bars.length - 1; i++) { const [f, mode, k, o] = D[i % D.length]; shot(bars[i], bars[i + 1], E, (t, u) => f(t, u, k), { near: 0.02, mode, kick: true, ...(o || {}) }); }
+  const L = ["earth", "leo"], NC = (id) => ({ near: NASA[id].size * 0.05, nasa: id, capTop: true, cap: [NASA[id].name, `${NASA[id].alt.toLocaleString("en")} km · ${NASA[id].vkm} km/s · clock ${NASA[id].rate > 0 ? "+" : ""}${NASA[id].rate.toFixed(1)} μs/day`] });
+  const D = [[CAM.beauty, "photo", 0, E], [CAM.explode, "schem", 0, E, { explode: true, callouts: true }], [CAM.nasa("iss", "limb"), "photo", 0, L, NC("iss")], [CAM.panel, P2S(0.45, 0.8), 0, E],
+    [CAM.helix, "photo", 0, E, { callouts: true, cap: ["L-BAND HELIX ARRAY", "the 'springs': 12 helical antennas send L1 1575.42 MHz to your phone"] }], [CAM.wide, "schem", 0, E, { clip: "drop_a" }],
+    [CAM.nasa("hubble", "orbit"), S2P(0.2, 0.7), 0, L, NC("hubble")], [CAM.explode, "schem", 0, E, { explode: true, callouts: true, clip: "drop_b" }]];
+  for (let i = 0; i < bars.length - 1; i++) { const [f, mode, k, use, o] = D[i % D.length]; shot(bars[i], bars[i + 1], use, (t, u) => f(t, u, k), { near: 0.02, mode, kick: true, ...(o || {}) }); }
   shot(T0("alt"), T0("miss"), E, (t, u) => CAM.chase(t, u, 0), { cap: ["IMAGING SWATH", "ground track · 2 orbits per sidereal day"] });
   shot(T0("miss"), T0("cesium"), ["earth", "newt"], CAM.newton, { mode: "schem" });
   shot(T0("cesium"), T0("shout"), E, (t, u) => CAM.beauty(t, u, 5), { near: 0.02, mode: P2S(0.35, 1.0), callouts: true });
   shot(T0("shout"), T0("four"), E, CAM.fly);
   shot(T0("four"), T0("nano"), E, CAM.tri, { mode: "schem" });
   shot(T0("nano"), T0("up"), E, CAM.nano, { near: 0.02 });
-  shot(T0("up"), T0("c1"), ["sr"], CAM.clocks, { pre: true, arcs: true, mode: "schem" });
+  const pre3 = (T0("c1") - T0("up")) / 3; const MC = { cap: ["MISSION CONTROL", "32 clocks, corrected from the ground"] };
+  shot(T0("up"), T0("up") + pre3, ["mcr"], CAM.mcr("wide"), { clip: "pre_wide", near: 0.05, ...MC }); shot(T0("up") + pre3, T0("up") + 2 * pre3, ["mcr"], CAM.mcr("dolly"), { clip: "pre_close", near: 0.05 });
+  shot(T0("up") + 2 * pre3, T0("c1"), ["sr"], CAM.clocks, { pre: true, arcs: true, mode: "schem", clip: "pre_board" });
   // CHORUS
-  shot(T0("c1"), T0("c2"), E, (t, u) => CAM.fly(t, u, 0));
-  shot(T0("c2"), T0("c3"), E, (t, u) => CAM.beauty(t, u, 2), { near: 0.02, mode: P2S(0.5, 1.0) });
-  shot(T0("c3"), (T0("c3") + T0("c4")) / 2, E, (t, u) => CAM.beauty(t, u, 4), { near: 0.02 });
-  shot((T0("c3") + T0("c4")) / 2, T0("c4"), ["well"], CAM.well, { arcs: true, mode: "schem" });
-  shot(T0("c4"), T0("speed"), E, CAM.wide, { mode: S2P(0.1, 1.2) });
+  shot(T0("c1"), T0("c1") + 1.7, ["mcr"], CAM.mcr("low"), { clip: "chorus_cheer", near: 0.05 }); shot(T0("c1") + 1.7, T0("c2"), E, (t, u) => CAM.fly(t, u, 0));
+  shot(T0("c2"), T0("c3"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
+  shot(T0("c3"), (T0("c3") + T0("c4")) / 2, L, CAM.nasa("iss", "orbit"), { ...NC("iss"), efe: "derive" });
+  shot((T0("c3") + T0("c4")) / 2, T0("c4"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
+  shot(T0("c4"), T0("speed"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
   // VERSE 2 — special relativity
-  shot(T0("speed"), T0("gamma"), ["sr"], CAM.sr, { near: 0.05 });
-  shot(T0("gamma"), T0("height"), ["sr"], CAM.sr, { near: 0.05, mode: P2S(0.05, 1.0) });
+  shot(T0("speed"), T0("moving"), L, CAM.nasa("icesat2", "flyby"), NC("icesat2")); shot(T0("moving"), T0("gamma"), L, CAM.nasa("aqua", "under"), NC("aqua"));
+  shot(T0("gamma"), T0("m7"), L, CAM.nasa("landsat8", "orbit"), { ...NC("landsat8"), mode: P2S(0.0, 0.8), ladder: true, cap: null });
+  shot(T0("m7"), T0("height"), ["sr"], CAM.sr, { near: 0.05, mode: P2S(0.4, 1.0) });
   // DROP 2 — general relativity, then the picture finishes the verse Suno never sang
-  shot(T0("height"), T0("phi"), ["well"], CAM.well, { arcs: true, mode: "schem" });
-  shot(T0("phi"), T0("p45"), ["well"], CAM.well, { arcs: true, mode: "schem" });
-  shot(T0("p45"), T0("times"), E, (t, u) => CAM.beauty(t, u, 7), { near: 0.02, mode: S2P(0.0, 0.6) });
+  shot(T0("height"), T0("phi"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "num" });
+  shot(T0("phi"), T0("p45"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "num" });
+  shot(T0("p45"), T0("times"), L, CAM.nasa("goes", "orbit"), { ...NC("goes"), mode: S2P(0.0, 0.6) });
   shot(T0("times"), T0("num"), ["map"], CAM.map, { arcs: true });
   shot(T0("num"), T0("born"), ["lab"], CAM.lab, { arcs: true });
   shot(T0("born"), T0("end"), E, CAM.born, { near: 0.02, born: true, cap: ["BORN SLOW", "detuned on the ground · true in the sky"] });
@@ -653,9 +803,9 @@ function digits(g, t) { const a = T0("num"), b = T1("num") + 0.3; if (t < a - 0.
   g.save(); g.globalAlpha = clamp((b - t) / 0.3); g.font = `700 80px ${MONO}`; g.textAlign = "center"; g.fillStyle = "#ffe2b8"; g.shadowColor = "#ff8a1e"; g.shadowBlur = 22; g.fillText(s + " MHz", OW / 2, OH * 0.8);
   g.font = `600 18px ${MONO}`; g.fillStyle = "#ffd9a8"; g.fillText("BUILT SLOW ON PURPOSE · −4.4647 × 10⁻¹⁰", OW / 2, OH * 0.8 + 40); g.restore(); }
 function caption(g, t, sh) { if (!sh.cap) return; const a = clamp((t - sh.t0 - 0.4) / 0.6) * clamp((sh.t1 - t - 0.2) / 0.5); if (a <= 0) return;
-  g.save(); g.globalAlpha = a; const x = 64, y = OH - 92; g.fillStyle = "rgba(255,255,255,.9)"; g.fillRect(x, y - 30, 2, 52); g.font = `600 22px "Helvetica Neue", Arial, sans-serif`; g.fillStyle = "#fff"; g.textAlign = "left";
+  g.save(); g.globalAlpha = a; const x = 64, y = sh.capTop ? 96 : OH - 92; g.fillStyle = "rgba(255,255,255,.9)"; g.fillRect(x, y - 30, 2, 52); g.font = `600 22px "Helvetica Neue", Arial, sans-serif`; g.fillStyle = "#fff"; g.textAlign = "left";
   g.fillText(sh.cap[0], x + 16, y - 6); g.font = `400 15px "Helvetica Neue", Arial, sans-serif`; g.fillStyle = "rgba(230,240,250,.85)"; g.fillText(sh.cap[1], x + 16, y + 16); g.restore(); }
-const CALL = [["helix", "L-BAND HELIX ARRAY", "L1 = 154 × 10.23 MHz = 1575.42 MHz"], ["clock", "ATOMIC CLOCKS", "Rb-87 6.834 GHz · Cs-133 9.192 GHz"], ["wing1", "SOLAR ARRAY", "sun-tracking wing"], ["dish", "S-BAND TT&C", "uplink: clock corrections"]];
+const CALL = [["helix", "L-BAND HELIX ARRAY (the 'springs')", "12 helices · L1 = 154 × 10.23 = 1575.42 MHz"], ["clock", "ATOMIC CLOCKS", "Rb-87 6.834 GHz · Cs-133 9.192 GHz"], ["wing1", "SOLAR ARRAY", "sun-tracking wing"], ["dish", "S-BAND TT&C", "uplink: clock corrections"]];
 function callouts(g, t, sh) { if (!sh.callouts) return; const xl = (WIPE + 1) / 2 * OW;
   CALL.forEach(([k, a, b], i) => { const o = HERO.userData.anchors[k]; if (!o) return; const p = o.getWorldPosition(V(0, 0, 0)).project(camera); if (p.z > 1) return;
     const x = (p.x * 0.5 + 0.5) * OW, y = (-p.y * 0.5 + 0.5) * OH; if (x > xl || x < 0 || x > OW || y < 0 || y > OH) return;
@@ -671,7 +821,9 @@ function blueprint(g, t, sh) { const xl = (WIPE + 1) / 2 * OW; if (xl <= 0) retu
   if (xl > 0 && xl < OW) { const gr = g.createLinearGradient(xl - 40, 0, xl + 4, 0); gr.addColorStop(0, "rgba(90,220,255,0)"); gr.addColorStop(1, "rgba(160,240,255,.55)"); g.fillStyle = gr; g.fillRect(xl - 40, 0, 44, OH); g.fillStyle = "#e8fdff"; g.fillRect(xl - 1, 0, 2, OH); } }
 function drawOverlay(g, t, sh) {
   g.clearRect(0, 0, OW, OH);
-  blueprint(g, t, sh);
+  const clipOn = drawClip(g, t, sh);
+  if (!clipOn) blueprint(g, t, sh);
+  if (sh.efe === "derive") efeDerive(g, t, T0("c2"), T0("speed")); if (sh.efe === "num") efeNumeric(g, t, T0("height"), T0("p45")); if (sh.ladder) ladder(g, t, sh.t0, sh.t1);
   if (sh.arcs) drawArcs(g, t);
   callouts(g, t, sh); caption(g, t, sh);
   stencil(g, t, T0("att"), T0("clocks") - 0.3, "ATTENTION", 0.5, 0.45, 120);
@@ -686,7 +838,7 @@ function drawOverlay(g, t, sh) {
   slam(g, t, T0("c3"), T1("c3") + 0.2, "+38.6 μs / day", 0.5, 0.86, 54, "#ffffff", { w: 600, f: MONO });
   slam(g, t, T0("moving"), T1("moving") + 0.4, "MOVING CLOCKS RUN SLOW", 0.5, 0.14, 50, "#bff6ff");
   counter(g, t, T0("m7"), T1("m7") + 0.6, 0, -7.2, "μs / day", 0.5, 0.86, "#7dd3fc");
-  slam(g, t, T0("less"), T1("less"), "HIGH CLOCKS RUN FAST", 0.5, 0.14, 50, "#ffd9a8", { glow: "#ff8a1e" });
+  slam(g, t, T0("less"), T1("less"), "HIGH CLOCKS RUN FAST", 0.72, 0.9, 44, "#ffd9a8", { glow: "#ff8a1e" });
   slam(g, t, T0("phi"), T1("phi"), "Δf/f = ΔΦ/c²", 0.5, 0.84, 70, "#bff6ff", { w: 500, f: MATH });
   counter(g, t, T0("p45"), T0("p45") + DUR("p45") * 0.5, 0, 45.7, "μs / day", 0.5, 0.86, "#ffd9a8");
   slam(g, t, T0("p45") + DUR("p45") * 0.5, T1("p45") + 0.1, "NET +38.6 μs / day", 0.5, 0.86, 70, "#ffffff", { glow: "#ffffff" });
@@ -711,7 +863,7 @@ function renderFrame(t) {
   const u = clamp((t - sh.t0) / Math.max(0.001, sh.t1 - sh.t0));
   const space = sh.use.includes("earth");
   camera.near = sh.near || (space ? 0.3 : 0.1); camera.far = 9000; camera.fov = sh.fov || 40; camera.aspect = RW / RH; camera.updateProjectionMatrix();
-  stars.visible = space || sh.use.includes("sr") || sh.use.includes("well");
+  stars.visible = space || sh.use.includes("sr") || sh.use.includes("well"); sunLight.intensity = sh.use.includes("mcr") ? 0.15 : 3.4; earthLight.intensity = sh.use.includes("mcr") ? 0 : 0.55;
   lensflare.visible = space;
   if (S.sr.root.visible) { const pre = !!sh.pre; SR.sat.visible = !pre; SR.lines.visible = !pre; }
   HERO.userData.explode = sh.explode ? sm((t - sh.t0) / Math.min(1.2, (sh.t1 - sh.t0) * 0.6)) * 1.0 : 0;
@@ -721,10 +873,10 @@ function renderFrame(t) {
   sh.cam(t, u); camera.updateMatrixWorld();
   setWipe(wipeFor(sh, t));
   // reflections + earthshine follow the hero
-  const H = satPos(0, t), eDir = space ? H.clone().normalize().negate() : V(0, -1, 0); updateEnv(eDir);
+  const H = sh.nasa && NASA[sh.nasa] ? NASA[sh.nasa].pos : satPos(0, t), eDir = space ? H.clone().normalize().negate() : V(0, -1, 0); updateEnv(eDir);
   const tgt = space ? H : V(0, 0, 0); earthLight.target.position.copy(tgt); earthLight.position.copy(tgt).addScaledVector(eDir, 10);
   const rp = rainP(t), rs = space ? 6 : sh.use.includes("well") ? 5 : sh.use.includes("lab") || sh.use.includes("map") ? 2 : 1, sa = schemAmt();
-  rainMat.uniforms.uFall.value = fallAt(t); rainMat.uniforms.uAlpha.value = rp.a * lerp(0.12, 1, sa) * (space ? 0.6 : 1); rainMat.uniforms.uDens.value = rp.dens; rainMat.uniforms.uShear.value = rp.sh; rainMat.uniforms.uTint.value = rp.tint;
+  rainMat.uniforms.uFall.value = fallAt(t); rainMat.uniforms.uAlpha.value = rp.a * lerp(0.12, 1, sa) * (space ? 0.6 : 1) * (sh.efe || sh.ladder ? 0.35 : 1); rainMat.uniforms.uDens.value = rp.dens; rainMat.uniforms.uShear.value = rp.sh; rainMat.uniforms.uTint.value = rp.tint;
   rainMat.uniforms.uCam.value.copy(camera.position); rainMat.uniforms.uScale.value = rs; rainMat.uniforms.uBox.value.set(60, 40, 70).multiplyScalar(rs);
   bloom.strength = 0.36 + 0.3 * pulse(t, 0.2) * (sh.kick ? 1 : 0.4); grain.uniforms.uT.value = t;
   composer.render();

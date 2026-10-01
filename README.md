@@ -25,6 +25,15 @@ An adaptive narrow frustum shrank with β and filled the screen → pure zoom mu
 | β = v/c | Optics strength |
 | Doppler | Color vs angle to velocity |
 
+## Thirty-Two Clocks (v1.1)
+
+v1.1 adds:
+- **Real NASA satellites:** ISS, Hubble, Landsat 8, Aqua, ICESat-2, GRACE, Sentinel-6 and GOES (`assets/models`, from NASA-3D-Resources), each at its true altitude.
+- **Orbit ladder:** clock rate against altitude, computed live, with a bisection that finds the 3,174 km crossover.
+- **Einstein field equations:** a step-by-step derivation to Schwarzschild, then Simpson integration of ∫GM/r² dr converging to +45.7 μs/day, with an RK4 geodesic streaming alongside.
+- **Mission control:** the NASA JSC Mission Control Room model with a live GPS wall display.
+- **AI clip slots:** see `docs/AI_VIDEO_PROMPTS.md` and `tools/runway_clips.mjs`.
+
 ## Thirty-Two Clocks (v1.0)
 
 v1.0 is locked to the Suno take `assets/thirty-two-clocks.mp3` (2:12). Cue times come from a Whisper transcription and kick-drum onset detection. The look cuts between photographic and engineering-drawing styles: NASA Blue Marble imagery, night lights, a GPS III-style satellite with MLI foil, solar cells and a 12-helix L-band array, bloom, ACES tone mapping and lens flare, and a scan-line wipe into a blueprint view with callouts. Add `?q=720` on slower machines.
