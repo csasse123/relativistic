@@ -129,14 +129,6 @@
    "motion": "slow push-in along the line of faces, they look up at the wall screen together"
   },
   {
-   "id": "mirror_night",
-   "t": "0:02.5–0:07.0",
-   "style": "future",
-   "duration": 10,
-   "image": "From orbit at dusk: hundreds of flat square mirror satellites (each a thin silver reflective sheet about 50 metres across on a slim frame) fly in a vast sun-synchronous formation along the terminator, every mirror tilted toward the same point, their beams converging into one brilliant shaft of sunlight that lights a large solar farm in bright daylight on the dark night side of Earth, surrounded by orange city lights",
-   "motion": "slow pull-back revealing more and more mirrors joining the formation, beams converge and the lit circle on the ground brightens as each mirror locks on, epic and serene"
-  },
-  {
    "id": "slr_laser",
    "t": "1:00.9–1:03.4",
    "style": "night",
@@ -163,45 +155,6 @@
    "motion": "the telescope slews smoothly and locks on, camera slowly orbits the truss, reflections glide across the mirror, stars sharp"
   },
   {
-   "id": "dc_swarm",
-   "t": "1:20.7–1:22.4",
-   "style": "future",
-   "duration": 10,
-   "image": "Photorealistic photograph of the formation in @render, same layout and camera angle: hundreds of orbital data-center satellites in a vast grid over Earth, each with a gold-foil compute hall, a large dark square solar array and two vertical radiator wings glowing orange-red with waste heat, Earth's clouds and blue limb below, black space above",
-   "motion": "camera glides through the formation as modules pass close by, radiators shimmer with heat glow, sunlight flares across the arrays, epic scale",
-   "refs": [
-    {
-     "file": "assets/clips/src/dc_swarm.jpg",
-     "tag": "render"
-    },
-    {
-     "file": "assets/clips/src/ref_datacenter.jpg",
-     "tag": "dcref"
-    }
-   ]
-  },
-  {
-   "id": "dc_radiators",
-   "t": "1:26.1–1:27.9",
-   "style": "future",
-   "image": "Close-up of one orbital data-center module in the style of @dcref: server racks visible through a viewport, a huge deployable radiator panel glowing deep orange-red with infrared heat, liquid-cooling pipes and heat pipes, a dark solar array behind, Earth's blue limb beyond",
-   "motion": "slow push along the glowing radiator fins, heat shimmer, the Earth's limb rotates slowly behind, detailed and believable",
-   "refs": [
-    {
-     "file": "assets/clips/src/ref_datacenter.jpg",
-     "tag": "dcref"
-    }
-   ]
-  },
-  {
-   "id": "mirror_swarm",
-   "t": "0:00–0:02.5",
-   "style": "future",
-   "duration": 10,
-   "image": "Close tracking shot along a line of flat square orbital mirror satellites, thin silver reflective sheets on lightweight frames with small thruster pods, catching blinding sunlight; dozens more stretch away in formation toward Earth's terminator below",
-   "motion": "camera slides past the nearest mirror as it slowly tilts and flashes the sun at the lens, the formation recedes to the horizon"
-  },
-  {
    "id": "glass_write",
    "t": "1:22.4–1:24.0",
    "style": "crew",
@@ -214,6 +167,34 @@
    "style": "crew",
    "image": "Wide shot of a glass wall completely covered in handwritten physics equations, integrals and orbit sketches, a young mixed team silhouetted behind it against a giant glowing Earth display with hundreds of satellite tracks",
    "motion": "slow dolly through the gap in the glass wall into the room, equations slide past in the foreground, parallax, dramatic"
+  },
+  {
+   "id": "sat_eclipse",
+   "t": "0:00–0:10.1",
+   "style": "space",
+   "duration": 10,
+   "refs": [
+    {
+     "file": "assets/clips/src/sat_eclipse.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic photograph of the GPS satellite in @render, same design and angle: gold multi-layer insulation, silver radiators, two long deep-blue solar wings, 12 white helical antennas on the Earth-facing side; it hangs above Earth's terminator, half lit by the Sun, the thin orange-blue atmosphere line glowing on the horizon, night-side city lights below",
+   "motion": "very slow drift as the satellite glides from sunlight into Earth's shadow: the sunlit gold fades, the edge of the solar wings catches a last orange glint, then only Earth-glow and stars remain; calm, majestic, documentary"
+  },
+  {
+   "id": "gps_lost",
+   "t": "2:01.5–2:12",
+   "style": "space",
+   "duration": 10,
+   "refs": [
+    {
+     "file": "assets/clips/src/gps_lost.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic photograph of the GPS satellite in @render, same design: gold multi-layer insulation, solar wings, alone above the dark night side of Earth, lit only by faint Earth-glow, deep black space, lonely and quiet",
+   "motion": "the camera slowly pulls away as the satellite recedes and dims into the darkness of space, Earth's limb fades, ending almost black; melancholic, slow"
   }
  ],
  "styles": {
