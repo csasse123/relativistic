@@ -161,7 +161,10 @@
   <h2>3 · The star</h2>
   <div class="chips" id="presets"></div>
   <label class="row"><span>Spin f (Hz)</span><span class="val" id="fVal"></span></label>
-  <input id="f" type="range" min="1" max="2500" step="1" value="716" />
+  <input id="f" type="range" min="1" max="6000" step="1" value="716" />
+  <label class="row"><span><b style="color:#fbbf24">Equator speed v/c</b> (sets f, like β in the village)</span><span class="val" id="betaVal"></span></label>
+  <input id="beta" type="range" min="0" max="0.97" step="0.005" value="0.22" />
+  <div class="chips" id="betaPresets"></div>
   <label class="row"><span>Mass M (M☉)</span><span class="val" id="mVal"></span></label>
   <input id="m" type="range" min="0.6" max="2.4" step="0.01" value="1.4" />
   <label class="row"><span>Equatorial radius R (km)</span><span class="val" id="rVal"></span></label>
@@ -187,7 +190,7 @@
 
 <div class="caption" id="caption"><div class="step" id="capStep"></div><div class="t" id="capT"></div><div class="d" id="capD"></div></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.13.0</div>
+<div class="build" id="build">v1.14.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -478,7 +481,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.13.0";
+const BUILD = "v1.14.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -533,13 +536,14 @@ const PRESETS = [
   { name: "J0740+6620 · 2.08 M☉", f: 346.53, M: 2.08, R: 12.39, inc: 87, tilt: 70 },
   { name: "J0437−4715", f: 173.69, M: 1.418, R: 11.36, inc: 42.5, tilt: 40 },
   { name: "Hypothetical 2 kHz", f: 2000, M: 1.4, R: 12.0, inc: 70, tilt: 50 },
+  { name: "Hypothetical v = 0.9c", beta: 0.9, M: 1.4, R: 12.0, inc: 70, tilt: 50 },
 ];
 
 // ============================================================================ state
 const S = {
   step: 8, mask: ladderMask(8), guided: true, guideT: 0, paused: false,
   view: 0, sep: 2.0, inc: 62, az: 0.4, dist: 58, fov: 34, turns: 0.22, expo: 0, res: 0.75, autoRes: true,
-  grid: true, sky: true, autoExpo: true, ae: 0.9, capT: 0,
+  grid: true, sky: true, beta: null, autoExpo: true, ae: 0.9, capT: 0,
   f: 716, M: 1.4, R: 12.0, tilt: 48, spot: 20,
   tKm: 0,
 };
@@ -655,7 +659,8 @@ function chip(parent, label, onClick, cls) {
 const ladderBtns = LADDER.map((L, i) => chip($("ladder"), `${i} ${L.name}`, () => { setGuided(false); setStep(i); }));
 const fxBtns = FX.map((f) => chip($("fx"), f.label, () => { setGuided(false); S.mask ^= 1 << f.bit; S.step = -1; syncUI(); }, f.gr ? "gr" : null));
 PRESETS.forEach((p) => chip($("presets"), p.name, () => {
-  Object.assign(S, { f: p.f, M: p.M, R: p.R, inc: p.inc, tilt: p.tilt });
+  Object.assign(S, { M: p.M, R: p.R, inc: p.inc, tilt: p.tilt });
+  if (p.beta) setBeta(p.beta); else { S.f = p.f; S.beta = null; }
   for (const k of ["f", "inc", "tilt"]) $(k).value = S[k];
   $("m").value = S.M; $("r").value = S.R; syncUI();
 }));
@@ -689,11 +694,19 @@ for (const id of Object.keys(sliders)) {
   $(id).addEventListener("input", () => {
     S[keyOf[id] || id] = parseFloat($(id).value);
     if (id === "res") S.autoRes = false;
+    if (id === "f") S.beta = null;                                  // f set directly: v/c follows f
     syncUI();
   });
 }
 
+// equator speed against the static frame: β = 2πfR / (c N), N = √(1 − r_s/R) when GR clocks are on
+function eqN() { return S.mask & (1 << 6) ? Math.sqrt(1 - RS_SUN * S.M / S.R) : 1; }
+function setBeta(b) { S.beta = b; S.f = Math.max(1, Math.round(b * C_KM * eqN() / (2 * Math.PI * S.R))); }
+$("beta").addEventListener("input", () => { setBeta(parseFloat($("beta").value)); syncUI(); });
+[0.1, 0.3, 0.5, 0.7, 0.9].forEach((b) => chip($("betaPresets"), `${b}c`, () => { setBeta(b); syncUI(); }));
+
 function syncUI() {
+  if (S.beta != null) setBeta(S.beta);                              // v/c dial set: hold v/c, re-derive f
   P = phys();
   ladderBtns.forEach((b, i) => b.classList.toggle("on", i === S.step));
   fxBtns.forEach((b, i) => b.classList.toggle("on", !!(S.mask & (1 << FX[i].bit))));
@@ -702,7 +715,10 @@ function syncUI() {
   for (const id of Object.keys(sliders)) { const k = keyOf[id] || id; $(id).value = S[k]; $(id + "Val").textContent = sliders[id](S[k]); }
   if (S.step < 0) $("caption").style.opacity = 0;
   const m = S.mask, on = (k) => !!(m & (1 << FX.find((f) => f.key === k).bit));
-  const N = on("grz") ? P.lapse : 1, betaO = P.OmKm * S.R / N, beta = (P.OmKm - (on("drag") ? P.wS : 0)) * S.R / N;
+  const N = on("grz") ? P.lapse : 1, betaO = P.OmKm * S.R / N;
+  if (betaO > 0.97) { S.f = Math.floor(0.97 * C_KM * N / (2 * Math.PI * S.R)); return syncUI(); }  // keep v < c
+  $("beta").value = betaO; $("betaVal").textContent = `${betaO.toFixed(3)} c`;
+  const beta = (P.OmKm - (on("drag") ? P.wS : 0)) * S.R / N;
   const gam = 1 / Math.sqrt(1 - beta * beta), dHi = 1 / (gam * (1 - betaO)), dLo = 1 / (gam * (1 + betaO));
   const z1 = on("grz") ? 1 / P.lapse : 1;
   const period = 1e6 / S.f, crossUs = S.R / C_KM * 1e6;
@@ -712,7 +728,7 @@ function syncUI() {
     `compactness GM/Rc² <b>${P.x.toFixed(3)}</b> · 1+z <b class="rose">${(1 / P.lapse).toFixed(3)}</b><br>` +
     `f <b>${S.f.toFixed(1)} Hz</b> · P <b>${(period / 1000).toFixed(3)} ms</b> · f<sub>K</sub> ≈ <b>${P.fK.toFixed(0)} Hz</b>` +
     (over ? ` <span class="warn">beyond break-up (hypothetical)</span>` : "") + `<br>` +
-    `v<sub>eq</sub>/c <b class="gold">${beta.toFixed(3)}</b> · γ <b>${gam.toFixed(3)}</b> · δ <b class="blue">${dHi.toFixed(3)}</b> / <b class="rose">${dLo.toFixed(3)}</b><br>` +
+    `v<sub>eq</sub>/c <b class="gold">${betaO.toFixed(3)}</b> · γ <b>${gam.toFixed(3)}</b> · δ <b class="blue">${dHi.toFixed(3)}</b> / <b class="rose">${dLo.toFixed(3)}</b><br>` +
     `observed colour factor g ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>]<br>` +
     `R/c <b>${crossUs.toFixed(1)} µs</b> = <b class="gold">${(360 * crossUs / period).toFixed(1)}°</b> of spin (light-time shear)<br>` +
     `R<sub>pole</sub> <b>${(S.R * (1 + (on("oblate") ? P.o2 : 0))).toFixed(2)} km</b> (o₂ ${P.o2.toFixed(3)}) · ω<sub>drag</sub>/Ω <b>${(P.wS / P.OmKm).toFixed(3)}</b><br>` +

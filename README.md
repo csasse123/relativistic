@@ -25,7 +25,7 @@ An adaptive narrow frustum shrank with β and filled the screen → pure zoom mu
 | β = v/c | Optics strength |
 | Doppler | Color vs angle to velocity |
 
-## Spinning Neutron Star (v1.13)
+## Spinning Neutron Star (v1.14)
 
 `neutron-star.html` · [live](https://csasse123.github.io/relativistic/neutron-star.html)
 
@@ -51,6 +51,8 @@ Each effect can also be switched on and off on its own.
 **Views:** mono, split screen (Newton beside the current physics), and two eyes (red/cyan anaglyph, cross-eye or parallel), each eye ray-traced from its own position.
 
 **Live pulse profile:** a 64² flux trace using the same physics, the observable that NICER fits.
+
+**Speed:** the **v/c** dial (0–0.97 c, or the 0.1c–0.9c chips) sets the spin f = βcN/(2πR). **Playback** only sets the slow-motion rate.
 
 **Presets:** J1748−2446ad (716 Hz), J0030+0451, J0740+6620, J0437−4715, and a hypothetical 2 kHz star.
 
