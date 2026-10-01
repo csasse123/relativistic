@@ -25,7 +25,7 @@ An adaptive narrow frustum shrank with β and filled the screen → pure zoom mu
 | β = v/c | Optics strength |
 | Doppler | Color vs angle to velocity |
 
-## Spinning Neutron Star (v1.14)
+## Spinning Neutron Star (v1.15)
 
 `neutron-star.html` · [live](https://csasse123.github.io/relativistic/neutron-star.html)
 
@@ -51,6 +51,13 @@ Each effect can also be switched on and off on its own.
 **Views:** mono, split screen (Newton beside the current physics), and two eyes (red/cyan anaglyph, cross-eye or parallel), each eye ray-traced from its own position.
 
 **Live pulse profile:** a 64² flux trace using the same physics, the observable that NICER fits.
+
+**Look (v1.15):**
+- **Surface:** a NASA-style blue wireframe. The grid hue is a Doppler-shifted 490 nm line. The hot caps are coloured by observed brightness on NASA's red→yellow scale.
+- **Brightness curve:** shown on screen, with a moving dot and the Newton curve for reference.
+- **Ghost grid:** shows the previous step, so you can see what each new effect moves.
+- **Surface maps:** the Doppler × redshift factor g, or the light delay.
+- **Magnetic field lines:** a rotating vacuum dipole with retarded fields (Deutsch), which sweeps back toward the light cylinder. Near the star it uses the Schwarzschild dipole shape (Wasserman & Shapiro 1983). The lines are seen through the same lensing and light delay as the surface.
 
 **Speed:** the **v/c** dial (0–0.97 c, or the 0.1c–0.9c chips) sets the spin f = βcN/(2πR). **Playback** only sets the slow-motion rate.
 
