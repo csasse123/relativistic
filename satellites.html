@@ -51,7 +51,7 @@ import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const BUILD = "v1.1.0";
+const BUILD = "v1.2.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · thirty-two clocks";
 const params = new URLSearchParams(location.search);
@@ -608,7 +608,7 @@ const MCR = mk("mcr");
 // AI VIDEO CLIP SLOTS — assets/clips/<id>.mp4 (docs/AI_VIDEO_PROMPTS.md).
 // Missing clip → the 3D shot underneath plays instead.
 // =============================================================================
-const CLIPS = {}; ["lookup", "drop_a", "drop_b", "pre_wide", "pre_close", "pre_board", "chorus_cheer"].forEach((id) => {
+const CLIPS = {}; ["lookup", "drop_a", "drop_b", "pre_wide", "pre_close", "pre_board", "chorus_cheer", "sat_approach", "sat_beauty", "iss_limb", "gps_helix", "hubble_orbit"].forEach((id) => {
   const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.crossOrigin = "anonymous"; const c = { v, ready: false };
   v.addEventListener("loadeddata", () => { c.ready = true; }); v.addEventListener("error", () => {}); v.src = `assets/clips/${id}.mp4`; CLIPS[id] = c; });
 function drawClip(g, t, sh) { const c = sh.clip && CLIPS[sh.clip]; if (!c || !c.ready) return false; const want = (t - sh.t0) + (sh.clipOff || 0.4), v = c.v;
@@ -732,13 +732,13 @@ function buildShots() {
   shot(0, T0("look"), E, CAM.night, { cap: ["NIGHT SIDE · EUROPE", "from medium Earth orbit"] });
   shot(T0("look"), T0("clocks") - 0.2, E, CAM.lookUp, { clip: "lookup" });
   shot(T0("clocks") - 0.2, T0("build"), E, CAM.reveal, { mode: P2S(0.55, 1.4) });
-  shot(T0("build"), T0("drop"), E, CAM.approach, { near: 0.02, cap: ["GPS BLOCK III", "20 200 km · 3.874 km/s · 11 h 58 min"] });
+  shot(T0("build"), T0("drop"), E, CAM.approach, { near: 0.02, clip: "sat_approach", clipOff: 0.2, cap: ["GPS BLOCK III", "20 200 km · 3.874 km/s · 11 h 58 min"] });
   // DROP — instrumental, cut every 4 kicks, photo ↔ schematic on the bar
   const dk = kicksIn(T0("drop") - 0.05, T0("alt") - 0.2), bars = [T0("drop")]; for (let i = 4; i < dk.length; i += 4) bars.push(dk[i]); bars.push(T0("alt"));
   const L = ["earth", "leo"], NC = (id) => ({ near: NASA[id].size * 0.05, nasa: id, capTop: true, cap: [NASA[id].name, `${NASA[id].alt.toLocaleString("en")} km · ${NASA[id].vkm} km/s · clock ${NASA[id].rate > 0 ? "+" : ""}${NASA[id].rate.toFixed(1)} μs/day`] });
-  const D = [[CAM.beauty, "photo", 0, E], [CAM.explode, "schem", 0, E, { explode: true, callouts: true }], [CAM.nasa("iss", "limb"), "photo", 0, L, NC("iss")], [CAM.panel, P2S(0.45, 0.8), 0, E],
-    [CAM.helix, "photo", 0, E, { callouts: true, cap: ["L-BAND HELIX ARRAY", "the 'springs': 12 helical antennas send L1 1575.42 MHz to your phone"] }], [CAM.wide, "schem", 0, E, { clip: "drop_a" }],
-    [CAM.nasa("hubble", "orbit"), S2P(0.2, 0.7), 0, L, NC("hubble")], [CAM.explode, "schem", 0, E, { explode: true, callouts: true, clip: "drop_b" }]];
+  const D = [[CAM.beauty, "photo", 0, E, { clip: "sat_beauty" }], [CAM.explode, "schem", 0, E, { explode: true, callouts: true }], [CAM.nasa("iss", "limb"), "photo", 0, L, { ...NC("iss"), clip: "iss_limb" }], [CAM.panel, P2S(0.45, 0.8), 0, E],
+    [CAM.helix, "photo", 0, E, { clip: "gps_helix", cap: ["L-BAND HELIX ARRAY", "the 'springs': 12 helical antennas send L1 1575.42 MHz to your phone"] }], [CAM.wide, "schem", 0, E, { clip: "drop_a" }],
+    [CAM.nasa("hubble", "orbit"), "photo", 0, L, { ...NC("hubble"), clip: "hubble_orbit" }], [CAM.explode, "schem", 0, E, { explode: true, callouts: true, clip: "drop_b" }]];
   for (let i = 0; i < bars.length - 1; i++) { const [f, mode, k, use, o] = D[i % D.length]; shot(bars[i], bars[i + 1], use, (t, u) => f(t, u, k), { near: 0.02, mode, kick: true, ...(o || {}) }); }
   shot(T0("alt"), T0("miss"), E, (t, u) => CAM.chase(t, u, 0), { cap: ["IMAGING SWATH", "ground track · 2 orbits per sidereal day"] });
   shot(T0("miss"), T0("cesium"), ["earth", "newt"], CAM.newton, { mode: "schem" });
@@ -819,8 +819,10 @@ function blueprint(g, t, sh) { const xl = (WIPE + 1) / 2 * OW; if (xl <= 0) retu
   g.font = `500 11px ${MONO}`; g.fillStyle = "rgba(130,220,255,.55)"; g.fillText("GPS-III · SV-SCHEM-" + (Math.floor(t * 4) % 97).toString().padStart(2, "0") + "   SCALE 1:40   r = 26 561.75 km   i = 55°", 24, 28);
   g.fillText("t = " + t.toFixed(2) + " s   Δτ_SR = −7.2 μs/d   Δτ_GR = +45.7 μs/d", 24, OH - 22); g.restore();
   if (xl > 0 && xl < OW) { const gr = g.createLinearGradient(xl - 40, 0, xl + 4, 0); gr.addColorStop(0, "rgba(90,220,255,0)"); gr.addColorStop(1, "rgba(160,240,255,.55)"); g.fillStyle = gr; g.fillRect(xl - 40, 0, 44, OH); g.fillStyle = "#e8fdff"; g.fillRect(xl - 1, 0, 2, OH); } }
+const CLEAN = params.has("clean");
+window.__SHOTS = () => SHOTS.map((x) => ({ t0: x.t0, t1: x.t1, clip: x.clip || null }));
 function drawOverlay(g, t, sh) {
-  g.clearRect(0, 0, OW, OH);
+  g.clearRect(0, 0, OW, OH); if (CLEAN) return;
   const clipOn = drawClip(g, t, sh);
   if (!clipOn) blueprint(g, t, sh);
   if (sh.efe === "derive") efeDerive(g, t, T0("c2"), T0("speed")); if (sh.efe === "num") efeNumeric(g, t, T0("height"), T0("p45")); if (sh.ladder) ladder(g, t, sh.t0, sh.t1);
@@ -835,6 +837,7 @@ function drawOverlay(g, t, sh) {
   slam(g, t, T0("four"), T1("four") + 0.3, "x · y · z · t", 0.5, 0.84, 80, "#ffffff");
   slam(g, t, T0("nano"), T1("nano") + 0.5, "1 ns = 30 cm", 0.5, 0.5, 130, "#ffffff", { glow: "#ff2a3a" });
   slam(g, t, T0("notyour"), T1("notyour") + 0.6, "τ ≠ t", 0.5, 0.84, 90, "#ffffff");
+  if (sh.clip === "pre_close" && clipOn) slam(g, t, sh.t0 + 0.5, sh.t1, "+38.6 μs / day", 0.5, 0.2, 46, "#ffd9a8", { w: 600, f: MONO, glow: "#ff8a1e" });
   slam(g, t, T0("c3"), T1("c3") + 0.2, "+38.6 μs / day", 0.5, 0.86, 54, "#ffffff", { w: 600, f: MONO });
   slam(g, t, T0("moving"), T1("moving") + 0.4, "MOVING CLOCKS RUN SLOW", 0.5, 0.14, 50, "#bff6ff");
   counter(g, t, T0("m7"), T1("m7") + 0.6, 0, -7.2, "μs / day", 0.5, 0.86, "#7dd3fc");
@@ -864,7 +867,7 @@ function renderFrame(t) {
   const space = sh.use.includes("earth");
   camera.near = sh.near || (space ? 0.3 : 0.1); camera.far = 9000; camera.fov = sh.fov || 40; camera.aspect = RW / RH; camera.updateProjectionMatrix();
   stars.visible = space || sh.use.includes("sr") || sh.use.includes("well"); sunLight.intensity = sh.use.includes("mcr") ? 0.15 : 3.4; earthLight.intensity = sh.use.includes("mcr") ? 0 : 0.55;
-  lensflare.visible = space;
+  lensflare.visible = space && !CLEAN; if (CLEAN) CON.orbits.forEach((l) => { l.visible = false; });
   if (S.sr.root.visible) { const pre = !!sh.pre; SR.sat.visible = !pre; SR.lines.visible = !pre; }
   HERO.userData.explode = sh.explode ? sm((t - sh.t0) / Math.min(1.2, (sh.t1 - sh.t0) * 0.6)) * 1.0 : 0;
   for (const k of sh.use) S[k].update && S[k].update(t);
