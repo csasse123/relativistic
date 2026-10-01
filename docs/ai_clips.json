@@ -184,6 +184,20 @@
    "duration": 10,
    "image": "Close tracking shot along a line of flat square orbital mirror satellites, thin silver reflective sheets on lightweight frames with small thruster pods, catching blinding sunlight; dozens more stretch away in formation toward Earth's terminator below",
    "motion": "camera slides past the nearest mirror as it slowly tilts and flashes the sun at the lens, the formation recedes to the horizon"
+  },
+  {
+   "id": "glass_write",
+   "t": "1:22.4–1:24.0",
+   "style": "crew",
+   "image": "Seen through a tall glass wall from the other side: a young engineer writes a long general-relativity equation with a white marker directly on the glass, the handwriting glowing in the screen light, a vast wall display of satellite orbits behind her, a colleague watching",
+   "motion": "camera slides slowly along the glass as the marker moves, the writing catches reflections of the orbit screens, focus pulls from the ink to her face"
+  },
+  {
+   "id": "glass_wall",
+   "t": "1:48.0–1:49.6",
+   "style": "crew",
+   "image": "Wide shot of a glass wall completely covered in handwritten physics equations, integrals and orbit sketches, a young mixed team silhouetted behind it against a giant glowing Earth display with hundreds of satellite tracks",
+   "motion": "slow dolly through the gap in the glass wall into the room, equations slide past in the foreground, parallax, dramatic"
   }
  ],
  "styles": {
