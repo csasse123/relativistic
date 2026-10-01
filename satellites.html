@@ -51,7 +51,7 @@ import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const BUILD = "v1.10.0";
+const BUILD = "v1.11.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · thirty-two clocks";
 const params = new URLSearchParams(location.search);
@@ -1038,6 +1038,10 @@ $("file").onchange = (e) => { const f = e.target.files[0]; if (f) { loadSong(URL
 addEventListener("dragover", (e) => { e.preventDefault(); $("drop").style.display = "flex"; });
 addEventListener("dragleave", () => { $("drop").style.display = "none"; });
 addEventListener("drop", (e) => { e.preventDefault(); $("drop").style.display = "none"; const f = e.dataTransfer.files[0]; if (f) { loadSong(URL.createObjectURL(f)); begin(); seekTo(0); } });
+// frame-exact offline render (tools/render_mp4.mjs): seek the active clip precisely, draw, return the composite frame
+window.__frame = async (t, q = 0.92) => { running = true; if (hasSong) au.pause(); pPlay = false; manualT = t; const sh = shotAt(t), c = sh.clip && CLIPS[sh.clip];
+  if (c && c.ready) { const v = c.v, want = (t - sh.t0) + (sh.clipOff ?? 1.0); if (!v.paused) v.pause(); if (Math.abs(v.currentTime - want) > 0.001) { await new Promise((res) => { v.addEventListener("seeked", res, { once: true }); v.currentTime = want; setTimeout(res, 3000); }); } }
+  renderFrame(t); cctx.drawImage($("c"), 0, 0); cctx.drawImage($("ov"), 0, 0); return comp.toDataURL("image/jpeg", q); };
 window.__seek = (t) => { if (!running) { running = true; $("start").style.display = "none"; tick(); } if (hasSong) au.pause(); pPlay = false; seekTo(t); };
 let actx = null, adest = null;
 function audioStream() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); const src = actx.createMediaElementSource(au); adest = actx.createMediaStreamDestination(); src.connect(actx.destination); src.connect(adest); }
