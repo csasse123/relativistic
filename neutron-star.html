@@ -33,7 +33,15 @@
     background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 14px 16px;
     backdrop-filter: blur(12px); box-shadow: 0 16px 40px rgba(0,0,0,0.45);
   }
-  .panel.hidden { display: none; }
+  .panel { transition: transform 0.38s cubic-bezier(.2,.8,.2,1), opacity 0.38s; }
+  .panel.hidden { transform: translateX(calc(100% + 28px)); opacity: 0; pointer-events: none; }
+  #panelTab { position: fixed; z-index: 7; top: 50%; right: calc(min(340px, 92vw) + 12px); transform: translateY(-50%);
+    border: 1px solid var(--line); border-right: none; background: var(--panel); color: #cfe6ff; cursor: pointer;
+    border-radius: 12px 0 0 12px; padding: 14px 7px; font: 700 0.62rem "JetBrains Mono", monospace; letter-spacing: 0.12em;
+    writing-mode: vertical-rl; text-transform: uppercase; backdrop-filter: blur(10px);
+    transition: right 0.38s cubic-bezier(.2,.8,.2,1), background 0.2s; box-shadow: -6px 0 18px rgba(0,0,0,0.35); }
+  #panelTab:hover { background: rgba(20, 60, 110, 0.9); }
+  #panelTab.closed { right: 0; }
   .panel h2 { font: 700 0.66rem/1 "JetBrains Mono", monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 14px 0 8px; }
   .panel h2:first-child { margin-top: 0; }
   .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; font-size: 0.75rem; color: #c8d8ea; margin-bottom: 2px; }
@@ -52,12 +60,15 @@
   #curve.off { display: none; }
   .hint { position: fixed; left: 16px; bottom: 10px; z-index: 5; font-size: 0.66rem; color: #5d7593; pointer-events: none; }
   .build { position: fixed; right: 14px; bottom: 10px; z-index: 5; font: 600 0.62rem "JetBrains Mono", monospace; color: #4a6283; }
-  .toggle { position: fixed; z-index: 7; top: 12px; right: 12px; display: none; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 7px 12px; font: 600 0.7rem "JetBrains Mono", monospace; cursor: pointer; }
+  .toggle { position: fixed; z-index: 7; top: 12px; right: 12px; display: none !important; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 7px 12px; font: 600 0.7rem "JetBrains Mono", monospace; cursor: pointer; }
   .toggle.show { display: block; }
   .warn { color: #fb7185; font-weight: 700; }
   @media (max-width: 720px) {
     .caption .d { display: none; }
     .panel { top: auto; bottom: 0; right: 0; left: 0; width: 100%; max-height: 44vh; border-radius: 16px 16px 0 0; }
+    .panel.hidden { transform: translateY(calc(100% + 20px)); }
+    #panelTab { writing-mode: horizontal-tb; top: auto; transform: none; right: 50%; margin-right: -60px; bottom: 44vh; border-radius: 12px 12px 0 0; border: 1px solid var(--line); border-bottom: none; padding: 7px 14px; transition: bottom 0.38s; }
+    #panelTab.closed { right: 50%; bottom: 0; }
     #curve { width: 60vw; height: 130px; bottom: calc(44vh + 6px); }
     .hint { display: none; }
   }
@@ -70,10 +81,12 @@
 <div class="top">
   <div class="badge">Special + general relativity · per-pixel geodesic ray tracing</div>
   <h1>Spinning Neutron Star</h1>
+  <div id="validity" style="display:none;margin-top:8px;max-width:470px;font-size:0.74rem;line-height:1.4;padding:6px 10px;border-radius:10px;border:1px solid rgba(251,113,133,0.45);background:rgba(60,10,25,0.55);color:#fecdd3"></div>
   <div class="caption" id="caption"><div class="step" id="capStep"></div><div class="t" id="capT"></div><div class="d" id="capD"></div></div>
 </div>
 <canvas id="curve"></canvas>
 <button class="toggle" id="showPanel" type="button">⚙ panel (H)</button>
+<button id="panelTab" type="button">Hide controls ›</button>
 
 <div class="panel" id="panel">
   <h2>1 · Physics ladder</h2>
@@ -124,8 +137,8 @@
   </div>
   <div class="sub">background</div>
   <div class="chips" id="bgs">
-    <button type="button" data-bg="0" class="on">Studio blue</button>
-    <button type="button" data-bg="1">Star field</button>
+    <button type="button" data-bg="1" class="on">Star field</button>
+    <button type="button" data-bg="0">Studio blue</button>
   </div>
 
   <h2>3 · View</h2>
@@ -203,7 +216,7 @@
 <div id="scalebar" style="position:fixed;z-index:5;bottom:30px;pointer-events:none;font:600 0.62rem JetBrains Mono,monospace;color:#a9c8e8;text-align:center">
   <div id="scaleLine" style="height:6px;border:1.5px solid #a9c8e8;border-top:none"></div><div>10 km at the star's centre (before lensing)</div></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.24.0</div>
+<div class="build" id="build">v1.25.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -527,7 +540,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.24.0";
+const BUILD = "v1.25.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -597,7 +610,7 @@ const PRESETS = [
 const S = {
   step: 8, mask: ladderMask(8), guided: true, guideT: 0, paused: false, capT: 0,
   view: 0, sep: 3.0, inc: 62, az: 0.4, dist: 85, fov: 40, turns: 0.22, expo: 0, res: 0.75, autoRes: true,
-  style: 0, map: 0, bg: 0, ghost: true, field: true, lc: true, curve: true, grid: true, fmodel: 1, tour: null,
+  style: 0, map: 0, bg: 1, ghost: true, field: true, lc: true, curve: true, grid: true, fmodel: 1, tour: null,
   beta: null,
   f: 716, M: 1.4, R: 12.0, tilt: 48, spot: 20, Bp: 4e4,
   bpSrc: "assumed: its spin-down is contaminated by the cluster's gravity. A reported ν̇ ≈ 1.7×10⁻¹⁴ Hz/s gives ~4×10⁴ T, uncertain by a factor of a few", bcol: false, scale: false, rays: true, beam: 1,
@@ -985,7 +998,12 @@ $("tourBtn").addEventListener("click", () => (S.tour ? stopTour() : startTour())
 for (const [id, key] of [["ghostBtn", "ghost"], ["fieldBtn", "field"], ["lcBtn", "lc"], ["curveBtn", "curve"], ["gridBtn", "grid"], ["raysBtn", "rays"], ["bcolBtn", "bcol"], ["scaleBtn", "scale"], ["autoRes", "autoRes"]])
   $(id).addEventListener("click", () => { S[key] = !S[key]; syncUI(); });
 $("showPanel").addEventListener("click", () => togglePanel());
-function togglePanel() { $("panel").classList.toggle("hidden"); $("showPanel").classList.toggle("show", $("panel").classList.contains("hidden")); }
+function togglePanel() {
+  const hidden = $("panel").classList.toggle("hidden");
+  $("panelTab").classList.toggle("closed", hidden);
+  $("panelTab").textContent = hidden ? "‹ ⚙ Controls" : "Hide controls ›";
+}
+$("panelTab").addEventListener("click", togglePanel);
 
 const sliders = {
   sep: (v) => `${v.toFixed(1)} km`, inc: (v) => `${v.toFixed(0)}°`, dist: (v) => `${v.toFixed(0)} km`,
@@ -1049,10 +1067,22 @@ function syncUI() {
     `v<sub>eq</sub>/c <b class="gold">${betaO.toFixed(3)}</b> · γ <b>${gam.toFixed(3)}</b> · δ <b class="blue">${dHi.toFixed(3)}</b> / <b class="rose">${dLo.toFixed(3)}</b><br>` +
     `observed g ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>] · g⁴ ∈ [${((dLo / z1) ** 4).toPrecision(2)}, ${((dHi / z1) ** 4).toPrecision(3)}]<br>` +
     `R/c <b>${crossUs.toFixed(1)} µs</b> = <b class="gold">${(360 * crossUs / period).toFixed(1)}°</b> of spin · light cylinder c/Ω <b>${P.RLC.toFixed(0)} km</b><br>` +
-    `R<sub>pole</sub> <b>${(S.R * (1 + (on(m, "oblate") ? P.o2 : 0))).toFixed(2)} km</b> · ω<sub>drag</sub>/Ω <b>${(P.wS / P.OmKm).toFixed(3)}</b> · I/MR² <b>${P.kappa.toFixed(3)}</b><br>` +
+    `R<sub>pole</sub> <b>${(S.R * (1 + (on(m, "oblate") ? P.o2 : 0))).toFixed(2)} km</b> · ω<sub>drag</sub>/Ω <b>${(P.wS / P.OmKm).toFixed(3)}</b> · I/MR² <b>${P.kappa.toFixed(3)}</b> · spin χ = cJ/GM² <b class="${P.J / (P.rs / 2) ** 2 > 0.45 ? "rose" : ""}">${(P.J / (P.rs / 2) ** 2).toFixed(2)}</b><br>` +
     `diameter <b>${(2 * S.R).toFixed(1)} km</b> equatorial · <b>${(2 * Rpole).toFixed(1)} km</b> pole to pole (spin flattening, o₂ ${P.o2.toFixed(3)})<br>` +
     `B<sub>p</sub> <b class="gold">${fmtT(Bp)}</b> (see note) · at the light cylinder ≈ <b>${fmtT(BLC)}</b> · spin-down power (force-free) ≈ <b>${Lff.toExponential(1)} W</b><br>` +
     `surface visible <b>${on(m, "bend") ? (100 * P.visGR).toFixed(0) : 50}%</b> · real ${S.f.toFixed(0)} turns/s shown at ${S.turns.toFixed(2)}/s (×1/${Math.round(S.f / S.turns).toLocaleString()})`;
+  // reality checks: every limit the controls can cross gets a visible warning
+  const chi = P.J / (P.rs / 2) ** 2, Mg = P.rs / 2, warn = [];
+  if (chi > 1) warn.push(`<b>Spin parameter χ = ${chi.toFixed(2)} &gt; 1.</b> No star or black hole can spin this fast. The special-relativity effects (light delay, aberration, Doppler, beaming, contraction) are still exact kinematics, but the gravity part is a what-if using a non-spinning spacetime.`);
+  else if (chi > 0.45) warn.push(`<b>Spin parameter χ = ${chi.toFixed(2)}.</b> Beyond the slow-rotation gravity model (good to χ ≈ 0.3–0.4); bending, redshift and frame dragging are approximate. Special relativity stays exact.`);
+  if (S.f > P.fK) warn.push(`<b>Faster than break-up (~${P.fK.toFixed(0)} Hz).</b> A real star would shed mass from its equator; the bulge is frozen at its break-up shape.`);
+  if (S.R < 2.9 * Mg) warn.push(`<b>More compact than causality allows</b> (R &lt; 2.9 GM/c² = ${(2.9 * Mg).toFixed(1)} km): no known matter is this stiff; light could orbit the star.`);
+  if (S.M > 2.3) warn.push(`<b>Mass ${S.M.toFixed(2)} M☉</b> is above the heaviest measured neutron stars (~2.1 M☉); most models would collapse to a black hole.`);
+  if (S.M < 1.1) warn.push(`<b>Mass ${S.M.toFixed(2)} M☉</b> is below the lightest known neutron star (~1.17 M☉).`);
+  if (S.Bp > 4.4e9) warn.push(`<b>Field above the quantum critical field (4.4×10⁹ T).</b> Vacuum polarization, photon splitting and pair creation, not modelled here, start to change how light and matter behave.`);
+  const val = $("validity");
+  val.style.display = warn.length ? "block" : "none";
+  val.innerHTML = `<div style="font:700 0.6rem JetBrains Mono,monospace;letter-spacing:0.1em;color:#fb7185;margin-bottom:3px">⚠ OUTSIDE REAL PHYSICS</div>` + warn.join("<br>");
   const dMax = delayMax();
   $("mapMeta").style.display = S.map ? "block" : "none";
   $("mapMeta").innerHTML = S.map === 1
@@ -1304,8 +1334,8 @@ function beamBuffer(eye, mask, tab, cxv, tanH, asp) {
 const FSQ = `#version 300 es
 void main(){ vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
 const BM = program(`#version 300 es
-in vec2 aP; in float aT; in float aW; uniform float uT; out float vI;
-void main(){ float ph = mod(uT - aT, 45.0); vI = aW * (0.6 + 0.75 * exp(-ph / 10.0)); gl_Position = vec4(aP, 0.0, 1.0); }`, `#version 300 es
+in vec2 aP; in float aT; in float aW; uniform float uT; uniform float uShift; out float vI;
+void main(){ float ph = mod(uT - aT, 45.0); vI = aW * (0.6 + 0.75 * exp(-ph / 10.0)); gl_Position = vec4(aP.x - uShift, aP.y, 0.0, 1.0); }`, `#version 300 es
 precision mediump float; in float vI; uniform vec3 uCol; uniform float uGain; out vec4 o;
 void main(){ o = vec4(uCol * vI * uGain, 1.0); }`);
 const BL = program(FSQ, `#version 300 es
@@ -1348,13 +1378,14 @@ function drawBeam(E) {
   const fw = Math.max(16, Math.round(W / k)), fh = Math.max(16, Math.round(H / k));
   fogTargets(fw, fh);
   const views = viewList(E, W, H), BEAMC = [0.62, 0.8, 1.0];
-  const entries = views.map(([e, mask, vp, tint, cxv]) => [beamBuffer(E[e], mask, rayTable(Math.hypot(...E[e].p), mask), cxv, tanH, vp[2] / vp[3]), vp, tint]);
+  const entries = views.map(([e, mask, vp, tint, cxv]) => [beamBuffer(E[e], mask, rayTable(Math.hypot(...E[e].p), mask), 0, tanH, vp[2] / vp[3]), vp, tint, cxv]);
   // 1) photon-path density into a low-resolution buffer
   gl.bindFramebuffer(gl.FRAMEBUFFER, fog.fbo[0]); gl.viewport(0, 0, fw, fh);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
   gl.useProgram(BM.p); gl.bindVertexArray(beamVao); gl.uniform1f(BM.U.uT, S.tKm);
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
-  for (const [en, vp, tint] of entries) {
+  for (const [en, vp, tint, cxv] of entries) {
+    gl.uniform1f(BM.U.uShift, cxv);
     gl.viewport(Math.round(vp[0] / k), Math.round(vp[1] / k), Math.round(vp[2] / k), Math.round(vp[3] / k));
     drawBeamLines(en, en.n, BEAMC.map((v, i) => v * tint[i]), 0.11);
   }
@@ -1372,7 +1403,7 @@ function drawBeam(E) {
   gl.uniform1i(CM.U.uTex, 0); gl.uniform2f(CM.U.uRes, W, H); gl.uniform1f(CM.U.uK, 1.6 * S.beam);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   gl.useProgram(BM.p); gl.bindVertexArray(beamVao);
-  for (const [en, vp, tint] of entries) { gl.viewport(...vp); drawBeamLines(en, en.nHi, BEAMC.map((v, i) => v * tint[i]), 0.5 * Math.min(1.5, S.beam)); }
+  for (const [en, vp, tint, cxv] of entries) { gl.uniform1f(BM.U.uShift, cxv); gl.viewport(...vp); drawBeamLines(en, en.nHi, BEAMC.map((v, i) => v * tint[i]), 0.5 * Math.min(1.5, S.beam)); }
   gl.disable(gl.BLEND); gl.bindVertexArray(null); gl.viewport(0, 0, W, H);
   bindTex();
 }
@@ -1459,10 +1490,14 @@ function drawField(E) {
   }
   gl.disable(gl.BLEND); gl.bindVertexArray(null);
 }
-function uCxValue() {
+// the star sits in the middle of the free area; it glides when the control drawer opens or closes
+let cxSmooth = null;
+function uCxTarget() {
   const panelOpen = !$("panel").classList.contains("hidden") && innerWidth > 720;
   return panelOpen && (S.view === 0 || S.view === 2) ? Math.min(0.5, ($("panel").offsetWidth + 24) / innerWidth) : 0;
 }
+function uCxValue() { return cxSmooth === null ? uCxTarget() : cxSmooth; }
+function stepCx() { const t = uCxTarget(); cxSmooth = cxSmooth === null ? t : (Math.abs(t - cxSmooth) < 0.002 ? t : cxSmooth + (t - cxSmooth) * 0.16); }
 
 // ---------------------------------------------------------------- magnetosphere tour (deterministic in τ, so it can be exported frame by frame)
 const TOUR_LEN = 26;
@@ -1517,6 +1552,7 @@ function loop(now) {
     else if (fpsAvg < 22 && S.res < 1.0) { S.res = Math.min(1.0, S.res + 0.05); syncUI(); }
   }
   resize();
+  stepCx();
   const E = eyes();
   gl.useProgram(RT.p); gl.bindVertexArray(emptyVao); bindTex();
   if (frame % 2 === 0) pulsePass(E);
@@ -1636,7 +1672,8 @@ const TIPS = {
   autoRes: T("Auto resolution", "Automatically lowers the resolution when the frame rate drops and raises it when there is headroom.", "disp"),
   // ---------------------------------------------------------------- star
   f: T("Spin frequency", "Turns per second. The fastest known neutron star, PSR J1748−2446ad, spins 716 times per second. Above roughly 1,000 Hz (break-up) a real star would fly apart — higher values are hypothetical, to make the effects easy to see.", "exact"),
-  beta: T("Equator speed v/c", "How fast the equator moves as a fraction of light speed — the key number for all special-relativity effects (sets the spin for you). Real neutron stars reach up to ~0.25c; above that is hypothetical. Held fixed while you step through the ladder.", "exact"),
+  beta: T("Equator speed v/c", "How fast the equator moves as a fraction of light speed — the key number for all special-relativity effects (sets the spin for you). Real neutron stars reach up to ~0.25c; above that is hypothetical. Held fixed while you step through the ladder.", "exact",
+    "Special relativity (light delay, aberration, Doppler, beaming, contraction) stays exact at any speed. The gravity part assumes a slowly spinning star (spin parameter χ ≲ 0.4); above ~0.3c it is only a what-if, and above ~0.6c χ exceeds 1, which no real object can have."),
   m: T("Mass", "In solar masses (M☉). Measured neutron stars range from about 1.2 to 2.1 M☉. More mass at the same size means stronger gravity: more light bending and redshift.", "exact"),
   r: T("Equatorial radius", "Radius at the equator in km. Measured radii are about 11–13 km — a whole Sun's worth of mass squeezed into a city. The ratio of mass to radius (compactness) controls all gravity effects.", "exact"),
   tilt: T("Magnetic tilt", "Angle between the magnetic axis and the spin axis. The hot caps sit at the magnetic poles, and the tilt makes them sweep around like a lighthouse — that is what makes a pulsar pulse.", "assumed", "Rarely measured; NICER finds real hot spots are often not even on opposite sides."),
@@ -1694,6 +1731,7 @@ const TIPS = {
   document.querySelectorAll("#fmodels button").forEach((b) => attach(b, TIPS.fmodel[+b.dataset.fmodel === 1 ? 0 : 1]));
   document.querySelectorAll("#bgs button").forEach((b) => attach(b, TIPS.bg[+b.dataset.bg]));
   document.querySelectorAll("#views button").forEach((b) => attach(b, TIPS.view[+b.dataset.view]));
+  attach($("panelTab"), T("Controls drawer", "Slides the control panel out of the way for an unobstructed view. Click the tab again — or press H — to bring it back.", "disp"));
   for (const id of ["ghostBtn", "fieldBtn", "lcBtn", "curveBtn", "gridBtn", "raysBtn", "bcolBtn", "scaleBtn", "tourBtn", "autoRes"]) attach($(id), TIPS[id]);
   for (const id of ["sep", "inc", "dist", "fov", "turns", "expo", "res", "f", "beta", "m", "r", "tilt", "bp", "spot", "beam"]) {
     attach($(id), TIPS[id]);

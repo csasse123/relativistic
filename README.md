@@ -78,6 +78,11 @@ The vacuum dipole remains as the starting point to compare against. **▶ Magnet
 
 **Tutorial tooltips (v1.23):** every button and slider (71 controls) has a hover tooltip, or long-press on a phone. Each says what the control does and what to look for, with a badge for how exact it is: *Exact* (within the stated model), *Approximation*, *Schematic*, *Convention*, *Display only* or *Assumed*.
 
+**Reality checks and layout (v1.25):**
+- **Warning box** under the title whenever a setting leaves real physics: spin parameter χ = cJ/GM² beyond the slow-rotation gravity model (> 0.45) or above 1, spin past break-up, compactness beyond the causality limit (R < 2.9 GM/c²), masses outside the measured range, or fields above the quantum critical 4.4×10⁹ T. Special relativity stays exact at any speed; the gravity part is flagged as a what-if.
+- **Control drawer:** the panel slides away behind a "Controls" tab (or press H), and the star glides back to the centre.
+- **Star field** is now the default background.
+
 **Speed:** the **v/c** dial (0–0.97 c, or the 0.1c–0.9c chips) sets the spin f = βcN/(2πR). **Playback** only sets the slow-motion rate.
 
 **Presets:** J1748−2446ad (716 Hz), J0030+0451, J0740+6620, J0437−4715, and a hypothetical 2 kHz star.
