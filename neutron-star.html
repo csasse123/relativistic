@@ -137,6 +137,7 @@
   <input id="inc" type="range" min="2" max="178" step="1" value="62" />
   <label class="row"><span>Your distance (km from centre)</span><span class="val" id="distVal"></span></label>
   <input id="dist" type="range" min="20" max="400" step="1" value="85" />
+  <div class="help">A teaching viewpoint: real observers are light-years away. From far away the image settles to the "view from infinity": the same physics, just smaller and with less perspective.</div>
   <label class="row"><span>Field of view</span><span class="val" id="fovVal"></span></label>
   <input id="fov" type="range" min="10" max="100" step="1" value="40" />
   <label class="row"><span>Playback (turns per second, slow motion)</span><span class="val" id="turnsVal"></span></label>
@@ -151,6 +152,7 @@
 
   <h2>4 · The star</h2>
   <div class="chips" id="presets"></div>
+  <div class="help" id="presetNote">Default star: spin 716 Hz (J1748−2446ad, the fastest known pulsar). The mass, radius, inclination and tilt are assumed (1.4 M☉, 12 km, 62°, 48°).</div>
   <label class="row"><span>Spin f (Hz)</span><span class="val" id="fVal"></span></label>
   <input id="f" type="range" min="1" max="6000" step="1" value="716" />
   <label class="row"><span><b style="color:#fbbf24">Equator speed v/c</b> (sets f)</span><span class="val" id="betaVal"></span></label>
@@ -171,7 +173,9 @@
   <div class="meta" id="meta"></div>
   <div class="help" style="margin-top:8px">
     <b>Blue wireframe:</b> grid-line hue shows the Doppler shift of a 490 nm reference line (bluer = approaching).
-    Brightness follows g⁴ beaming and limb darkening, and the hot caps use NASA's brightness scale
+    Wireframe brightness is a <i>display</i> of the bolometric g⁴ factor, compressed as (g⁴)<sup>0.4</sup> so both limbs stay visible.
+    The hot-cap colours and the brightness curve use the true, uncompressed g⁴. The thermal style is exact: a blackbody at gT, i.e. g³ per frequency.
+    The hot caps use NASA's brightness scale
     (yellow = 1 = the cap seen face-on with no relativity).
     <b>Magnetic field:</b> a rotating vacuum dipole with retarded fields (Deutsch 1955), whose lines sweep back toward the light cylinder c/Ω.
     Two separate chips: <b>Retarded B field</b> changes the field itself (Maxwell: changes spread out at c, with radiation beyond c/Ω).
@@ -189,7 +193,7 @@
 </div>
 
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.17.0</div>
+<div class="build" id="build">v1.18.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -413,7 +417,7 @@ vec3 shadeBlue(int m, SP s, vec3 bg) {
   float gc = F(m, 0) ? s.gam : 1.0;
   float g = s.gD * s.gG;
   float W = F(m, 4) ? pow(g, 4.0) : 1.0;                          // beaming / redshift dimming, I ∝ g⁴
-  float B = pow(W, 0.4) * mix(1.0, limb(s.mu), 0.55) * uExpo * 1.35; // perceptual brightness
+  float B = pow(W, 0.4) * mix(1.0, limb(s.mu), 0.55) * uExpo * 1.35; // display only: (g⁴)^0.4; caps + curve use true g⁴
   // translucent navy body
   float n = 0.55 * vnoise(s.pb * 7.0) + 0.45 * vnoise(s.pb * 19.0);
   vec3 body = vec3(0.03, 0.10, 0.26) * (0.75 + 0.5 * n);
@@ -513,7 +517,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.17.0";
+const BUILD = "v1.18.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -529,7 +533,7 @@ const FX = [
   { key: "retard",   bit: 1, label: "Light-travel time" },
   { key: "aberr",    bit: 2, label: "Aberration" },
   { key: "doppler",  bit: 3, label: "Doppler colour" },
-  { key: "beam",     bit: 4, label: "Beaming g⁴" },
+  { key: "beam",     bit: 4, label: "Beaming (g³ per ν · g⁴ total)" },
   { key: "bend",     bit: 5, label: "Light bending", gr: true },
   { key: "grz",      bit: 6, label: "Grav. redshift", gr: true },
   { key: "shapiro",  bit: 7, label: "Shapiro delay", gr: true },
@@ -550,7 +554,7 @@ const LADDER = [
   { name: "+ Doppler", add: ["doppler"], t: "Relativistic Doppler shift",
     d: "δ = 1 / γ(1 − β cos ξ). Grid-line hue follows a shifted 490 nm line: violet-blue on the approaching side, green-yellow on the receding side." },
   { name: "+ beaming", add: ["beam"], t: "Relativistic beaming",
-    d: "Iν/ν³ is invariant, so the intensity scales as g⁴. The approaching side glows, the receding side fades, and the brightness curve becomes lopsided." },
+    d: "Iν/ν³ is invariant, so the intensity at a fixed frequency scales as g³ and the total (bolometric) intensity as g⁴. The approaching side glows, the receding side fades, and the brightness curve becomes lopsided." },
   { name: "+ bending", add: ["bend"], t: "General relativity: light bending",
     d: "Photons follow Schwarzschild null geodesics. The star looks bigger, the far pole curls into view, about 3/4 of the surface is visible, and the hot cap never fully disappears. The field is compressed near the star (Schwarzschild dipole) and lensed." },
   { name: "+ redshift", add: ["grz", "shapiro"], t: "Gravitational redshift + Shapiro delay",
@@ -561,12 +565,18 @@ const LADDER = [
 function ladderMask(step) { let m = 0; for (let i = 1; i <= step; i++) for (const k of LADDER[i].add) m |= 1 << BIT[k]; return m; }
 
 const PRESETS = [
-  { name: "J1748−2446ad · 716 Hz", f: 716, M: 1.4, R: 12.0, inc: 62, tilt: 48 },
-  { name: "J0030+0451 · NICER", f: 205.53, M: 1.34, R: 12.71, inc: 54, tilt: 60 },
-  { name: "J0740+6620 · 2.08 M☉", f: 346.53, M: 2.08, R: 12.39, inc: 87, tilt: 70 },
-  { name: "J0437−4715", f: 173.69, M: 1.418, R: 11.36, inc: 42.5, tilt: 40 },
-  { name: "Hypothetical 2 kHz", f: 2000, M: 1.4, R: 12.0, inc: 70, tilt: 50 },
-  { name: "Hypothetical v = 0.9c", beta: 0.9, M: 1.4, R: 12.0, inc: 70, tilt: 50 },
+  { name: "J1748−2446ad · 716 Hz", f: 716, M: 1.4, R: 12.0, inc: 62, tilt: 48,
+    note: "Only the spin is measured: 716.36 Hz (Hessels et al. 2006). The mass, radius, inclination and magnetic tilt are unknown, so 1.4 M☉, 12 km, i = 62° and tilt = 48° are assumed." },
+  { name: "J0030+0451 · NICER", f: 205.53, M: 1.34, R: 12.71, inc: 54, tilt: 60,
+    note: "Spin 205.53 Hz. M = 1.34 M☉ and R = 12.71 km are NICER fits (Riley et al. 2019). The inclination and tilt are illustrative, and NICER's hot spots are not two antipodal caps." },
+  { name: "J0740+6620 · 2.08 M☉", f: 346.53, M: 2.08, R: 12.39, inc: 87, tilt: 70,
+    note: "Spin 346.53 Hz. M = 2.08 M☉ (Fonseca et al. 2021), R = 12.39 km (Riley et al. 2021), i ≈ 87° from the Shapiro delay. The tilt is illustrative." },
+  { name: "J0437−4715", f: 173.69, M: 1.418, R: 11.36, inc: 42.5, tilt: 40,
+    note: "Spin 173.69 Hz. M = 1.418 M☉ (Reardon et al. 2024), R = 11.36 km (Choudhury et al. 2024), i ≈ 42.5°. The tilt is illustrative." },
+  { name: "Hypothetical 2 kHz", f: 2000, M: 1.4, R: 12.0, inc: 70, tilt: 50,
+    note: "Hypothetical: faster than any real neutron star can spin without breaking up. Here to make the effects easy to see." },
+  { name: "Hypothetical v = 0.9c", beta: 0.9, M: 1.4, R: 12.0, inc: 70, tilt: 50,
+    note: "Hypothetical: equator at 0.9c, far beyond break-up. Here to make the effects easy to see." },
 ];
 
 // ============================================================================ state
@@ -938,6 +948,7 @@ const fxBtns = FX.map((f) => chip($("fx"), f.label, () => { setGuided(false); S.
 PRESETS.forEach((p) => chip($("presets"), p.name, () => {
   Object.assign(S, { M: p.M, R: p.R, inc: p.inc, tilt: p.tilt });
   if (p.beta) setBeta(p.beta); else { S.f = p.f; S.beta = null; }
+  $("presetNote").innerHTML = `<b>${p.name}:</b> ${p.note}`;
   syncUI();
 }));
 function setStep(i) { S.step = i; S.mask = ladderMask(i); showCaption(i); syncUI(); }
@@ -1006,7 +1017,7 @@ function syncUI() {
     `f <b>${S.f.toFixed(1)} Hz</b> · P <b>${(period / 1000).toFixed(3)} ms</b> · f<sub>K</sub> ≈ <b>${P.fK.toFixed(0)} Hz</b>` +
     (S.f > P.fK ? ` <span class="warn">beyond break-up (hypothetical)</span>` : "") + `<br>` +
     `v<sub>eq</sub>/c <b class="gold">${betaO.toFixed(3)}</b> · γ <b>${gam.toFixed(3)}</b> · δ <b class="blue">${dHi.toFixed(3)}</b> / <b class="rose">${dLo.toFixed(3)}</b><br>` +
-    `observed g ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>] · g⁴ ∈ [${(dLo / z1) ** 4 < 0.01 ? (dLo / z1) ** 4 : ((dLo / z1) ** 4).toFixed(2)}, ${((dHi / z1) ** 4).toFixed(2)}]<br>` +
+    `observed g ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>] · g⁴ ∈ [${((dLo / z1) ** 4).toPrecision(2)}, ${((dHi / z1) ** 4).toPrecision(3)}]<br>` +
     `R/c <b>${crossUs.toFixed(1)} µs</b> = <b class="gold">${(360 * crossUs / period).toFixed(1)}°</b> of spin · light cylinder c/Ω <b>${P.RLC.toFixed(0)} km</b><br>` +
     `R<sub>pole</sub> <b>${(S.R * (1 + (on(m, "oblate") ? P.o2 : 0))).toFixed(2)} km</b> · ω<sub>drag</sub>/Ω <b>${(P.wS / P.OmKm).toFixed(3)}</b> · I/MR² <b>${P.kappa.toFixed(3)}</b><br>` +
     `surface visible <b>${on(m, "bend") ? (100 * P.visGR).toFixed(0) : 50}%</b> · real ${S.f.toFixed(0)} turns/s shown at ${S.turns.toFixed(2)}/s (×1/${Math.round(S.f / S.turns).toLocaleString()})`;
