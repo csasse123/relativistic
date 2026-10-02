@@ -109,6 +109,14 @@
     <button type="button" id="curveBtn" class="on">Brightness curve</button>
     <button type="button" id="gridBtn" class="on">Lat/long grid</button>
   </div>
+  <div class="sub">magnetic field model</div>
+  <div class="chips" id="fmodels">
+    <button type="button" data-fmodel="1" class="on" title="Plasma-filled: open field lines, striped wind, current sheet">Plasma-filled (force-free)</button>
+    <button type="button" data-fmodel="0" title="Empty space around a spinning magnet: the starting point, not a real pulsar">Vacuum dipole</button>
+  </div>
+  <div class="chips">
+    <button type="button" id="tourBtn">▶ Magnetosphere tour (26 s)</button>
+  </div>
   <div class="sub">background</div>
   <div class="chips" id="bgs">
     <button type="button" data-bg="0" class="on">Studio blue</button>
@@ -168,6 +176,11 @@
     <b>Magnetic field:</b> a rotating vacuum dipole with retarded fields (Deutsch 1955), whose lines sweep back toward the light cylinder c/Ω.
     Two separate chips: <b>Retarded B field</b> changes the field itself (Maxwell: changes spread out at c, with radiation beyond c/Ω).
     <b>Light-travel time</b> only changes when you see each piece, as if the lines glowed.
+    <b>Which model is physical?</b> The vacuum dipole is the textbook starting point, not the end state. A real pulsar fills
+    its magnetosphere with plasma (Goldreich &amp; Julian 1969). Its currents open every field line that reaches the light cylinder into a
+    striped wind, with a current sheet beyond c/Ω (Contopoulos et al. 1999; Spitkovsky 2006; Bogovalov 1999).
+    That also moves where the light comes from: radio from the open lines above the polar caps, pulsed γ-rays from the current sheet
+    just outside the light cylinder. The plasma model here is a schematic built from those solutions, not a numerical simulation.
     Near the star it uses the Schwarzschild dipole shape (Wasserman &amp; Shapiro 1983). The lines are seen through the same
     light bending and light-travel delay as the surface. A real pulsar's plasma-filled (force-free) magnetosphere opens
     the field lines at the light cylinder (Spitkovsky 2006).
@@ -176,7 +189,7 @@
 </div>
 
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.16.0</div>
+<div class="build" id="build">v1.17.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -500,7 +513,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.16.0";
+const BUILD = "v1.17.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -560,7 +573,7 @@ const PRESETS = [
 const S = {
   step: 8, mask: ladderMask(8), guided: true, guideT: 0, paused: false, capT: 0,
   view: 0, sep: 3.0, inc: 62, az: 0.4, dist: 85, fov: 40, turns: 0.22, expo: 0, res: 0.75, autoRes: true,
-  style: 0, map: 0, bg: 0, ghost: true, field: true, lc: true, curve: true, grid: true,
+  style: 0, map: 0, bg: 0, ghost: true, field: true, lc: true, curve: true, grid: true, fmodel: 1, tour: null,
   beta: null,
   f: 716, M: 1.4, R: 12.0, tilt: 48, spot: 20,
   tKm: 0,
@@ -720,8 +733,8 @@ function cached(map, key, make) {                     // small LRU: split / ster
 }
 function fieldLines(mask) {
   const ret = on(mask, "fieldret"), gr = on(mask, "bend"), obl = on(mask, "oblate");   // field shape; viewing delay is "retard"
-  const key = [ret, gr, obl, S.M, S.R, S.f, S.tilt].join(",");
-  return cached(fieldCache, key, () => traceField(ret, gr, obl));
+  const key = [S.fmodel, ret, gr, obl, S.M, S.R, S.f, S.tilt].join(",");
+  return cached(fieldCache, key, () => (S.fmodel === 1 ? traceForceFree(ret, gr, obl) : traceField(ret, gr, obl)));
 }
 function traceField(ret, gr, obl) {
   const o = { ret, gr, m: magAxis(), Om: P.OmKm, rs: P.rs };
@@ -752,6 +765,86 @@ function traceField(ret, gr, obl) {
       if (rn > rMax) break;
     }
     lines.push({ pts, open, rMax });
+  }
+  return lines;
+}
+
+// Plasma-filled (force-free) magnetosphere, schematic but built from the known solutions:
+//  • closed zone: corotating dipole loops (Schwarzschild-corrected) that stay inside the light cylinder R_LC = c/Ω
+//    (Goldreich & Julian 1969; Contopoulos, Kazanas & Fendt 1999: closed zone ends at a Y-point at R_LC);
+//  • open zone: field lines from the polar caps, sin²θ_pc = R/R_LC, turn radial and wind into the
+//    split-monopole wind B_φ = −B_r Ω r sinθ / c (Michel 1973), i.e. an Archimedean spiral dφ/dr = −Ω/c;
+//  • current sheet beyond R_LC: n · m(t − r/c) = 0, the oblique split monopole's "ballerina skirt"
+//    (Bogovalov 1999); simulations put the pulsed γ-ray emission in it near 1–2 R_LC (Cerutti et al.; Kalapotharakos et al.).
+function traceForceFree(ret, gr, obl) {
+  const RLC = P.RLC, m = magAxis(), Om = ret ? P.OmKm : 0;
+  const oD = { ret: false, gr, m, Om: P.OmKm, rs: P.rs };
+  const rMax = Math.min(240, Math.max(90, 3.2 * RLC));
+  const thPc = Math.asin(Math.min(0.97, Math.sqrt(S.R / RLC)));
+  const a = Math.abs(m[0]) < 0.9 ? v3.cross(m, [1, 0, 0]) : v3.cross(m, [0, 1, 0]);
+  const ea = v3.sc(a, 1 / v3.len(a)), eb = v3.cross(m, ea);
+  const surfR = (x) => S.R * (1 + (obl ? P.o2 * (x[2] / v3.len(x)) ** 2 : 0));
+  const foot = (pole, th, b) => {
+    const dir = v3.add(v3.sc(m, pole * Math.cos(th)), v3.add(v3.sc(ea, Math.sin(th) * Math.cos(b)), v3.sc(eb, Math.sin(th) * Math.sin(b))));
+    return v3.sc(dir, surfR(dir) * 1.002);
+  };
+  const rk = (x, f, h) => {
+    const k1 = f(x), k2 = f(v3.add(x, v3.sc(k1, h / 2))), k3 = f(v3.add(x, v3.sc(k2, h / 2))), k4 = f(v3.add(x, v3.sc(k3, h)));
+    return v3.add(x, v3.sc(v3.add(v3.add(k1, v3.sc(k2, 2)), v3.add(v3.sc(k3, 2), k4)), h / 6));
+  };
+  const lines = [];
+  // closed zone
+  for (const kf of [1.3, 1.9]) for (let k = 0; k < 6; k++) {
+    const th = Math.min(1.35, kf * thPc);
+    let x = foot(1, th, k * Math.PI / 3), pts = [x], maxRho = 0, closed = false;
+    const s0 = Math.sign(v3.dot(fieldAt(x, oD), x)) || 1;
+    const f = (y) => { const B = fieldAt(y, oD); return v3.sc(B, s0 / v3.len(B)); };
+    for (let i = 0; i < 900; i++) {
+      x = rk(x, f, Math.min(4, Math.max(0.04, 0.025 * v3.len(x))));
+      maxRho = Math.max(maxRho, Math.hypot(x[0], x[1]));
+      if (maxRho > 0.97 * RLC) break;
+      if (i > 3 && v3.len(x) < surfR(x)) { pts.push(v3.sc(x, surfR(x) / v3.len(x))); closed = true; break; }
+      pts.push(x);
+    }
+    if (closed) lines.push({ pts, open: false, rMax: rMax * 2 });
+  }
+  // winding phase shared by the open lines and the sheet: corotation inside, Archimedean dφ/dr = −Ω/c outside
+  const A = 0.5 * RLC, Bq = RLC;
+  const wind = (r) => -Om * (r <= A ? 0 : r < Bq ? (r - A) ** 2 / (2 * (Bq - A)) : (Bq - A) / 2 + (r - Bq));
+  // open zone: polar-cap lines follow the dipole near the star and become radial far out, at the angle that conserves
+  // magnetic flux: dipole flux ∝ sin²θ₀ ↔ split-monopole flux ∝ (1 − cos θ∞)  ⇒  cos θ∞ = 1 − sin²θ₀ / sin²θ_pc
+  const sm = (x, a0, a1) => { const t = Math.min(1, Math.max(0, (x - a0) / (a1 - a0))); return t * t * (3 - 2 * t); };
+  for (const pole of [1, -1]) for (const fr of [0.4, 0.85]) for (let k = 0; k < 4; k++) {
+    const th0 = fr * thPc, b = (k + (pole < 0 ? 0.5 : 0)) * Math.PI / 2;
+    const thInf = Math.acos(Math.max(-1, 1 - Math.sin(th0) ** 2 / Math.sin(thPc) ** 2));
+    const pts = [];
+    const r0 = v3.len(foot(pole, th0, b));
+    for (let r = r0; r <= rMax; r += Math.max(0.05, 0.02 * r)) {
+      const thD = Math.asin(Math.min(1, Math.sqrt(r / S.R) * Math.sin(th0)));
+      const w = sm(r, 0.15 * RLC, 1.1 * RLC), th = (1 - w) * thD + w * thInf;
+      const dir = v3.add(v3.sc(m, pole * Math.cos(th)), v3.add(v3.sc(ea, Math.sin(th) * Math.cos(b)), v3.sc(eb, Math.sin(th) * Math.sin(b))));
+      pts.push(rotZ(v3.sc(dir, r), wind(r)));
+    }
+    lines.push({ pts, open: true, rMax });
+  }
+  // current sheet beyond the light cylinder: on each sphere r it is the great circle ⟂ m(t − r/c), here m rotated by wind(r)
+  const sheetPt = (r, beta) => {
+    const mr = rotZ(m, wind(r)); let e1 = v3.cross([0, 0, 1], mr); const l = v3.len(e1);
+    e1 = l < 1e-6 ? [1, 0, 0] : v3.sc(e1, 1 / l);
+    const e2 = v3.cross(mr, e1);
+    return v3.add(v3.sc(e1, r * Math.cos(beta)), v3.sc(e2, r * Math.sin(beta)));
+  };
+  const glow = (r) => 0.3 + Math.exp(-((((r / RLC) - 1.4) / 0.55) ** 2));   // γ-ray zone ~1–2 R_LC
+  for (let k = 0; k < 24; k++) {
+    const pts = [], wts = [];
+    for (let r = RLC; r <= rMax; r += Math.max(0.5, 0.02 * r)) { pts.push(sheetPt(r, k * Math.PI / 12)); wts.push(glow(r)); }
+    lines.push({ pts, wts, sheet: true, rMax });
+  }
+  for (const rf of [1, 1.35, 1.75, 2.3, 3]) {
+    const r = rf * RLC; if (r > rMax) continue;
+    const pts = [], wts = [];
+    for (let j = 0; j <= 144; j++) { pts.push(sheetPt(r, j / 144 * 2 * Math.PI)); wts.push(glow(r)); }
+    lines.push({ pts, wts, sheet: true, rMax });
   }
   return lines;
 }
@@ -857,8 +950,10 @@ function showCaption(i) {
 }
 $("guided").addEventListener("click", () => { setGuided(!S.guided); if (S.guided) setStep(0); });
 $("pause").addEventListener("click", () => { S.paused = !S.paused; $("pause").classList.toggle("on", S.paused); });
-for (const [id, key, attr] of [["views", "view", "view"], ["styles", "style", "style"], ["maps", "map", "map"], ["bgs", "bg", "bg"]])
+const CHIP_GROUPS = [["views", "view", "view"], ["styles", "style", "style"], ["maps", "map", "map"], ["bgs", "bg", "bg"], ["fmodels", "fmodel", "fmodel"]];
+for (const [id, key, attr] of CHIP_GROUPS)
   document.querySelectorAll(`#${id} button`).forEach((b) => b.addEventListener("click", () => { S[key] = +b.dataset[attr]; syncUI(); }));
+$("tourBtn").addEventListener("click", () => (S.tour ? stopTour() : startTour()));
 for (const [id, key] of [["ghostBtn", "ghost"], ["fieldBtn", "field"], ["lcBtn", "lc"], ["curveBtn", "curve"], ["gridBtn", "grid"], ["autoRes", "autoRes"]])
   $(id).addEventListener("click", () => { S[key] = !S[key]; syncUI(); });
 $("showPanel").addEventListener("click", () => togglePanel());
@@ -890,7 +985,7 @@ function syncUI() {
   P = phys();
   ladderBtns.forEach((b, i) => b.classList.toggle("on", i === S.step));
   fxBtns.forEach((b, i) => b.classList.toggle("on", !!(S.mask & (1 << FX[i].bit))));
-  for (const [id, key, attr] of [["views", "view", "view"], ["styles", "style", "style"], ["maps", "map", "map"], ["bgs", "bg", "bg"]])
+  for (const [id, key, attr] of CHIP_GROUPS)
     document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", +b.dataset[attr] === S[key]));
   for (const [id, key] of [["ghostBtn", "ghost"], ["fieldBtn", "field"], ["lcBtn", "lc"], ["curveBtn", "curve"], ["gridBtn", "grid"], ["autoRes", "autoRes"]])
     $(id).classList.toggle("on", !!S[key]);
@@ -1112,8 +1207,12 @@ function drawField(E) {
     const toPix = (q) => q ? [(q[0] + 1) / 2 * vp[2], (q[1] + 1) / 2 * vp[3], q[2]] : null;
     const groups = [];
     if (S.field) for (const ln of fieldLines(mask)) {
-      const pts = ln.pts.map((p) => { const q = toPix(projectPoint(p, eye, mask, tab, cxv, tanH, asp)); if (q) q[2] = Math.max(0, Math.min(1, (ln.rMax - q[2]) / (0.6 * ln.rMax))) ** 1.5; return q; });
-      groups.push({ pts, col: ln.open ? [0.95, 0.42, 0.9] : [0.62, 0.5, 1.0] });
+      const pts = ln.pts.map((p, i) => {
+        const q = toPix(projectPoint(p, eye, mask, tab, cxv, tanH, asp));
+        if (q) q[2] = Math.max(0, Math.min(1, (ln.rMax - q[2]) / (0.6 * ln.rMax))) ** 1.5 * (ln.wts ? ln.wts[i] : 1);
+        return q;
+      });
+      groups.push({ pts, col: ln.sheet ? [1.0, 0.55, 0.18] : ln.open ? [0.85, 0.38, 0.8] : [0.62, 0.5, 1.0], sheet: ln.sheet });
     }
     if (S.lc && isFinite(P.RLC) && P.RLC < 600) {
       const ring = [];
@@ -1121,7 +1220,7 @@ function drawField(E) {
       groups.push({ pts: ring, col: [0.45, 0.85, 1.0], lc: true });
     }
     for (const gp of groups) {
-      for (const [w, a] of gp.lc ? [[1.2, 0.3]] : [[6, 0.06], [1.6, 0.55]]) {
+      for (const [w, a] of gp.lc ? [[1.8, 0.6]] : gp.sheet ? [[7, 0.07], [1.4, 0.5]] : [[6, 0.06], [1.6, 0.55]]) {
         const out = []; pushStrip(out, gp.pts, w * sc, a, W, H, vp);
         if (!out.length) continue;
         lineData = new Float32Array(out);
@@ -1138,11 +1237,50 @@ function uCxValue() {
   return panelOpen && (S.view === 0 || S.view === 2) ? Math.min(0.5, ($("panel").offsetWidth + 24) / innerWidth) : 0;
 }
 
+// ---------------------------------------------------------------- magnetosphere tour (deterministic in τ, so it can be exported frame by frame)
+const TOUR_LEN = 26;
+const TOUR_KEYS = [   // τ, distance, inclination, azimuth, fov
+  [0, 150, 84, 0.2, 46], [8, 170, 88, 0.45, 48], [17, 230, 90, 0.7, 50], [26, 230, 72, 1.3, 50]];
+const TOUR_CAPS = [
+  [0, "Vacuum dipole (Deutsch 1955)", "Empty space around a spinning magnet. Near the star there are closed loops. Beyond the light cylinder (dashed ring, c/Ω) the field becomes a spiral radiation wave. This is a useful starting point, not a real pulsar."],
+  [8, "Plasma-filled magnetosphere (force-free)", "A real pulsar tears charges off its surface and fills its magnetosphere with plasma (Goldreich & Julian 1969). The currents open every field line that reaches the light cylinder. Closed loops (violet) stay inside it, and the open lines from the polar caps (pink) stream out as a wind."],
+  [17, "Striped wind + current sheet", "Beyond the light cylinder the open lines wind into spirals, B_φ = −B_r Ωr sinθ/c. Opposite polarities meet at a wavy current sheet (orange, Bogovalov 1999). Simulations put the pulsed γ-rays there, just beyond the light cylinder. The radio beam comes from the open lines just above the polar caps."],
+];
+function tourAt(tau) {
+  tau = Math.max(0, Math.min(TOUR_LEN, tau));
+  let i = 0; while (i < TOUR_KEYS.length - 2 && tau > TOUR_KEYS[i + 1][0]) i++;
+  const A = TOUR_KEYS[i], B = TOUR_KEYS[i + 1], u = Math.min(1, (tau - A[0]) / (B[0] - A[0])), e = u * u * (3 - 2 * u);
+  [S.dist, S.inc, S.az, S.fov] = [1, 2, 3, 4].map((k) => A[k] + (B[k] - A[k]) * e);
+  S.fmodel = tau < 8 ? 0 : 1;
+  const cap = [...TOUR_CAPS].reverse().find((c) => tau >= c[0]);
+  $("capStep").textContent = `magnetosphere tour · ${Math.floor(tau)} s of ${TOUR_LEN} s · v = 0.4c, light cylinder 2.5 R, tilt 25°`;
+  $("capT").textContent = cap[1]; $("capD").textContent = cap[2];
+  $("caption").style.opacity = 1; S.capT = 0;
+  S.tKm = tau * S.turns / S.f * C_KM;
+  syncUI();
+}
+function startTour() {
+  setGuided(false);
+  S.tour = { tau: 0, saved: { ...S } };
+  Object.assign(S, { step: 8, mask: ladderMask(8), ghost: false, curve: false, field: true, lc: true, view: 0, turns: 0.25, tilt: 25 });
+  setBeta(0.4);
+  $("tourBtn").textContent = "■ Stop tour"; $("tourBtn").classList.add("on");
+  tourAt(0);
+}
+function stopTour() {
+  if (!S.tour) return;
+  const sv = S.tour.saved; S.tour = null;
+  for (const k of ["dist", "inc", "az", "fov", "fmodel", "ghost", "curve", "turns", "beta", "f", "mask", "step", "tilt"]) S[k] = sv[k];
+  $("tourBtn").textContent = "▶ Magnetosphere tour (26 s)"; $("tourBtn").classList.remove("on");
+  syncUI();
+}
+
 let last = performance.now(), fpsAvg = 16, frame = 0;
 function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   fpsAvg = fpsAvg * 0.95 + (dt * 1000) * 0.05;
-  if (!S.paused && S.f > 0) S.tKm += dt * S.turns / S.f * C_KM;
+  if (S.tour && !S.paused) { S.tour.tau += dt; if (S.tour.tau > TOUR_LEN + 2) stopTour(); else tourAt(S.tour.tau); }
+  else if (!S.paused && S.f > 0) S.tKm += dt * S.turns / S.f * C_KM;
   S.capT += dt;
   if (!S.guided && S.capT > 10) $("caption").style.opacity = 0;
   if (S.guided) { S.guideT += dt; if (S.guideT > 12) { S.guideT = 0; setStep((S.step + 1) % LADDER.length); } }
@@ -1171,7 +1309,7 @@ function loop(now) {
 setGuided(true); setStep(0);
 syncUI();
 requestAnimationFrame(loop);
-window.__ns = { S, phys, setStep, setGuided, syncUI, fieldLines, curves };
+window.__ns = { S, phys, setStep, setGuided, syncUI, fieldLines, curves, tourAt, startTour, stopTour, TOUR_LEN };
 </script>
 </body>
 </html>

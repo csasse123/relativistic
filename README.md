@@ -25,7 +25,7 @@ An adaptive narrow frustum shrank with β and filled the screen → pure zoom mu
 | β = v/c | Optics strength |
 | Doppler | Color vs angle to velocity |
 
-## Spinning Neutron Star (v1.15)
+## Spinning Neutron Star (v1.17)
 
 `neutron-star.html` · [live](https://csasse123.github.io/relativistic/neutron-star.html)
 
@@ -58,6 +58,13 @@ Each effect can also be switched on and off on its own.
 - **Ghost grid:** shows the previous step, so you can see what each new effect moves.
 - **Surface maps:** the Doppler × redshift factor g, or the light delay.
 - **Magnetic field lines:** a rotating vacuum dipole with retarded fields (Deutsch), which sweeps back toward the light cylinder. Near the star it uses the Schwarzschild dipole shape (Wasserman & Shapiro 1983). The lines are seen through the same lensing and light delay as the surface.
+
+**Magnetosphere (v1.17):** the default field model is now **plasma-filled (force-free)**:
+- co-rotating closed loops inside the light cylinder;
+- open polar-cap lines that become a winding split-monopole wind;
+- the wavy current sheet ("striped wind") where pulsed γ-rays are made.
+
+The vacuum dipole remains as the starting point to compare against. **▶ Magnetosphere tour** steps from vacuum to plasma to the current sheet. The same tour is exported as video: [`assets/ns_magnetosphere_tour.mp4`](assets/ns_magnetosphere_tour.mp4).
 
 **Speed:** the **v/c** dial (0–0.97 c, or the 0.1c–0.9c chips) sets the spin f = βcN/(2πR). **Playback** only sets the slow-motion rate.
 
