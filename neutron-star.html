@@ -201,7 +201,7 @@
 <div id="scalebar" style="position:fixed;z-index:5;bottom:30px;pointer-events:none;font:600 0.62rem JetBrains Mono,monospace;color:#a9c8e8;text-align:center">
   <div id="scaleLine" style="height:6px;border:1.5px solid #a9c8e8;border-top:none"></div><div>10 km at the star's centre (before lensing)</div></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.20.0</div>
+<div class="build" id="build">v1.21.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -525,7 +525,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.20.0";
+const BUILD = "v1.21.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -1388,7 +1388,7 @@ function tourAt(tau) {
 function startTour() {
   setGuided(false);
   S.tour = { tau: 0, saved: { ...S } };
-  Object.assign(S, { step: 8, mask: ladderMask(8), ghost: false, curve: false, field: true, lc: true, view: 0, turns: 0.25, tilt: 25 });
+  Object.assign(S, { step: 8, mask: ladderMask(8), ghost: false, curve: false, field: true, lc: true, view: 0, turns: 0.25, tilt: 25, bcol: false, rays: false, scale: false });   // captions refer to the violet/pink/orange line colours
   setBeta(0.4);
   $("tourBtn").textContent = "■ Stop tour"; $("tourBtn").classList.add("on");
   tourAt(0);
@@ -1396,7 +1396,7 @@ function startTour() {
 function stopTour() {
   if (!S.tour) return;
   const sv = S.tour.saved; S.tour = null;
-  for (const k of ["dist", "inc", "az", "fov", "fmodel", "ghost", "curve", "turns", "beta", "f", "mask", "step", "tilt"]) S[k] = sv[k];
+  for (const k of ["dist", "inc", "az", "fov", "fmodel", "ghost", "curve", "turns", "beta", "f", "mask", "step", "tilt", "bcol", "rays", "scale"]) S[k] = sv[k];
   $("tourBtn").textContent = "▶ Magnetosphere tour (26 s)"; $("tourBtn").classList.remove("on");
   syncUI();
 }
