@@ -178,8 +178,8 @@
     The hot caps use NASA's brightness scale
     (yellow = 1 = the cap seen face-on with no relativity).
     <b>Magnetic field:</b> a rotating vacuum dipole with retarded fields (Deutsch 1955), whose lines sweep back toward the light cylinder c/Ω.
-    Two separate chips: <b>Retarded B field</b> changes the field itself (Maxwell: changes spread out at c, with radiation beyond c/Ω).
-    <b>Light-travel time</b> only changes when you see each piece, as if the lines glowed.
+    Light time enters twice, with two neighbouring chips. <b>Retarded B field (light-time twist)</b> changes the field itself: changes spread out at c, so the lines twist, with radiation beyond c/Ω (vacuum) or a winding wind (plasma).
+    <b>Light-travel time (what you see)</b> only changes when you see each piece, as if the lines glowed. Switch both off for an untwisted, instantly seen field.
     <b>Which model is physical?</b> The vacuum dipole is the textbook starting point, not the end state. A real pulsar fills
     its magnetosphere with plasma (Goldreich &amp; Julian 1969). Its currents open every field line that reaches the light cylinder into a
     striped wind, with a current sheet beyond c/Ω (Contopoulos et al. 1999; Spitkovsky 2006; Bogovalov 1999).
@@ -193,7 +193,7 @@
 </div>
 
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.18.0</div>
+<div class="build" id="build">v1.19.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -517,7 +517,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.18.0";
+const BUILD = "v1.19.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -530,7 +530,8 @@ const T_SCALE = 1 / 400;          // X-ray K → display K (thermal style)
 // ============================================================================ effects + ladder
 const FX = [
   { key: "contract", bit: 0, label: "Length contraction" },
-  { key: "retard",   bit: 1, label: "Light-travel time" },
+  { key: "retard",   bit: 1, label: "Light-travel time (what you see)" },
+  { key: "fieldret", bit: 10, label: "Retarded B field (light-time twist)" },
   { key: "aberr",    bit: 2, label: "Aberration" },
   { key: "doppler",  bit: 3, label: "Doppler colour" },
   { key: "beam",     bit: 4, label: "Beaming (g³ per ν · g⁴ total)" },
@@ -539,7 +540,6 @@ const FX = [
   { key: "shapiro",  bit: 7, label: "Shapiro delay", gr: true },
   { key: "oblate",   bit: 8, label: "Oblate shape", gr: true },
   { key: "drag",     bit: 9, label: "Frame dragging", gr: true },
-  { key: "fieldret", bit: 10, label: "Retarded B field (Maxwell)" },
 ];
 const BIT = Object.fromEntries(FX.map((f) => [f.key, f.bit]));
 const LADDER = [
