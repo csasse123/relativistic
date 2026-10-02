@@ -72,6 +72,8 @@ The vacuum dipole remains as the starting point to compare against. **▶ Magnet
 - **Numbers panel:** the diameters (24.0 km equatorial, 21.2 km pole to pole), |B| at the light cylinder, the force-free spin-down power, and a 10 km scale bar.
 - **Incoming light rays:** starlight integrated with the per-pixel tracer's own null-geodesic equation. White streaks travel inward at c as wavefronts. The deflection matches the exact Schwarzschild integral to within 0.06°.
 
+**Tutorial tooltips (v1.23):** every button and slider (71 controls) has a hover tooltip, or long-press on a phone. Each says what the control does and what to look for, with a badge for how exact it is: *Exact* (within the stated model), *Approximation*, *Schematic*, *Convention*, *Display only* or *Assumed*.
+
 **Speed:** the **v/c** dial (0–0.97 c, or the 0.1c–0.9c chips) sets the spin f = βcN/(2πR). **Playback** only sets the slow-motion rate.
 
 **Presets:** J1748−2446ad (716 Hz), J0030+0451, J0740+6620, J0437−4715, and a hypothetical 2 kHz star.
