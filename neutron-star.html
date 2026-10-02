@@ -108,10 +108,12 @@
     <button type="button" id="lcBtn" class="on">Light cylinder</button>
     <button type="button" id="curveBtn" class="on">Brightness curve</button>
     <button type="button" id="gridBtn" class="on">Lat/long grid</button>
-    <button type="button" id="raysBtn" class="on" title="Starlight passing the star along the same null geodesics the renderer traces">Incoming light rays</button>
+    <button type="button" id="raysBtn" class="on">Incoming light beam</button>
     <button type="button" id="bcolBtn">Colour field lines by |B|</button>
     <button type="button" id="scaleBtn">10 km scale bar</button>
   </div>
+  <label class="row"><span>Light-beam brightness</span><span class="val" id="beamVal"></span></label>
+  <input id="beam" type="range" min="0.2" max="3" step="0.05" value="1" />
   <div class="sub">magnetic field model</div>
   <div class="chips" id="fmodels">
     <button type="button" data-fmodel="1" class="on" title="Plasma-filled: open field lines, striped wind, current sheet">Plasma-filled (force-free)</button>
@@ -201,7 +203,7 @@
 <div id="scalebar" style="position:fixed;z-index:5;bottom:30px;pointer-events:none;font:600 0.62rem JetBrains Mono,monospace;color:#a9c8e8;text-align:center">
   <div id="scaleLine" style="height:6px;border:1.5px solid #a9c8e8;border-top:none"></div><div>10 km at the star's centre (before lensing)</div></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.23.0</div>
+<div class="build" id="build">v1.24.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -525,7 +527,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.23.0";
+const BUILD = "v1.24.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -598,7 +600,7 @@ const S = {
   style: 0, map: 0, bg: 0, ghost: true, field: true, lc: true, curve: true, grid: true, fmodel: 1, tour: null,
   beta: null,
   f: 716, M: 1.4, R: 12.0, tilt: 48, spot: 20, Bp: 4e4,
-  bpSrc: "assumed: its spin-down is contaminated by the cluster's gravity. A reported ν̇ ≈ 1.7×10⁻¹⁴ Hz/s gives ~4×10⁴ T, uncertain by a factor of a few", bcol: false, scale: false, rays: true,
+  bpSrc: "assumed: its spin-down is contaminated by the cluster's gravity. A reported ν̇ ≈ 1.7×10⁻¹⁴ Hz/s gives ~4×10⁴ T, uncertain by a factor of a few", bcol: false, scale: false, rays: true, beam: 1,
   tKm: 0,
 };
 
@@ -989,7 +991,7 @@ const sliders = {
   sep: (v) => `${v.toFixed(1)} km`, inc: (v) => `${v.toFixed(0)}°`, dist: (v) => `${v.toFixed(0)} km`,
   fov: (v) => `${v.toFixed(0)}°`, turns: (v) => `${v.toFixed(2)}/s`, expo: (v) => `${v >= 0 ? "+" : ""}${v.toFixed(2)} EV`,
   res: (v) => `${Math.round(v * 100)}%`, f: (v) => `${v.toFixed(0)} Hz`, m: (v) => `${v.toFixed(2)}`, r: (v) => `${v.toFixed(2)}`,
-  tilt: (v) => `${v.toFixed(0)}°`, spot: (v) => `${v.toFixed(0)}°`,
+  tilt: (v) => `${v.toFixed(0)}°`, spot: (v) => `${v.toFixed(0)}°`, beam: (v) => `${v.toFixed(2)}×`,
 };
 const keyOf = { m: "M", r: "R" };
 for (const id of Object.keys(sliders)) {
@@ -1214,27 +1216,27 @@ function drawCurve() {
     `pulsed fraction (max−min)/(max+min) <b>${((cMax - cMin) / (cMax + cMin) * 100).toFixed(1)}%</b> · peak <b>${(cMax / norm).toFixed(2)}</b>× Newton`;
 }
 
-// ---------------------------------------------------------------- incoming light rays
-// A parallel beam of starlight passing the star, integrated with exactly the per-pixel tracer's equations:
-// d²x/dλ² = −3/2 r_s h² x / r⁵ (off when light bending is off), RK4, the same step rule and surface test,
-// dt/dλ = 1/(1 − r_s/r) with the Shapiro delay on. All rays leave one plane at t = 0, so the travelling
-// streaks are wavefronts: their lag near the star is the Shapiro delay, their curvature is the bending.
-const rayLineCache = new Map();
-function incomingRays(eye, mask) {
-  const bend = on(mask, "bend"), shap = on(mask, "shapiro"), obl = on(mask, "oblate");
-  const key = [...eye.R, ...eye.U, ...eye.F].map((v) => v.toFixed(3)).concat([bend, shap, obl, S.M, S.R, S.f]).join(",");
-  return cached(rayLineCache, key, () => {
-    const rs = P.rs, o2 = obl ? P.o2 : 0, gB = bend ? 1 : 0;
-    const rSurf = (x) => S.R * (1 + o2 * x[2] * x[2] / v3.dot(x, x));
-    const norm = (a) => v3.sc(a, 1 / v3.len(a));
-    const d = norm(v3.add(v3.sc(eye.R, 0.97), v3.sc(eye.F, 0.25)));        // light arrives from the left of the view
-    const e1 = norm(v3.add(eye.U, v3.sc(d, -v3.dot(eye.U, d)))), e2 = v3.cross(d, e1);
-    const L0 = 140, out = [];
-    const sheets = [[0, [0.6, 1.0, 1.4, 1.9, 2.7, 3.8]]];                  // one soft fan in the screen plane
-    for (const [psi, bs] of sheets) for (const bf of bs) for (const sgn of [1, -1]) {
-      const o = v3.add(v3.sc(e1, Math.cos(psi)), v3.sc(e2, Math.sin(psi)));
-      let x = v3.add(v3.sc(d, -L0), v3.sc(o, sgn * bf * S.R)), v = d.slice(), t = 0;
-      const L = v3.cross(x, v), h2 = v3.dot(L, L);
+// ---------------------------------------------------------------- incoming light beam (fog + streaks)
+// Starlight arriving as a broad beam. Every ray is integrated with exactly the per-pixel tracer's equations:
+// d²x/dλ² = −3/2 r_s h² x / r⁵ (off when light bending is off), RK4 with the same step rule, absorbed at the surface,
+// dt/dλ = 1/(1 − r_s/r) with the Shapiro delay on. Rays are computed once in a canonical frame (beam along +x) and
+// rotated to the view, which is exact because the Schwarzschild field is spherically symmetric.
+// Brightness of the fog = density of photon paths (photon number is conserved, so this is the flux), times the
+// blueshift 1/√(1 − r_s/r) a local static observer measures when gravitational redshift is on.
+// All rays leave one plane at t = 0: the travelling bright bands are wavefronts (their lag near the star = Shapiro delay).
+const beamCache = new Map();
+function beamRays(mask) {
+  const bend = on(mask, "bend"), shap = on(mask, "shapiro"), grz = on(mask, "grz");
+  return cached(beamCache, [bend, shap, grz, S.M, S.R].join(","), () => {
+    const rs = P.rs, gB = bend ? 1 : 0, Rs = S.R, L0 = 150;
+    const starts = [];
+    for (const bf of [0.5, 0.9, 1.2, 1.45, 1.75]) for (const sg of [1, -1]) starts.push([sg * bf * Rs, 0, true]);  // crisp lines
+    const N = 420, A = 1.9 * Rs, C = 1.0 * Rs, ga = Math.PI * (3 - Math.sqrt(5));            // fog: sunflower-filled ribbon
+    for (let i = 0; i < N; i++) { const rr = Math.sqrt((i + 0.5) / N), th = i * ga; starts.push([A * rr * Math.cos(th), C * rr * Math.sin(th), false]); }
+    const out = [];
+    for (const [y0, z0, hi] of starts) {
+      let x = [-L0, y0, z0], v = [1, 0, 0], t = 0;
+      const Lc = v3.cross(x, v), h2 = v3.dot(Lc, Lc);
       const acc = (y) => { const r2 = v3.dot(y, y); return v3.sc(y, -1.5 * rs * gB * h2 / (r2 * r2 * Math.sqrt(r2))); };
       const rk4 = (x, v, dl) => {
         const a1 = acc(x), v2 = v3.add(v, v3.sc(a1, dl / 2)), a2 = acc(v3.add(x, v3.sc(v, dl / 2)));
@@ -1243,27 +1245,136 @@ function incomingRays(eye, mask) {
         return [v3.add(x, v3.sc(v3.add(v3.add(v, v3.sc(v2, 2)), v3.add(v3.sc(v3_, 2), v4)), dl / 6)),
                 v3.add(v, v3.sc(v3.add(v3.add(a1, v3.sc(a2, 2)), v3.add(v3.sc(a3, 2), a4)), dl / 6))];
       };
-      const pts = [x], ts = [0];
-      let hit = false;
-      for (let i = 0; i < 3000; i++) {
+      const wOf = (r) => (grz ? 1 / Math.sqrt(1 - rs / r) : 1);
+      const pts = [x], ts = [0], ws = [wOf(L0)];
+      let since = 0;
+      for (let i = 0; i < 4000; i++) {
         const r = v3.len(x);
         if (r > L0 + 5 && v3.dot(x, v) > 0) break;
-        const dist = r - rSurf(x);
-        const dl = Math.min(2, Math.min(Math.max(Math.max(0.6 * dist, 0.022 * r), 0.004 * S.R), 0.25 * r));
+        const dl = Math.min(2.5, Math.min(Math.max(Math.max(0.6 * (r - Rs), 0.022 * r), 0.004 * Rs), 0.25 * r));
         let [xn, vn] = rk4(x, v, dl);
-        const rm = 0.5 * (r + v3.len(xn));
-        const dtf = shap ? 1 / (1 - rs / rm) : 0.5 * (v3.len(v) + v3.len(vn));
-        if (v3.len(xn) < rSurf(xn)) {                                           // absorbed at the surface (bisection, as in the shader)
-          let lo = 0, hi = dl;
-          for (let k = 0; k < 8; k++) { const mid = 0.5 * (lo + hi), [xt] = rk4(x, v, mid); if (v3.len(xt) < rSurf(xt)) hi = mid; else lo = mid; }
-          [xn] = rk4(x, v, hi); t += hi * dtf; pts.push(xn); ts.push(t); hit = true; break;
+        const rm = 0.5 * (r + v3.len(xn)), dtf = shap ? 1 / (1 - rs / rm) : 0.5 * (v3.len(v) + v3.len(vn));
+        if (v3.len(xn) < Rs) {                                               // absorbed at the surface (bisection)
+          let lo = 0, hi2 = dl;
+          for (let k = 0; k < 8; k++) { const mid = 0.5 * (lo + hi2), [xt] = rk4(x, v, mid); if (v3.len(xt) < Rs) hi2 = mid; else lo = mid; }
+          [xn] = rk4(x, v, hi2); t += hi2 * dtf; pts.push(xn); ts.push(t); ws.push(wOf(Rs)); break;
         }
-        t += dl * dtf; x = xn; v = vn; pts.push(x); ts.push(t);
+        t += dl * dtf; since += dl; x = xn; v = vn;
+        if (since >= Math.min(2.5, 0.12 * r)) { pts.push(x); ts.push(t); ws.push(wOf(v3.len(x))); since = 0; }
       }
-      out.push({ pts, ts, hit });
+      out.push({ pts, ts, ws, hi });
     }
+    out.sort((p, q) => q.hi - p.hi);                                         // crisp lines first in the buffer
     return out;
   });
+}
+const beamGL = new Map(), beamLast = new Map();                          // projected vertex buffers per view
+let beamLastT = 0;
+function beamBuffer(eye, mask, tab, cxv, tanH, asp) {
+  const key = [...eye.p, ...eye.F].map((v) => v.toFixed(3)).concat([mask, S.M, S.R, cxv.toFixed(3), tanH.toFixed(4), asp.toFixed(3)]).join(",");
+  if (beamGL.has(key)) { const v = beamGL.get(key); beamGL.delete(key); beamGL.set(key, v); return v; }
+  const now = performance.now();                                           // while dragging, rebuild at most ~6×/s
+  if (drag && beamLast.has(mask) && now - beamLastT < 160) return beamLast.get(mask);
+  beamLastT = now;
+  const norm = (a) => v3.sc(a, 1 / v3.len(a));
+  const d = norm(v3.add(v3.sc(eye.R, 0.97), v3.sc(eye.F, 0.25)));        // light arrives from the left of the view
+  const e1 = norm(v3.add(eye.U, v3.sc(d, -v3.dot(eye.U, d)))), e2 = v3.cross(d, e1);
+  const data = []; let nHi = 0;
+  for (const ray of beamRays(mask)) {
+    let prev = null;
+    for (let i = 0; i < ray.pts.length; i++) {
+      const c = ray.pts[i], w = [d[0] * c[0] + e1[0] * c[1] + e2[0] * c[2], d[1] * c[0] + e1[1] * c[1] + e2[1] * c[2], d[2] * c[0] + e1[2] * c[1] + e2[2] * c[2]];
+      const q = projectPoint(w, eye, mask, tab, cxv, tanH, asp, true);
+      const cur = q ? [q[0], q[1], ray.ts[i], ray.ws[i]] : null;
+      if (prev && cur && Math.abs(cur[0] - prev[0]) + Math.abs(cur[1] - prev[1]) < 0.6) data.push(...prev, ...cur);
+      prev = cur;
+    }
+    if (ray.hi) nHi = data.length / 4;
+  }
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+  const entry = { buf, n: data.length / 4, nHi };
+  const held = (e) => [...beamGL.values()].includes(e) || [...beamLast.values()].includes(e);
+  const prevLast = beamLast.get(mask);
+  beamGL.set(key, entry); beamLast.set(mask, entry);
+  if (prevLast && !held(prevLast)) gl.deleteBuffer(prevLast.buf);
+  if (beamGL.size > 4) { const k0 = beamGL.keys().next().value, e0 = beamGL.get(k0); beamGL.delete(k0); if (!held(e0)) gl.deleteBuffer(e0.buf); }
+  return entry;
+}
+const FSQ = `#version 300 es
+void main(){ vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
+const BM = program(`#version 300 es
+in vec2 aP; in float aT; in float aW; uniform float uT; out float vI;
+void main(){ float ph = mod(uT - aT, 45.0); vI = aW * (0.6 + 0.75 * exp(-ph / 10.0)); gl_Position = vec4(aP, 0.0, 1.0); }`, `#version 300 es
+precision mediump float; in float vI; uniform vec3 uCol; uniform float uGain; out vec4 o;
+void main(){ o = vec4(uCol * vI * uGain, 1.0); }`);
+const BL = program(FSQ, `#version 300 es
+precision mediump float; uniform sampler2D uTex; uniform vec2 uDir; out vec4 o;
+void main(){ vec2 uv = gl_FragCoord.xy / vec2(textureSize(uTex, 0));
+  vec3 c = texture(uTex, uv).rgb * 0.2270270;
+  c += (texture(uTex, uv + uDir * 1.3846154).rgb + texture(uTex, uv - uDir * 1.3846154).rgb) * 0.3162162;
+  c += (texture(uTex, uv + uDir * 3.2307692).rgb + texture(uTex, uv - uDir * 3.2307692).rgb) * 0.0702703;
+  o = vec4(c, 1.0); }`);
+const CM = program(FSQ, `#version 300 es
+precision mediump float; uniform sampler2D uTex; uniform vec2 uRes; uniform float uK; out vec4 o;
+void main(){ vec3 c = texture(uTex, gl_FragCoord.xy / uRes).rgb; o = vec4(vec3(1.0) - exp(-c * uK), 1.0); }`);
+const beamVao = gl.createVertexArray();
+const fog = { w: 0, h: 0, tex: [], fbo: [] };
+function fogTargets(w, h) {
+  if (fog.w === w && fog.h === h) return;
+  for (const t of fog.tex) gl.deleteTexture(t); for (const f of fog.fbo) gl.deleteFramebuffer(f);
+  fog.tex = []; fog.fbo = []; fog.w = w; fog.h = h;
+  for (let i = 0; i < 2; i++) {
+    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, hasFloatRT ? gl.RGBA16F : gl.RGBA8, w, h, 0, gl.RGBA, hasFloatRT ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+    for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+    const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+    fog.tex.push(t); fog.fbo.push(f);
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+function drawBeamLines(entry, count, col, gain) {
+  gl.bindBuffer(gl.ARRAY_BUFFER, entry.buf);
+  for (const [name, size, off] of [["aP", 2, 0], ["aT", 1, 8], ["aW", 1, 12]]) {
+    const loc = gl.getAttribLocation(BM.p, name); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 16, off);
+  }
+  gl.uniform3f(BM.U.uCol, ...col); gl.uniform1f(BM.U.uGain, gain);
+  gl.drawArrays(gl.LINES, 0, count);
+}
+function drawBeam(E) {
+  if (!S.rays) return;
+  const W = canvas.width, H = canvas.height, tanH = Math.tan(S.fov * Math.PI / 360), k = 3;
+  const fw = Math.max(16, Math.round(W / k)), fh = Math.max(16, Math.round(H / k));
+  fogTargets(fw, fh);
+  const views = viewList(E, W, H), BEAMC = [0.62, 0.8, 1.0];
+  const entries = views.map(([e, mask, vp, tint, cxv]) => [beamBuffer(E[e], mask, rayTable(Math.hypot(...E[e].p), mask), cxv, tanH, vp[2] / vp[3]), vp, tint]);
+  // 1) photon-path density into a low-resolution buffer
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fog.fbo[0]); gl.viewport(0, 0, fw, fh);
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(BM.p); gl.bindVertexArray(beamVao); gl.uniform1f(BM.U.uT, S.tKm);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  for (const [en, vp, tint] of entries) {
+    gl.viewport(Math.round(vp[0] / k), Math.round(vp[1] / k), Math.round(vp[2] / k), Math.round(vp[3] / k));
+    drawBeamLines(en, en.n, BEAMC.map((v, i) => v * tint[i]), 0.11);
+  }
+  gl.disable(gl.BLEND);
+  // 2) soften into fog: two separable Gaussian passes
+  gl.useProgram(BL.p); gl.bindVertexArray(emptyVao); gl.viewport(0, 0, fw, fh); gl.uniform1i(BL.U.uTex, 0); gl.activeTexture(gl.TEXTURE0);
+  for (const [src, dst, dir] of [[0, 1, [1.6 / fw, 0]], [1, 0, [0, 1.6 / fh]], [0, 1, [3.2 / fw, 0]], [1, 0, [0, 3.2 / fh]]]) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fog.fbo[dst]); gl.bindTexture(gl.TEXTURE_2D, fog.tex[src]);
+    gl.uniform2f(BL.U.uDir, ...dir); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  // 3) add the fog to the picture, then a few crisp lines on top
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  gl.useProgram(CM.p); gl.bindTexture(gl.TEXTURE_2D, fog.tex[0]);
+  gl.uniform1i(CM.U.uTex, 0); gl.uniform2f(CM.U.uRes, W, H); gl.uniform1f(CM.U.uK, 1.6 * S.beam);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.useProgram(BM.p); gl.bindVertexArray(beamVao);
+  for (const [en, vp, tint] of entries) { gl.viewport(...vp); drawBeamLines(en, en.nHi, BEAMC.map((v, i) => v * tint[i]), 0.5 * Math.min(1.5, S.beam)); }
+  gl.disable(gl.BLEND); gl.bindVertexArray(null); gl.viewport(0, 0, W, H);
+  bindTex();
 }
 
 // ---------------------------------------------------------------- field strength in tesla
@@ -1299,18 +1410,19 @@ function pushStrip(out, pts, wPx, aCenter, W, H, vp, col) {
     out.push(...A0, ...A1, ...B0, ...B0, ...A1, ...B1, ...A1, ...A2, ...B1, ...B1, ...A2, ...B2);
   }
 }
-function drawField(E) {
-  if (!S.field && !S.lc && !S.rays) return;
-  const W = canvas.width, H = canvas.height, tanH = Math.tan(S.fov * Math.PI / 360);
-  // views: [eyeIndex, mask, viewport [x, y, w, h], colour multiplier]
+// views: [eyeIndex, mask, viewport [x, y, w, h], colour multiplier, principal-point shift]
+function viewList(E, W, H) {
   const half = [W / 2, H];
-  let views;
-  const cx = uCxValue();
-  if (S.view === 0) views = [[0, S.mask, [0, 0, W, H], [1, 1, 1], cx]];
-  else if (S.view === 1) views = [[0, 0, [0, 0, ...half], [1, 1, 1], 0], [0, S.mask, [W / 2, 0, ...half], [1, 1, 1], 0]];
-  else if (S.view === 2) views = [[0, S.mask, [0, 0, W, H], [1, 0, 0], 0], [1, S.mask, [0, 0, W, H], [0, 1, 1], 0]];
-  else if (S.view === 3) views = [[1, S.mask, [0, 0, ...half], [1, 1, 1], 0], [0, S.mask, [W / 2, 0, ...half], [1, 1, 1], 0]];
-  else views = [[0, S.mask, [0, 0, ...half], [1, 1, 1], 0], [1, S.mask, [W / 2, 0, ...half], [1, 1, 1], 0]];
+  if (S.view === 0) return [[0, S.mask, [0, 0, W, H], [1, 1, 1], uCxValue()]];
+  if (S.view === 1) return [[0, 0, [0, 0, ...half], [1, 1, 1], 0], [0, S.mask, [W / 2, 0, ...half], [1, 1, 1], 0]];
+  if (S.view === 2) return [[0, S.mask, [0, 0, W, H], [1, 0, 0], 0], [1, S.mask, [0, 0, W, H], [0, 1, 1], 0]];
+  if (S.view === 3) return [[1, S.mask, [0, 0, ...half], [1, 1, 1], 0], [0, S.mask, [W / 2, 0, ...half], [1, 1, 1], 0]];
+  return [[0, S.mask, [0, 0, ...half], [1, 1, 1], 0], [1, S.mask, [W / 2, 0, ...half], [1, 1, 1], 0]];
+}
+function drawField(E) {
+  if (!S.field && !S.lc) return;
+  const W = canvas.width, H = canvas.height, tanH = Math.tan(S.fov * Math.PI / 360);
+  const views = viewList(E, W, H);
   const sc = Math.min(devicePixelRatio || 1, 2) * S.res;
   gl.useProgram(LN.p); gl.bindVertexArray(lineVao);
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
@@ -1329,17 +1441,6 @@ function drawField(E) {
         return q;
       });
       groups.push({ pts, col: ln.sheet ? [1.0, 0.55, 0.18] : ln.open ? [0.85, 0.38, 0.8] : [0.62, 0.5, 1.0], sheet: ln.sheet });
-    }
-    if (S.rays) {
-      const LAM = 45, TAU = 9;                                         // wavefront spacing and streak tail (km of light travel)
-      for (const ray of incomingRays(eye, mask)) {
-        const pts = ray.pts.map((p, i) => {
-          const q = toPix(projectPoint(p, eye, mask, tab, cxv, tanH, asp, true));
-          if (q) { const ph = (((S.tKm - ray.ts[i]) % LAM) + LAM) % LAM; q[2] = 0.12 + 0.88 * Math.exp(-ph / TAU); }
-          return q;
-        });
-        groups.push({ pts, col: [0.55, 0.78, 1.0], ray: true });
-      }
     }
     if (S.lc && isFinite(P.RLC) && P.RLC < 600) {
       const ring = [];
@@ -1428,6 +1529,7 @@ function loop(now) {
   gl.uniform1f(U.uExpo, (S.style === 1 ? 0.9 : 1) * Math.pow(2, S.expo));
   gl.uniform1f(U.uCx, uCxValue());
   gl.drawArrays(gl.TRIANGLES, 0, 3);
+  drawBeam(E);
   drawField(E);
   drawCurve();
   const sb = $("scalebar"), showSB = S.scale && (S.view === 0 || S.view === 2);
@@ -1502,7 +1604,9 @@ const TIPS = {
   lcBtn: T("Light cylinder", "The dashed ring at radius c/Ω: anything co-rotating with the star at this distance would move at the speed of light. Inside, the magnetic field can co-rotate; outside, it must open up or become radiation. 67 km at 716 Hz.", "exact"),
   curveBtn: T("Brightness curve", "The X-ray brightness of the hot caps over two rotations, computed from a 64×64 ray-traced image with all currently switched physics. This pulse shape is what NICER measures to determine neutron-star masses and radii. Dashed: the same without any relativity.", "exact", "Bolometric (all-frequency) flux of the hot caps only; the cooler surface is ignored, as in NICER models."),
   gridBtn: T("Latitude/longitude grid", "Coordinate lines painted onto the surface (every 10° and 30°, equator, gold prime meridian). They make rotation, light bending and shearing visible.", "disp"),
-  raysBtn: T("Incoming light rays", "Starlight passing the star, along the same curved light paths the renderer traces. Faint pulses travel inward at the speed of light (slowed down like everything else). Rays aimed closer than 1.24 R hit the star; the others bend and cross behind it — gravity acting as a lens.", "exact", "Deflection verified against the exact Schwarzschild integral to within 0.06°."),
+  raysBtn: T("Incoming light beam", "A broad beam of starlight streaming past the star — about 430 light paths, each traced along the same curved path the renderer uses, drawn as a glowing fog. The fog is brighter where paths crowd together (more light per area): you see the star's dark shadow behind it, and the bright focal line where gravity bends the light together — the star acting as a lens. Bright bands are wavefronts moving at the speed of light (slowed down); they lag where gravity delays them. Switch light bending off and the beam goes straight.", "exact",
+    "Paths verified against the exact Schwarzschild deflection (within 0.06°). Does the magnetic field bend light? No: in Maxwell's theory light passes straight through a static magnetic field. Quantum 'vacuum birefringence' only changes polarization, and only near 4.4×10⁹ T (this star: ~10⁴ T); plasma in the magnetosphere bends radio waves only. All bending here is gravity."),
+  beam: T("Light-beam brightness", "How bright the incoming light beam is drawn. The brightness ratios across the beam — darker shadow, brighter focus — stay physical; this only scales the whole beam.", "disp"),
   bcolBtn: T("Colour field lines by |B|", "Colours the magnetic field lines by field strength in tesla, on a log scale from 1/100,000 of the polar field (violet) to the polar field (amber). Legend in the Star section.", "approx", "Dipole strength (with the general-relativity correction near the star) inside the light cylinder; 1/r² plasma wind or 1/r vacuum wave outside."),
   scaleBtn: T("10 km scale bar", "A 10 km bar at the distance of the star's centre, for a sense of size. A neutron star is about the size of a city.", "disp", "Ignores light bending, which makes the star look ~25% bigger than this scale suggests."),
   fmodel: [
@@ -1591,7 +1695,7 @@ const TIPS = {
   document.querySelectorAll("#bgs button").forEach((b) => attach(b, TIPS.bg[+b.dataset.bg]));
   document.querySelectorAll("#views button").forEach((b) => attach(b, TIPS.view[+b.dataset.view]));
   for (const id of ["ghostBtn", "fieldBtn", "lcBtn", "curveBtn", "gridBtn", "raysBtn", "bcolBtn", "scaleBtn", "tourBtn", "autoRes"]) attach($(id), TIPS[id]);
-  for (const id of ["sep", "inc", "dist", "fov", "turns", "expo", "res", "f", "beta", "m", "r", "tilt", "bp", "spot"]) {
+  for (const id of ["sep", "inc", "dist", "fov", "turns", "expo", "res", "f", "beta", "m", "r", "tilt", "bp", "spot", "beam"]) {
     attach($(id), TIPS[id]);
     const lab = $(id + "Val") && $(id + "Val").closest("label"); if (lab) attach(lab, TIPS[id]);
   }

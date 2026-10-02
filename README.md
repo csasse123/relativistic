@@ -70,7 +70,11 @@ The vacuum dipole remains as the starting point to compare against. **▶ Magnet
 - **B_p input:** a log-scale slider in tesla. The presets use spin-down estimates, 2 × 3.2×10¹⁹ √(PṖ) G, and say when a value is assumed.
 - **Field-line colour:** shows |B| in tesla on a log scale, with comparisons to an MRI scanner, lab magnets and magnetars.
 - **Numbers panel:** the diameters (24.0 km equatorial, 21.2 km pole to pole), |B| at the light cylinder, the force-free spin-down power, and a 10 km scale bar.
-- **Incoming light rays:** starlight integrated with the per-pixel tracer's own null-geodesic equation. White streaks travel inward at c as wavefronts. The deflection matches the exact Schwarzschild integral to within 0.06°.
+- **Incoming light beam (v1.24):** about 430 light paths, integrated with the per-pixel tracer's own null-geodesic equation and drawn as a blurred, glowing fog.
+  - Fog brightness = density of photon paths (the flux), times the local gravitational blueshift. It shows the star's shadow and the bright focal line behind it.
+  - Wavefronts travel inward at c, with a few crisp lines on top.
+  - The deflection matches the exact Schwarzschild integral to within 0.06°.
+  - The magnetic field does not bend light: Maxwell's theory is linear, vacuum birefringence only matters near 4.4×10⁹ T, and plasma refraction affects radio only.
 
 **Tutorial tooltips (v1.23):** every button and slider (71 controls) has a hover tooltip, or long-press on a phone. Each says what the control does and what to look for, with a badge for how exact it is: *Exact* (within the stated model), *Approximation*, *Schematic*, *Convention*, *Display only* or *Assumed*.
 
