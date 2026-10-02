@@ -66,6 +66,12 @@ Each effect can also be switched on and off on its own.
 
 The vacuum dipole remains as the starting point to compare against. **▶ Magnetosphere tour** steps from vacuum to plasma to the current sheet. The same tour is exported as video: [`assets/ns_magnetosphere_tour.mp4`](assets/ns_magnetosphere_tour.mp4).
 
+**Field strength and light rays (v1.20):**
+- **B_p input:** a log-scale slider in tesla. The presets use spin-down estimates, 2 × 3.2×10¹⁹ √(PṖ) G, and say when a value is assumed.
+- **Field-line colour:** shows |B| in tesla on a log scale, with comparisons to an MRI scanner, lab magnets and magnetars.
+- **Numbers panel:** the diameters (24.0 km equatorial, 21.2 km pole to pole), |B| at the light cylinder, the force-free spin-down power, and a 10 km scale bar.
+- **Incoming light rays:** starlight integrated with the per-pixel tracer's own null-geodesic equation. White streaks travel inward at c as wavefronts. The deflection matches the exact Schwarzschild integral to within 0.06°.
+
 **Speed:** the **v/c** dial (0–0.97 c, or the 0.1c–0.9c chips) sets the spin f = βcN/(2πR). **Playback** only sets the slow-motion rate.
 
 **Presets:** J1748−2446ad (716 Hz), J0030+0451, J0740+6620, J0437−4715, and a hypothetical 2 kHz star.
