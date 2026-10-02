@@ -108,6 +108,9 @@
     <button type="button" id="lcBtn" class="on">Light cylinder</button>
     <button type="button" id="curveBtn" class="on">Brightness curve</button>
     <button type="button" id="gridBtn" class="on">Lat/long grid</button>
+    <button type="button" id="raysBtn" class="on" title="Starlight passing the star along the same null geodesics the renderer traces">Incoming light rays</button>
+    <button type="button" id="bcolBtn" class="on">Colour field lines by |B|</button>
+    <button type="button" id="scaleBtn" class="on">10 km scale bar</button>
   </div>
   <div class="sub">magnetic field model</div>
   <div class="chips" id="fmodels">
@@ -164,6 +167,9 @@
   <input id="r" type="range" min="8" max="16" step="0.05" value="12" />
   <label class="row"><span>Magnetic tilt (hot caps + field)</span><span class="val" id="tiltVal"></span></label>
   <input id="tilt" type="range" min="0" max="90" step="1" value="48" />
+  <label class="row"><span>Polar magnetic field B<sub>p</sub> (log scale)</span><span class="val" id="bpVal"></span></label>
+  <input id="bp" type="range" min="3" max="11" step="0.05" value="4.6" />
+  <div class="help" id="bpNote"></div>
   <label class="row"><span>Hot-cap angular radius</span><span class="val" id="spotVal"></span></label>
   <input id="spot" type="range" min="4" max="40" step="1" value="20" />
 
@@ -192,8 +198,10 @@
   </div>
 </div>
 
+<div id="scalebar" style="position:fixed;z-index:5;bottom:30px;pointer-events:none;font:600 0.62rem JetBrains Mono,monospace;color:#a9c8e8;text-align:center">
+  <div id="scaleLine" style="height:6px;border:1.5px solid #a9c8e8;border-top:none"></div><div>10 km at the star's centre (before lensing)</div></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.19.0</div>
+<div class="build" id="build">v1.20.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -517,7 +525,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.19.0";
+const BUILD = "v1.20.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -565,17 +573,21 @@ const LADDER = [
 function ladderMask(step) { let m = 0; for (let i = 1; i <= step; i++) for (const k of LADDER[i].add) m |= 1 << BIT[k]; return m; }
 
 const PRESETS = [
-  { name: "J1748−2446ad · 716 Hz", f: 716, M: 1.4, R: 12.0, inc: 62, tilt: 48,
+  { name: "J1748−2446ad · 716 Hz", f: 716, M: 1.4, R: 12.0, inc: 62, tilt: 48, Bp: 4e4,
+    bnote: "assumed: its spin-down is contaminated by the cluster's gravity. A reported ν̇ ≈ 1.7×10⁻¹⁴ Hz/s gives ~4×10⁴ T, uncertain by a factor of a few",
     note: "Only the spin is measured: 716.36 Hz (Hessels et al. 2006). The mass, radius, inclination and magnetic tilt are unknown, so 1.4 M☉, 12 km, i = 62° and tilt = 48° are assumed." },
-  { name: "J0030+0451 · NICER", f: 205.53, M: 1.34, R: 12.71, inc: 54, tilt: 60,
+  { name: "J0030+0451 · NICER", f: 205.53, M: 1.34, R: 12.71, inc: 54, tilt: 60, Bp: 5.4e4,
+    bnote: "spin-down estimate: Ṗ = 1.0×10⁻²⁰ gives B_eq ≈ 2.7×10⁴ T, B_p ≈ 5.4×10⁴ T. NICER finds a non-dipolar field",
     note: "Spin 205.53 Hz. M = 1.34 M☉ and R = 12.71 km are NICER fits (Riley et al. 2019). The inclination and tilt are illustrative, and NICER's hot spots are not two antipodal caps." },
-  { name: "J0740+6620 · 2.08 M☉", f: 346.53, M: 2.08, R: 12.39, inc: 87, tilt: 70,
+  { name: "J0740+6620 · 2.08 M☉", f: 346.53, M: 2.08, R: 12.39, inc: 87, tilt: 70, Bp: 3.8e4,
+    bnote: "spin-down estimate: Ṗ = 1.22×10⁻²⁰ (observed, not corrected for motion) gives B_p ≈ 3.8×10⁴ T",
     note: "Spin 346.53 Hz. M = 2.08 M☉ (Fonseca et al. 2021), R = 12.39 km (Riley et al. 2021), i ≈ 87° from the Shapiro delay. The tilt is illustrative." },
-  { name: "J0437−4715", f: 173.69, M: 1.418, R: 11.36, inc: 42.5, tilt: 40,
+  { name: "J0437−4715", f: 173.69, M: 1.418, R: 11.36, inc: 42.5, tilt: 40, Bp: 5.7e4,
+    bnote: "spin-down estimate: intrinsic Ṗ = 1.37×10⁻²⁰ gives B_p ≈ 5.7×10⁴ T",
     note: "Spin 173.69 Hz. M = 1.418 M☉ (Reardon et al. 2024), R = 11.36 km (Choudhury et al. 2024), i ≈ 42.5°. The tilt is illustrative." },
-  { name: "Hypothetical 2 kHz", f: 2000, M: 1.4, R: 12.0, inc: 70, tilt: 50,
+  { name: "Hypothetical 2 kHz", f: 2000, M: 1.4, R: 12.0, inc: 70, tilt: 50, Bp: 4e4, bnote: "assumed (typical millisecond pulsar)",
     note: "Hypothetical: faster than any real neutron star can spin without breaking up. Here to make the effects easy to see." },
-  { name: "Hypothetical v = 0.9c", beta: 0.9, M: 1.4, R: 12.0, inc: 70, tilt: 50,
+  { name: "Hypothetical v = 0.9c", beta: 0.9, M: 1.4, R: 12.0, inc: 70, tilt: 50, Bp: 4e4, bnote: "assumed (typical millisecond pulsar)",
     note: "Hypothetical: equator at 0.9c, far beyond break-up. Here to make the effects easy to see." },
 ];
 
@@ -585,7 +597,8 @@ const S = {
   view: 0, sep: 3.0, inc: 62, az: 0.4, dist: 85, fov: 40, turns: 0.22, expo: 0, res: 0.75, autoRes: true,
   style: 0, map: 0, bg: 0, ghost: true, field: true, lc: true, curve: true, grid: true, fmodel: 1, tour: null,
   beta: null,
-  f: 716, M: 1.4, R: 12.0, tilt: 48, spot: 20,
+  f: 716, M: 1.4, R: 12.0, tilt: 48, spot: 20, Bp: 4e4,
+  bpSrc: "assumed: its spin-down is contaminated by the cluster's gravity. A reported ν̇ ≈ 1.7×10⁻¹⁴ Hz/s gives ~4×10⁴ T, uncertain by a factor of a few", bcol: true, scale: true, rays: true,
   tKm: 0,
 };
 
@@ -615,16 +628,18 @@ const RT = program(`#version 300 es
 void main(){ vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2); gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`, $("fs").textContent);
 const U = RT.U;
 const LN = program(`#version 300 es
-in vec3 aP; out float vA;
-void main(){ vA = aP.z; gl_Position = vec4(aP.xy, 0.0, 1.0); }`, `#version 300 es
-precision mediump float; in float vA; uniform vec3 uCol; out vec4 o;
-void main(){ o = vec4(uCol * vA, 1.0); }`);
+in vec3 aP; in vec3 aC; out float vA; out vec3 vC;
+void main(){ vA = aP.z; vC = aC; gl_Position = vec4(aP.xy, 0.0, 1.0); }`, `#version 300 es
+precision mediump float; in float vA; in vec3 vC; out vec4 o;
+void main(){ o = vec4(vC * vA, 1.0); }`);
 const emptyVao = gl.createVertexArray();
 const lineVao = gl.createVertexArray(), lineBuf = gl.createBuffer();
 gl.bindVertexArray(lineVao);
 gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf);
 const aP = gl.getAttribLocation(LN.p, "aP");
-gl.enableVertexAttribArray(aP); gl.vertexAttribPointer(aP, 3, gl.FLOAT, false, 0, 0);
+const aC = gl.getAttribLocation(LN.p, "aC");
+gl.enableVertexAttribArray(aP); gl.vertexAttribPointer(aP, 3, gl.FLOAT, false, 24, 0);
+gl.enableVertexAttribArray(aC); gl.vertexAttribPointer(aC, 3, gl.FLOAT, false, 24, 12);
 gl.bindVertexArray(null);
 
 // ---------------------------------------------------------------- colour tables (CIE 1931, Wyman et al. 2013 fit)
@@ -916,12 +931,12 @@ function locate(tab, rP, psi) {
   return { al: (lo - 0.5 + fr2) * dA, t: tAt(lo - 1) + (tAt(lo) - tAt(lo - 1)) * fr2 };
 }
 // project a body-frame point (pattern at t = 0) for an eye; returns NDC [x, y] or null
-function projectPoint(pBody, eye, mask, tab, cx, tanH, asp) {
+function projectPoint(pBody, eye, mask, tab, cx, tanH, asp, fixed = false) {   // fixed: lab-frame point, not corotating
   const rc = Math.hypot(...eye.p), ch = eye.p.map((v) => v / rc);
   const Tref = (rc - S.R) + (on(mask, "shapiro") ? P.rs * Math.log((rc - P.rs) / (S.R - P.rs)) : 0);
   let te = S.tKm, res = null, pl = null;
-  for (let it = 0; it < (on(mask, "retard") ? 3 : 1); it++) {
-    pl = rotZ(pBody, P.OmKm * te);
+  for (let it = 0; it < (on(mask, "retard") && !fixed ? 3 : 1); it++) {
+    pl = fixed ? pBody : rotZ(pBody, P.OmKm * te);
     const rP = Math.hypot(...pl), ph = pl.map((v) => v / rP);
     const cp = Math.max(-1, Math.min(1, v3.dot(ch, ph)));
     res = locate(tab, rP, Math.acos(cp));
@@ -946,7 +961,7 @@ function chip(parent, label, onClick, cls) {
 const ladderBtns = LADDER.map((L, i) => chip($("ladder"), `${i} ${L.name}`, () => { setGuided(false); setStep(i); }));
 const fxBtns = FX.map((f) => chip($("fx"), f.label, () => { setGuided(false); S.mask ^= 1 << f.bit; S.step = -1; syncUI(); }, f.gr ? "gr" : null));
 PRESETS.forEach((p) => chip($("presets"), p.name, () => {
-  Object.assign(S, { M: p.M, R: p.R, inc: p.inc, tilt: p.tilt });
+  Object.assign(S, { M: p.M, R: p.R, inc: p.inc, tilt: p.tilt, Bp: p.Bp, bpSrc: p.bnote });
   if (p.beta) setBeta(p.beta); else { S.f = p.f; S.beta = null; }
   $("presetNote").innerHTML = `<b>${p.name}:</b> ${p.note}`;
   syncUI();
@@ -965,7 +980,7 @@ const CHIP_GROUPS = [["views", "view", "view"], ["styles", "style", "style"], ["
 for (const [id, key, attr] of CHIP_GROUPS)
   document.querySelectorAll(`#${id} button`).forEach((b) => b.addEventListener("click", () => { S[key] = +b.dataset[attr]; syncUI(); }));
 $("tourBtn").addEventListener("click", () => (S.tour ? stopTour() : startTour()));
-for (const [id, key] of [["ghostBtn", "ghost"], ["fieldBtn", "field"], ["lcBtn", "lc"], ["curveBtn", "curve"], ["gridBtn", "grid"], ["autoRes", "autoRes"]])
+for (const [id, key] of [["ghostBtn", "ghost"], ["fieldBtn", "field"], ["lcBtn", "lc"], ["curveBtn", "curve"], ["gridBtn", "grid"], ["raysBtn", "rays"], ["bcolBtn", "bcol"], ["scaleBtn", "scale"], ["autoRes", "autoRes"]])
   $(id).addEventListener("click", () => { S[key] = !S[key]; syncUI(); });
 $("showPanel").addEventListener("click", () => togglePanel());
 function togglePanel() { $("panel").classList.toggle("hidden"); $("showPanel").classList.toggle("show", $("panel").classList.contains("hidden")); }
@@ -989,6 +1004,7 @@ for (const id of Object.keys(sliders)) {
 function eqN() { return on(S.mask, "grz") ? Math.sqrt(1 - RS_SUN * S.M / S.R) : 1; }
 function setBeta(b) { S.beta = b; S.f = Math.max(1, Math.round(b * C_KM * eqN() / (2 * Math.PI * S.R))); }
 $("beta").addEventListener("input", () => { setBeta(parseFloat($("beta").value)); syncUI(); });
+$("bp").addEventListener("input", () => { S.Bp = 10 ** parseFloat($("bp").value); S.bpSrc = "set by you (slider)"; syncUI(); });
 [0.1, 0.3, 0.5, 0.7, 0.9].forEach((b) => chip($("betaPresets"), `${b}c`, () => { setBeta(b); syncUI(); }));
 
 function syncUI() {
@@ -998,7 +1014,7 @@ function syncUI() {
   fxBtns.forEach((b, i) => b.classList.toggle("on", !!(S.mask & (1 << FX[i].bit))));
   for (const [id, key, attr] of CHIP_GROUPS)
     document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", +b.dataset[attr] === S[key]));
-  for (const [id, key] of [["ghostBtn", "ghost"], ["fieldBtn", "field"], ["lcBtn", "lc"], ["curveBtn", "curve"], ["gridBtn", "grid"], ["autoRes", "autoRes"]])
+  for (const [id, key] of [["ghostBtn", "ghost"], ["fieldBtn", "field"], ["lcBtn", "lc"], ["curveBtn", "curve"], ["gridBtn", "grid"], ["raysBtn", "rays"], ["bcolBtn", "bcol"], ["scaleBtn", "scale"], ["autoRes", "autoRes"]])
     $(id).classList.toggle("on", !!S[key]);
   $("curve").classList.toggle("off", !S.curve);
   for (const id of Object.keys(sliders)) { const k = keyOf[id] || id; $(id).value = S[k]; $(id + "Val").textContent = sliders[id](S[k]); }
@@ -1011,6 +1027,18 @@ function syncUI() {
   const gam = 1 / Math.sqrt(1 - beta * beta), dHi = 1 / (gam * (1 - betaO)), dLo = 1 / (gam * (1 + betaO));
   const z1 = on(m, "grz") ? 1 / P.lapse : 1;
   const period = 1e6 / S.f, crossUs = S.R / C_KM * 1e6;
+  // magnetic field, size, spin-down (Gaussian units for L, then W)
+  const Bp = S.Bp, RLCv = P.RLC, Rpole = S.R * (1 + P.o2);
+  const BLC = 0.5 * Bp * (S.R / RLCv) ** 3;
+  const mu = 0.5 * (Bp * 1e4) * (S.R * 1e5) ** 3, al = S.tilt * Math.PI / 180;      // G cm³
+  const Lff = mu * mu * P.Om ** 4 * (1 + Math.sin(al) ** 2) / (2.99792458e10) ** 3 * 1e-7;   // W (Spitkovsky 2006)
+  $("bpVal").textContent = `${(Bp).toExponential(1)} T`;
+  $("bp").value = Math.log10(Bp);
+  $("bpNote").innerHTML = `B<sub>p</sub> = <b>${fmtT(Bp)}</b> (${(Bp * 1e4).toExponential(1)} G) · <i>${S.bpSrc}</i>.<br>` +
+    `For scale: <b>${Math.round(Bp / 3).toLocaleString()}×</b> a 3 T hospital MRI · <b>${Math.round(Bp / 45).toLocaleString()}×</b> the strongest steady lab magnet (45 T) · ` +
+    `${(Bp / 1200).toFixed(Bp / 1200 < 10 ? 1 : 0)}× the record non-destructive pulsed field (1,200 T) · ${(Bp / 2800).toFixed(Bp / 2800 < 10 ? 1 : 0)}× the explosive flux-compression record (~2,800 T) · ` +
+    `~10<sup>${Math.round(Math.log10(Bp / 5e-5))}</sup>× Earth's field. Magnetars reach 10¹⁰–10¹¹ T.` +
+    (S.bcol ? `<br>Field-line colour: <span style="color:#6a55f0">■</span> ${fmtT(Bp / 1e5)} → <span style="color:#e44fd8">■</span> → <span style="color:#ff8c33">■</span> → <span style="color:#ffc740">■</span> ${fmtT(Bp)} (log scale).` : "");
   $("meta").innerHTML =
     `M <b>${S.M.toFixed(2)} M☉</b> · R<sub>eq</sub> <b>${S.R.toFixed(2)} km</b> · r<sub>s</sub> <b>${P.rs.toFixed(2)} km</b><br>` +
     `compactness GM/Rc² <b>${P.x.toFixed(3)}</b> · 1+z <b class="rose">${(1 / P.lapse).toFixed(3)}</b><br>` +
@@ -1020,6 +1048,8 @@ function syncUI() {
     `observed g ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>] · g⁴ ∈ [${((dLo / z1) ** 4).toPrecision(2)}, ${((dHi / z1) ** 4).toPrecision(3)}]<br>` +
     `R/c <b>${crossUs.toFixed(1)} µs</b> = <b class="gold">${(360 * crossUs / period).toFixed(1)}°</b> of spin · light cylinder c/Ω <b>${P.RLC.toFixed(0)} km</b><br>` +
     `R<sub>pole</sub> <b>${(S.R * (1 + (on(m, "oblate") ? P.o2 : 0))).toFixed(2)} km</b> · ω<sub>drag</sub>/Ω <b>${(P.wS / P.OmKm).toFixed(3)}</b> · I/MR² <b>${P.kappa.toFixed(3)}</b><br>` +
+    `diameter <b>${(2 * S.R).toFixed(1)} km</b> equatorial · <b>${(2 * Rpole).toFixed(1)} km</b> pole to pole (spin flattening, o₂ ${P.o2.toFixed(3)})<br>` +
+    `B<sub>p</sub> <b class="gold">${fmtT(Bp)}</b> (see note) · at the light cylinder ≈ <b>${fmtT(BLC)}</b> · spin-down power (force-free) ≈ <b>${Lff.toExponential(1)} W</b><br>` +
     `surface visible <b>${on(m, "bend") ? (100 * P.visGR).toFixed(0) : 50}%</b> · real ${S.f.toFixed(0)} turns/s shown at ${S.turns.toFixed(2)}/s (×1/${Math.round(S.f / S.turns).toLocaleString()})`;
   const dMax = delayMax();
   $("mapMeta").style.display = S.map ? "block" : "none";
@@ -1184,22 +1214,93 @@ function drawCurve() {
     `pulsed fraction (max−min)/(max+min) <b>${((cMax - cMin) / (cMax + cMin) * 100).toFixed(1)}%</b> · peak <b>${(cMax / norm).toFixed(2)}</b>× Newton`;
 }
 
+// ---------------------------------------------------------------- incoming light rays
+// A parallel beam of starlight passing the star, integrated with exactly the per-pixel tracer's equations:
+// d²x/dλ² = −3/2 r_s h² x / r⁵ (off when light bending is off), RK4, the same step rule and surface test,
+// dt/dλ = 1/(1 − r_s/r) with the Shapiro delay on. All rays leave one plane at t = 0, so the travelling
+// streaks are wavefronts: their lag near the star is the Shapiro delay, their curvature is the bending.
+const rayLineCache = new Map();
+function incomingRays(eye, mask) {
+  const bend = on(mask, "bend"), shap = on(mask, "shapiro"), obl = on(mask, "oblate");
+  const key = [...eye.R, ...eye.U, ...eye.F].map((v) => v.toFixed(3)).concat([bend, shap, obl, S.M, S.R, S.f]).join(",");
+  return cached(rayLineCache, key, () => {
+    const rs = P.rs, o2 = obl ? P.o2 : 0, gB = bend ? 1 : 0;
+    const rSurf = (x) => S.R * (1 + o2 * x[2] * x[2] / v3.dot(x, x));
+    const norm = (a) => v3.sc(a, 1 / v3.len(a));
+    const d = norm(v3.add(v3.sc(eye.R, 0.97), v3.sc(eye.F, 0.25)));        // light arrives from the left of the view
+    const e1 = norm(v3.add(eye.U, v3.sc(d, -v3.dot(eye.U, d)))), e2 = v3.cross(d, e1);
+    const L0 = 140, out = [];
+    const sheets = [[0, [0.35, 0.8, 1.1, 1.3, 1.5, 1.8, 2.3, 3.0, 4.0]], [Math.PI / 3, [0.8, 1.3, 1.8, 2.6]], [-Math.PI / 3, [0.8, 1.3, 1.8, 2.6]]];
+    for (const [psi, bs] of sheets) for (const bf of bs) for (const sgn of [1, -1]) {
+      const o = v3.add(v3.sc(e1, Math.cos(psi)), v3.sc(e2, Math.sin(psi)));
+      let x = v3.add(v3.sc(d, -L0), v3.sc(o, sgn * bf * S.R)), v = d.slice(), t = 0;
+      const L = v3.cross(x, v), h2 = v3.dot(L, L);
+      const acc = (y) => { const r2 = v3.dot(y, y); return v3.sc(y, -1.5 * rs * gB * h2 / (r2 * r2 * Math.sqrt(r2))); };
+      const rk4 = (x, v, dl) => {
+        const a1 = acc(x), v2 = v3.add(v, v3.sc(a1, dl / 2)), a2 = acc(v3.add(x, v3.sc(v, dl / 2)));
+        const v3_ = v3.add(v, v3.sc(a2, dl / 2)), a3 = acc(v3.add(x, v3.sc(v2, dl / 2)));
+        const v4 = v3.add(v, v3.sc(a3, dl)), a4 = acc(v3.add(x, v3.sc(v3_, dl)));
+        return [v3.add(x, v3.sc(v3.add(v3.add(v, v3.sc(v2, 2)), v3.add(v3.sc(v3_, 2), v4)), dl / 6)),
+                v3.add(v, v3.sc(v3.add(v3.add(a1, v3.sc(a2, 2)), v3.add(v3.sc(a3, 2), a4)), dl / 6))];
+      };
+      const pts = [x], ts = [0];
+      let hit = false;
+      for (let i = 0; i < 3000; i++) {
+        const r = v3.len(x);
+        if (r > L0 + 5 && v3.dot(x, v) > 0) break;
+        const dist = r - rSurf(x);
+        const dl = Math.min(2, Math.min(Math.max(Math.max(0.6 * dist, 0.022 * r), 0.004 * S.R), 0.25 * r));
+        let [xn, vn] = rk4(x, v, dl);
+        const rm = 0.5 * (r + v3.len(xn));
+        const dtf = shap ? 1 / (1 - rs / rm) : 0.5 * (v3.len(v) + v3.len(vn));
+        if (v3.len(xn) < rSurf(xn)) {                                           // absorbed at the surface (bisection, as in the shader)
+          let lo = 0, hi = dl;
+          for (let k = 0; k < 8; k++) { const mid = 0.5 * (lo + hi), [xt] = rk4(x, v, mid); if (v3.len(xt) < rSurf(xt)) hi = mid; else lo = mid; }
+          [xn] = rk4(x, v, hi); t += hi * dtf; pts.push(xn); ts.push(t); hit = true; break;
+        }
+        t += dl * dtf; x = xn; v = vn; pts.push(x); ts.push(t);
+      }
+      out.push({ pts, ts, hit });
+    }
+    return out;
+  });
+}
+
+// ---------------------------------------------------------------- field strength in tesla
+// |B| for colouring: dipole μ = B_p R³/2 inside the light cylinder (Schwarzschild factor F(r)·r near the star when
+// bending is on); beyond R_LC the plasma wind falls as 1/r² with the B_φ winding, the vacuum wave as 1/r.
+function bMag(p) {
+  const r = Math.hypot(...p), m = magAxis(), c = v3.dot(p, m) / r, R = S.R, RLC = P.RLC;
+  const gr = on(S.mask, "bend") ? Fgr(Math.max(r, R), P.rs) * Math.max(r, R) : 1;
+  const dip = (rr) => 0.5 * S.Bp * (R / rr) ** 3 * Math.sqrt(1 + 3 * c * c);
+  if (!(r > RLC)) return dip(r) * gr;
+  return S.fmodel === 1 ? dip(RLC) * (RLC / r) ** 2 * Math.sqrt(1 + (Math.hypot(p[0], p[1]) / RLC) ** 2) : dip(RLC) * (RLC / r);
+}
+const B_STOPS = [[0.35, 0.25, 0.95], [0.9, 0.3, 0.85], [1.0, 0.5, 0.15], [1.0, 0.78, 0.25]];
+function bColour(B) {                                   // log scale from B_p/10⁵ (violet) to B_p (pale yellow)
+  const t = Math.min(1, Math.max(0, (Math.log10(B) - Math.log10(S.Bp) + 5) / 5)) * (B_STOPS.length - 1);
+  const i = Math.min(B_STOPS.length - 2, Math.floor(t)), f = t - i;
+  return B_STOPS[i].map((v, k) => v + (B_STOPS[i + 1][k] - v) * f);
+}
+const fmtT = (B) => { const e = Math.floor(Math.log10(B)), m = B / 10 ** e; return e >= -1 && e <= 3 ? `${B < 10 ? B.toPrecision(2) : Math.round(B).toLocaleString()} T` : `${m.toFixed(1)}×10<sup>${e}</sup> T`; };
+
 // ---------------------------------------------------------------- field lines drawing
 let lineData = new Float32Array(0);
-function pushStrip(out, pts, wPx, aCenter, W, H, vp) {
-  // pts: [[xPix, yPix, alpha]...] in viewport pixels → quads with alpha 0 at edges, aCenter·alpha at centre
+function pushStrip(out, pts, wPx, aCenter, W, H, vp, col) {
+  // pts: [[xPix, yPix, alpha, (r, g, b)]...] in viewport pixels → quads with alpha 0 at edges, aCenter·alpha at centre
   for (let i = 0; i + 1 < pts.length; i++) {
     const a = pts[i], b = pts[i + 1]; if (!a || !b) continue;
     let dx = b[0] - a[0], dy = b[1] - a[1]; const L = Math.hypot(dx, dy); if (L < 1e-3 || L > W * 0.5) continue;
     const nx = -dy / L * wPx / 2, ny = dx / L * wPx / 2;
-    const P = (x, y, al) => [((vp[0] + x) / W) * 2 - 1, ((vp[1] + y) / H) * 2 - 1, al];
-    const A0 = P(a[0] + nx, a[1] + ny, 0), A1 = P(a[0], a[1], aCenter * a[2]), A2 = P(a[0] - nx, a[1] - ny, 0);
-    const B0 = P(b[0] + nx, b[1] + ny, 0), B1 = P(b[0], b[1], aCenter * b[2]), B2 = P(b[0] - nx, b[1] - ny, 0);
+    const ca = a.length > 3 ? a.slice(3) : col, cb = b.length > 3 ? b.slice(3) : col;
+    const P = (x, y, al, c) => [((vp[0] + x) / W) * 2 - 1, ((vp[1] + y) / H) * 2 - 1, al, c[0], c[1], c[2]];
+    const A0 = P(a[0] + nx, a[1] + ny, 0, ca), A1 = P(a[0], a[1], aCenter * a[2], ca), A2 = P(a[0] - nx, a[1] - ny, 0, ca);
+    const B0 = P(b[0] + nx, b[1] + ny, 0, cb), B1 = P(b[0], b[1], aCenter * b[2], cb), B2 = P(b[0] - nx, b[1] - ny, 0, cb);
     out.push(...A0, ...A1, ...B0, ...B0, ...A1, ...B1, ...A1, ...A2, ...B1, ...B1, ...A2, ...B2);
   }
 }
 function drawField(E) {
-  if (!S.field && !S.lc) return;
+  if (!S.field && !S.lc && !S.rays) return;
   const W = canvas.width, H = canvas.height, tanH = Math.tan(S.fov * Math.PI / 360);
   // views: [eyeIndex, mask, viewport [x, y, w, h], colour multiplier]
   const half = [W / 2, H];
@@ -1218,12 +1319,27 @@ function drawField(E) {
     const toPix = (q) => q ? [(q[0] + 1) / 2 * vp[2], (q[1] + 1) / 2 * vp[3], q[2]] : null;
     const groups = [];
     if (S.field) for (const ln of fieldLines(mask)) {
+      const byB = S.bcol && !ln.sheet;
       const pts = ln.pts.map((p, i) => {
         const q = toPix(projectPoint(p, eye, mask, tab, cxv, tanH, asp));
-        if (q) q[2] = Math.max(0, Math.min(1, (ln.rMax - q[2]) / (0.6 * ln.rMax))) ** 1.5 * (ln.wts ? ln.wts[i] : 1);
+        if (q) {
+          q[2] = Math.max(0, Math.min(1, (ln.rMax - q[2]) / (0.6 * ln.rMax))) ** 1.5 * (ln.wts ? ln.wts[i] : 1);
+          if (byB) q.push(...bColour(bMag(p)).map((v, k) => v * tint[k]));
+        }
         return q;
       });
       groups.push({ pts, col: ln.sheet ? [1.0, 0.55, 0.18] : ln.open ? [0.85, 0.38, 0.8] : [0.62, 0.5, 1.0], sheet: ln.sheet });
+    }
+    if (S.rays) {
+      const LAM = 45, TAU = 12;                                        // wavefront spacing and streak tail (km of light travel)
+      for (const ray of incomingRays(eye, mask)) {
+        const pts = ray.pts.map((p, i) => {
+          const q = toPix(projectPoint(p, eye, mask, tab, cxv, tanH, asp, true));
+          if (q) { const ph = (((S.tKm - ray.ts[i]) % LAM) + LAM) % LAM; q[2] = 0.16 + 0.84 * Math.exp(-ph / TAU); }
+          return q;
+        });
+        groups.push({ pts, col: [1.0, 1.0, 1.0], ray: true });
+      }
     }
     if (S.lc && isFinite(P.RLC) && P.RLC < 600) {
       const ring = [];
@@ -1231,13 +1347,12 @@ function drawField(E) {
       groups.push({ pts: ring, col: [0.45, 0.85, 1.0], lc: true });
     }
     for (const gp of groups) {
-      for (const [w, a] of gp.lc ? [[1.8, 0.6]] : gp.sheet ? [[7, 0.07], [1.4, 0.5]] : [[6, 0.06], [1.6, 0.55]]) {
-        const out = []; pushStrip(out, gp.pts, w * sc, a, W, H, vp);
+      for (const [w, a] of gp.lc ? [[1.8, 0.6]] : gp.ray ? [[8, 0.16], [2.0, 1.0]] : gp.sheet ? [[7, 0.07], [1.4, 0.5]] : [[6, 0.06], [1.6, 0.55]]) {
+        const out = []; pushStrip(out, gp.pts, Math.max(w * sc, 1.6), a, W, H, vp, gp.col.map((v, k) => v * tint[k]));
         if (!out.length) continue;
         lineData = new Float32Array(out);
         gl.bindBuffer(gl.ARRAY_BUFFER, lineBuf); gl.bufferData(gl.ARRAY_BUFFER, lineData, gl.DYNAMIC_DRAW);
-        gl.uniform3f(LN.U.uCol, gp.col[0] * tint[0], gp.col[1] * tint[1], gp.col[2] * tint[2]);
-        gl.drawArrays(gl.TRIANGLES, 0, out.length / 3);
+        gl.drawArrays(gl.TRIANGLES, 0, out.length / 6);
       }
     }
   }
@@ -1315,6 +1430,14 @@ function loop(now) {
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   drawField(E);
   drawCurve();
+  const sb = $("scalebar"), showSB = S.scale && (S.view === 0 || S.view === 2);
+  sb.style.display = showSB ? "block" : "none";
+  if (showSB) {
+    const px = 10 / (S.dist * 2 * Math.tan(S.fov * Math.PI / 360)) * innerHeight;
+    const cxPix = innerWidth / 2 * (1 - uCxValue());
+    $("scaleLine").style.width = `${px}px`; sb.style.left = `${cxPix - Math.max(px, 210) / 2}px`; sb.style.width = `${Math.max(px, 210)}px`;
+    $("scaleLine").style.margin = "0 auto";
+  }
   requestAnimationFrame(loop);
 }
 setGuided(true); setStep(0);
