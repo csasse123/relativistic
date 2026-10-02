@@ -215,8 +215,8 @@
 
 <div id="scalebar" style="position:fixed;z-index:5;bottom:30px;pointer-events:none;font:600 0.62rem JetBrains Mono,monospace;color:#a9c8e8;text-align:center">
   <div id="scaleLine" style="height:6px;border:1.5px solid #a9c8e8;border-top:none"></div><div>10 km at the star's centre (before lensing)</div></div>
-<div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.25.0</div>
+<div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel · ?: help tips</div>
+<div class="build" id="build">v1.25.1</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -540,7 +540,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.25.0";
+const BUILD = "v1.25.1";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -1701,7 +1701,10 @@ const TIPS = {
   const render = (t) => `<div class="tt">${t.title} ${badge(t.k)}</div>${t.body}` +
     (t.extra ? `<div class="tx">${t.extra}</div>` : "") + `<div class="tk">${BADGE[t.k][2]}</div>`;
   const tipOf = new WeakMap();
-  const attach = (el, t) => { if (el && t) { tipOf.set(el, t); el.removeAttribute("title"); el.style.cursor = el.style.cursor || "help"; } };
+  const attach = (el, t) => { if (el && t) { tipOf.set(el, t); el.removeAttribute("title"); el.dataset.tip = "1"; } };
+  // help tips can be switched off (button at the top of the panel, or the ? key); the choice is remembered
+  let helpOn = true;
+  try { helpOn = localStorage.getItem("nsHelpTips") !== "off"; } catch (e) { /* storage blocked: default on */ }
   function place(el) {
     const r = el.getBoundingClientRect(), bw = box.offsetWidth, bh = box.offsetHeight;
     let x = r.left - bw - 10, y = r.top;                       // prefer left of the panel
@@ -1711,11 +1714,17 @@ const TIPS = {
     box.style.left = `${Math.max(8, x)}px`; box.style.top = `${y}px`;
   }
   let cur = null, hideT = 0;
-  function show(el) { const t = tipOf.get(el); if (!t) return; cur = el; box.innerHTML = render(t); box.classList.add("on"); place(el); }
+  function show(el) { const t = tipOf.get(el); if (!t || !helpOn) return; cur = el; box.innerHTML = render(t); box.classList.add("on"); place(el); }
   function hide() { cur = null; box.classList.remove("on"); }
   const find = (n) => { while (n && n !== document.body) { if (tipOf.has(n)) return n; n = n.parentElement; } return null; };
-  document.addEventListener("pointerover", (e) => { if (e.pointerType === "touch") return; const el = find(e.target); if (el && el !== cur) show(el); else if (!el) hide(); });
-  document.addEventListener("focusin", (e) => { const el = find(e.target); if (el) show(el); });
+  let hoverT = 0;                                                // rest ~0.45 s on a control before its tip appears
+  document.addEventListener("pointerover", (e) => {
+    if (e.pointerType === "touch") return;
+    const el = find(e.target); clearTimeout(hoverT);
+    if (!el) { hide(); return; }
+    if (el !== cur) { if (cur) hide(); hoverT = setTimeout(() => show(el), 450); }
+  });
+  document.addEventListener("focusin", (e) => { const el = find(e.target); if (el && e.target.matches(":focus-visible")) show(el); });   // keyboard focus only, not clicks
   document.addEventListener("focusout", hide);
   let lp = 0;                                                    // touch: long-press shows the tip
   document.addEventListener("touchstart", (e) => { const el = find(e.target); clearTimeout(lp); if (el) lp = setTimeout(() => { show(el); clearTimeout(hideT); hideT = setTimeout(hide, 4000); }, 450); }, { passive: true });
@@ -1753,9 +1762,20 @@ const TIPS = {
   // legend line at the top of the panel
   const leg = document.createElement("div");
   leg.className = "help legend";
-  leg.innerHTML = `<b>New here?</b> Hover any button or slider (long-press on a phone) for what it does and what to look for. ` +
+  leg.innerHTML = `<div class="chips" style="margin-bottom:6px"><button type="button" id="helpBtn"></button></div><span id="helpText"><b>New here?</b> Rest the mouse on any button or slider (long-press on a phone) for what it does and what to look for. ` +
     `The badge says how exact it is: ` + Object.keys(BADGE).map((k) => { const s = document.createElement("span"); s.className = "tb"; s.style.background = BADGE[k][1]; s.textContent = BADGE[k][0]; s.dataset.k = k; return s.outerHTML; }).join(" ");
+  leg.innerHTML += `</span>`;
   $("panel").insertBefore(leg, $("panel").firstChild);
+  function setHelp(v) {
+    helpOn = v; if (!v) hide();
+    try { localStorage.setItem("nsHelpTips", v ? "on" : "off"); } catch (e) { /* ignore */ }
+    $("helpBtn").textContent = v ? "? Help tips: on" : "? Help tips: off";
+    $("helpBtn").classList.toggle("on", v);
+    $("helpText").style.display = v ? "inline" : "none";
+  }
+  $("helpBtn").addEventListener("click", () => setHelp(!helpOn));
+  window.addEventListener("keydown", (e) => { if (e.key === "?" && e.target.tagName !== "INPUT") setHelp(!helpOn); });
+  setHelp(helpOn);
   leg.querySelectorAll(".tb").forEach((s) => attach(s, T(BADGE[s.dataset.k][0], BADGE[s.dataset.k][2], s.dataset.k)));
   window.__tips = { TIPS, BADGE };
 })();
