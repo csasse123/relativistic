@@ -109,6 +109,14 @@
     <button type="button" id="curveBtn" class="on">Brightness curve</button>
     <button type="button" id="gridBtn" class="on">Lat/long grid</button>
   </div>
+  <div class="sub">magnetic field model</div>
+  <div class="chips" id="fmodels">
+    <button type="button" data-fmodel="1" class="on" title="Plasma-filled: open field lines, striped wind, current sheet">Plasma-filled (force-free)</button>
+    <button type="button" data-fmodel="0" title="Empty space around a spinning magnet: the starting point, not a real pulsar">Vacuum dipole</button>
+  </div>
+  <div class="chips">
+    <button type="button" id="tourBtn">▶ Magnetosphere tour (26 s)</button>
+  </div>
   <div class="sub">background</div>
   <div class="chips" id="bgs">
     <button type="button" data-bg="0" class="on">Studio blue</button>
@@ -129,6 +137,7 @@
   <input id="inc" type="range" min="2" max="178" step="1" value="62" />
   <label class="row"><span>Your distance (km from centre)</span><span class="val" id="distVal"></span></label>
   <input id="dist" type="range" min="20" max="400" step="1" value="85" />
+  <div class="help">A teaching viewpoint: real observers are light-years away. From far away the image settles to the "view from infinity": the same physics, just smaller and with less perspective.</div>
   <label class="row"><span>Field of view</span><span class="val" id="fovVal"></span></label>
   <input id="fov" type="range" min="10" max="100" step="1" value="40" />
   <label class="row"><span>Playback (turns per second, slow motion)</span><span class="val" id="turnsVal"></span></label>
@@ -143,6 +152,7 @@
 
   <h2>4 · The star</h2>
   <div class="chips" id="presets"></div>
+  <div class="help" id="presetNote">Default star: spin 716 Hz (J1748−2446ad, the fastest known pulsar). The mass, radius, inclination and tilt are assumed (1.4 M☉, 12 km, 62°, 48°).</div>
   <label class="row"><span>Spin f (Hz)</span><span class="val" id="fVal"></span></label>
   <input id="f" type="range" min="1" max="6000" step="1" value="716" />
   <label class="row"><span><b style="color:#fbbf24">Equator speed v/c</b> (sets f)</span><span class="val" id="betaVal"></span></label>
@@ -163,11 +173,18 @@
   <div class="meta" id="meta"></div>
   <div class="help" style="margin-top:8px">
     <b>Blue wireframe:</b> grid-line hue shows the Doppler shift of a 490 nm reference line (bluer = approaching).
-    Brightness follows g⁴ beaming and limb darkening, and the hot caps use NASA's brightness scale
+    Wireframe brightness is a <i>display</i> of the bolometric g⁴ factor, compressed as (g⁴)<sup>0.4</sup> so both limbs stay visible.
+    The hot-cap colours and the brightness curve use the true, uncompressed g⁴. The thermal style is exact: a blackbody at gT, i.e. g³ per frequency.
+    The hot caps use NASA's brightness scale
     (yellow = 1 = the cap seen face-on with no relativity).
     <b>Magnetic field:</b> a rotating vacuum dipole with retarded fields (Deutsch 1955), whose lines sweep back toward the light cylinder c/Ω.
     Two separate chips: <b>Retarded B field</b> changes the field itself (Maxwell: changes spread out at c, with radiation beyond c/Ω).
     <b>Light-travel time</b> only changes when you see each piece, as if the lines glowed.
+    <b>Which model is physical?</b> The vacuum dipole is the textbook starting point, not the end state. A real pulsar fills
+    its magnetosphere with plasma (Goldreich &amp; Julian 1969). Its currents open every field line that reaches the light cylinder into a
+    striped wind, with a current sheet beyond c/Ω (Contopoulos et al. 1999; Spitkovsky 2006; Bogovalov 1999).
+    That also moves where the light comes from: radio from the open lines above the polar caps, pulsed γ-rays from the current sheet
+    just outside the light cylinder. The plasma model here is a schematic built from those solutions, not a numerical simulation.
     Near the star it uses the Schwarzschild dipole shape (Wasserman &amp; Shapiro 1983). The lines are seen through the same
     light bending and light-travel delay as the surface. A real pulsar's plasma-filled (force-free) magnetosphere opens
     the field lines at the light cylinder (Spitkovsky 2006).
@@ -176,7 +193,7 @@
 </div>
 
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.16.0</div>
+<div class="build" id="build">v1.18.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -400,7 +417,7 @@ vec3 shadeBlue(int m, SP s, vec3 bg) {
   float gc = F(m, 0) ? s.gam : 1.0;
   float g = s.gD * s.gG;
   float W = F(m, 4) ? pow(g, 4.0) : 1.0;                          // beaming / redshift dimming, I ∝ g⁴
-  float B = pow(W, 0.4) * mix(1.0, limb(s.mu), 0.55) * uExpo * 1.35; // perceptual brightness
+  float B = pow(W, 0.4) * mix(1.0, limb(s.mu), 0.55) * uExpo * 1.35; // display only: (g⁴)^0.4; caps + curve use true g⁴
   // translucent navy body
   float n = 0.55 * vnoise(s.pb * 7.0) + 0.45 * vnoise(s.pb * 19.0);
   vec3 body = vec3(0.03, 0.10, 0.26) * (0.75 + 0.5 * n);
@@ -500,7 +517,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.16.0";
+const BUILD = "v1.18.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -516,7 +533,7 @@ const FX = [
   { key: "retard",   bit: 1, label: "Light-travel time" },
   { key: "aberr",    bit: 2, label: "Aberration" },
   { key: "doppler",  bit: 3, label: "Doppler colour" },
-  { key: "beam",     bit: 4, label: "Beaming g⁴" },
+  { key: "beam",     bit: 4, label: "Beaming (g³ per ν · g⁴ total)" },
   { key: "bend",     bit: 5, label: "Light bending", gr: true },
   { key: "grz",      bit: 6, label: "Grav. redshift", gr: true },
   { key: "shapiro",  bit: 7, label: "Shapiro delay", gr: true },
@@ -537,7 +554,7 @@ const LADDER = [
   { name: "+ Doppler", add: ["doppler"], t: "Relativistic Doppler shift",
     d: "δ = 1 / γ(1 − β cos ξ). Grid-line hue follows a shifted 490 nm line: violet-blue on the approaching side, green-yellow on the receding side." },
   { name: "+ beaming", add: ["beam"], t: "Relativistic beaming",
-    d: "Iν/ν³ is invariant, so the intensity scales as g⁴. The approaching side glows, the receding side fades, and the brightness curve becomes lopsided." },
+    d: "Iν/ν³ is invariant, so the intensity at a fixed frequency scales as g³ and the total (bolometric) intensity as g⁴. The approaching side glows, the receding side fades, and the brightness curve becomes lopsided." },
   { name: "+ bending", add: ["bend"], t: "General relativity: light bending",
     d: "Photons follow Schwarzschild null geodesics. The star looks bigger, the far pole curls into view, about 3/4 of the surface is visible, and the hot cap never fully disappears. The field is compressed near the star (Schwarzschild dipole) and lensed." },
   { name: "+ redshift", add: ["grz", "shapiro"], t: "Gravitational redshift + Shapiro delay",
@@ -548,19 +565,25 @@ const LADDER = [
 function ladderMask(step) { let m = 0; for (let i = 1; i <= step; i++) for (const k of LADDER[i].add) m |= 1 << BIT[k]; return m; }
 
 const PRESETS = [
-  { name: "J1748−2446ad · 716 Hz", f: 716, M: 1.4, R: 12.0, inc: 62, tilt: 48 },
-  { name: "J0030+0451 · NICER", f: 205.53, M: 1.34, R: 12.71, inc: 54, tilt: 60 },
-  { name: "J0740+6620 · 2.08 M☉", f: 346.53, M: 2.08, R: 12.39, inc: 87, tilt: 70 },
-  { name: "J0437−4715", f: 173.69, M: 1.418, R: 11.36, inc: 42.5, tilt: 40 },
-  { name: "Hypothetical 2 kHz", f: 2000, M: 1.4, R: 12.0, inc: 70, tilt: 50 },
-  { name: "Hypothetical v = 0.9c", beta: 0.9, M: 1.4, R: 12.0, inc: 70, tilt: 50 },
+  { name: "J1748−2446ad · 716 Hz", f: 716, M: 1.4, R: 12.0, inc: 62, tilt: 48,
+    note: "Only the spin is measured: 716.36 Hz (Hessels et al. 2006). The mass, radius, inclination and magnetic tilt are unknown, so 1.4 M☉, 12 km, i = 62° and tilt = 48° are assumed." },
+  { name: "J0030+0451 · NICER", f: 205.53, M: 1.34, R: 12.71, inc: 54, tilt: 60,
+    note: "Spin 205.53 Hz. M = 1.34 M☉ and R = 12.71 km are NICER fits (Riley et al. 2019). The inclination and tilt are illustrative, and NICER's hot spots are not two antipodal caps." },
+  { name: "J0740+6620 · 2.08 M☉", f: 346.53, M: 2.08, R: 12.39, inc: 87, tilt: 70,
+    note: "Spin 346.53 Hz. M = 2.08 M☉ (Fonseca et al. 2021), R = 12.39 km (Riley et al. 2021), i ≈ 87° from the Shapiro delay. The tilt is illustrative." },
+  { name: "J0437−4715", f: 173.69, M: 1.418, R: 11.36, inc: 42.5, tilt: 40,
+    note: "Spin 173.69 Hz. M = 1.418 M☉ (Reardon et al. 2024), R = 11.36 km (Choudhury et al. 2024), i ≈ 42.5°. The tilt is illustrative." },
+  { name: "Hypothetical 2 kHz", f: 2000, M: 1.4, R: 12.0, inc: 70, tilt: 50,
+    note: "Hypothetical: faster than any real neutron star can spin without breaking up. Here to make the effects easy to see." },
+  { name: "Hypothetical v = 0.9c", beta: 0.9, M: 1.4, R: 12.0, inc: 70, tilt: 50,
+    note: "Hypothetical: equator at 0.9c, far beyond break-up. Here to make the effects easy to see." },
 ];
 
 // ============================================================================ state
 const S = {
   step: 8, mask: ladderMask(8), guided: true, guideT: 0, paused: false, capT: 0,
   view: 0, sep: 3.0, inc: 62, az: 0.4, dist: 85, fov: 40, turns: 0.22, expo: 0, res: 0.75, autoRes: true,
-  style: 0, map: 0, bg: 0, ghost: true, field: true, lc: true, curve: true, grid: true,
+  style: 0, map: 0, bg: 0, ghost: true, field: true, lc: true, curve: true, grid: true, fmodel: 1, tour: null,
   beta: null,
   f: 716, M: 1.4, R: 12.0, tilt: 48, spot: 20,
   tKm: 0,
@@ -720,8 +743,8 @@ function cached(map, key, make) {                     // small LRU: split / ster
 }
 function fieldLines(mask) {
   const ret = on(mask, "fieldret"), gr = on(mask, "bend"), obl = on(mask, "oblate");   // field shape; viewing delay is "retard"
-  const key = [ret, gr, obl, S.M, S.R, S.f, S.tilt].join(",");
-  return cached(fieldCache, key, () => traceField(ret, gr, obl));
+  const key = [S.fmodel, ret, gr, obl, S.M, S.R, S.f, S.tilt].join(",");
+  return cached(fieldCache, key, () => (S.fmodel === 1 ? traceForceFree(ret, gr, obl) : traceField(ret, gr, obl)));
 }
 function traceField(ret, gr, obl) {
   const o = { ret, gr, m: magAxis(), Om: P.OmKm, rs: P.rs };
@@ -752,6 +775,86 @@ function traceField(ret, gr, obl) {
       if (rn > rMax) break;
     }
     lines.push({ pts, open, rMax });
+  }
+  return lines;
+}
+
+// Plasma-filled (force-free) magnetosphere, schematic but built from the known solutions:
+//  • closed zone: corotating dipole loops (Schwarzschild-corrected) that stay inside the light cylinder R_LC = c/Ω
+//    (Goldreich & Julian 1969; Contopoulos, Kazanas & Fendt 1999: closed zone ends at a Y-point at R_LC);
+//  • open zone: field lines from the polar caps, sin²θ_pc = R/R_LC, turn radial and wind into the
+//    split-monopole wind B_φ = −B_r Ω r sinθ / c (Michel 1973), i.e. an Archimedean spiral dφ/dr = −Ω/c;
+//  • current sheet beyond R_LC: n · m(t − r/c) = 0, the oblique split monopole's "ballerina skirt"
+//    (Bogovalov 1999); simulations put the pulsed γ-ray emission in it near 1–2 R_LC (Cerutti et al.; Kalapotharakos et al.).
+function traceForceFree(ret, gr, obl) {
+  const RLC = P.RLC, m = magAxis(), Om = ret ? P.OmKm : 0;
+  const oD = { ret: false, gr, m, Om: P.OmKm, rs: P.rs };
+  const rMax = Math.min(240, Math.max(90, 3.2 * RLC));
+  const thPc = Math.asin(Math.min(0.97, Math.sqrt(S.R / RLC)));
+  const a = Math.abs(m[0]) < 0.9 ? v3.cross(m, [1, 0, 0]) : v3.cross(m, [0, 1, 0]);
+  const ea = v3.sc(a, 1 / v3.len(a)), eb = v3.cross(m, ea);
+  const surfR = (x) => S.R * (1 + (obl ? P.o2 * (x[2] / v3.len(x)) ** 2 : 0));
+  const foot = (pole, th, b) => {
+    const dir = v3.add(v3.sc(m, pole * Math.cos(th)), v3.add(v3.sc(ea, Math.sin(th) * Math.cos(b)), v3.sc(eb, Math.sin(th) * Math.sin(b))));
+    return v3.sc(dir, surfR(dir) * 1.002);
+  };
+  const rk = (x, f, h) => {
+    const k1 = f(x), k2 = f(v3.add(x, v3.sc(k1, h / 2))), k3 = f(v3.add(x, v3.sc(k2, h / 2))), k4 = f(v3.add(x, v3.sc(k3, h)));
+    return v3.add(x, v3.sc(v3.add(v3.add(k1, v3.sc(k2, 2)), v3.add(v3.sc(k3, 2), k4)), h / 6));
+  };
+  const lines = [];
+  // closed zone
+  for (const kf of [1.3, 1.9]) for (let k = 0; k < 6; k++) {
+    const th = Math.min(1.35, kf * thPc);
+    let x = foot(1, th, k * Math.PI / 3), pts = [x], maxRho = 0, closed = false;
+    const s0 = Math.sign(v3.dot(fieldAt(x, oD), x)) || 1;
+    const f = (y) => { const B = fieldAt(y, oD); return v3.sc(B, s0 / v3.len(B)); };
+    for (let i = 0; i < 900; i++) {
+      x = rk(x, f, Math.min(4, Math.max(0.04, 0.025 * v3.len(x))));
+      maxRho = Math.max(maxRho, Math.hypot(x[0], x[1]));
+      if (maxRho > 0.97 * RLC) break;
+      if (i > 3 && v3.len(x) < surfR(x)) { pts.push(v3.sc(x, surfR(x) / v3.len(x))); closed = true; break; }
+      pts.push(x);
+    }
+    if (closed) lines.push({ pts, open: false, rMax: rMax * 2 });
+  }
+  // winding phase shared by the open lines and the sheet: corotation inside, Archimedean dφ/dr = −Ω/c outside
+  const A = 0.5 * RLC, Bq = RLC;
+  const wind = (r) => -Om * (r <= A ? 0 : r < Bq ? (r - A) ** 2 / (2 * (Bq - A)) : (Bq - A) / 2 + (r - Bq));
+  // open zone: polar-cap lines follow the dipole near the star and become radial far out, at the angle that conserves
+  // magnetic flux: dipole flux ∝ sin²θ₀ ↔ split-monopole flux ∝ (1 − cos θ∞)  ⇒  cos θ∞ = 1 − sin²θ₀ / sin²θ_pc
+  const sm = (x, a0, a1) => { const t = Math.min(1, Math.max(0, (x - a0) / (a1 - a0))); return t * t * (3 - 2 * t); };
+  for (const pole of [1, -1]) for (const fr of [0.4, 0.85]) for (let k = 0; k < 4; k++) {
+    const th0 = fr * thPc, b = (k + (pole < 0 ? 0.5 : 0)) * Math.PI / 2;
+    const thInf = Math.acos(Math.max(-1, 1 - Math.sin(th0) ** 2 / Math.sin(thPc) ** 2));
+    const pts = [];
+    const r0 = v3.len(foot(pole, th0, b));
+    for (let r = r0; r <= rMax; r += Math.max(0.05, 0.02 * r)) {
+      const thD = Math.asin(Math.min(1, Math.sqrt(r / S.R) * Math.sin(th0)));
+      const w = sm(r, 0.15 * RLC, 1.1 * RLC), th = (1 - w) * thD + w * thInf;
+      const dir = v3.add(v3.sc(m, pole * Math.cos(th)), v3.add(v3.sc(ea, Math.sin(th) * Math.cos(b)), v3.sc(eb, Math.sin(th) * Math.sin(b))));
+      pts.push(rotZ(v3.sc(dir, r), wind(r)));
+    }
+    lines.push({ pts, open: true, rMax });
+  }
+  // current sheet beyond the light cylinder: on each sphere r it is the great circle ⟂ m(t − r/c), here m rotated by wind(r)
+  const sheetPt = (r, beta) => {
+    const mr = rotZ(m, wind(r)); let e1 = v3.cross([0, 0, 1], mr); const l = v3.len(e1);
+    e1 = l < 1e-6 ? [1, 0, 0] : v3.sc(e1, 1 / l);
+    const e2 = v3.cross(mr, e1);
+    return v3.add(v3.sc(e1, r * Math.cos(beta)), v3.sc(e2, r * Math.sin(beta)));
+  };
+  const glow = (r) => 0.3 + Math.exp(-((((r / RLC) - 1.4) / 0.55) ** 2));   // γ-ray zone ~1–2 R_LC
+  for (let k = 0; k < 24; k++) {
+    const pts = [], wts = [];
+    for (let r = RLC; r <= rMax; r += Math.max(0.5, 0.02 * r)) { pts.push(sheetPt(r, k * Math.PI / 12)); wts.push(glow(r)); }
+    lines.push({ pts, wts, sheet: true, rMax });
+  }
+  for (const rf of [1, 1.35, 1.75, 2.3, 3]) {
+    const r = rf * RLC; if (r > rMax) continue;
+    const pts = [], wts = [];
+    for (let j = 0; j <= 144; j++) { pts.push(sheetPt(r, j / 144 * 2 * Math.PI)); wts.push(glow(r)); }
+    lines.push({ pts, wts, sheet: true, rMax });
   }
   return lines;
 }
@@ -845,6 +948,7 @@ const fxBtns = FX.map((f) => chip($("fx"), f.label, () => { setGuided(false); S.
 PRESETS.forEach((p) => chip($("presets"), p.name, () => {
   Object.assign(S, { M: p.M, R: p.R, inc: p.inc, tilt: p.tilt });
   if (p.beta) setBeta(p.beta); else { S.f = p.f; S.beta = null; }
+  $("presetNote").innerHTML = `<b>${p.name}:</b> ${p.note}`;
   syncUI();
 }));
 function setStep(i) { S.step = i; S.mask = ladderMask(i); showCaption(i); syncUI(); }
@@ -857,8 +961,10 @@ function showCaption(i) {
 }
 $("guided").addEventListener("click", () => { setGuided(!S.guided); if (S.guided) setStep(0); });
 $("pause").addEventListener("click", () => { S.paused = !S.paused; $("pause").classList.toggle("on", S.paused); });
-for (const [id, key, attr] of [["views", "view", "view"], ["styles", "style", "style"], ["maps", "map", "map"], ["bgs", "bg", "bg"]])
+const CHIP_GROUPS = [["views", "view", "view"], ["styles", "style", "style"], ["maps", "map", "map"], ["bgs", "bg", "bg"], ["fmodels", "fmodel", "fmodel"]];
+for (const [id, key, attr] of CHIP_GROUPS)
   document.querySelectorAll(`#${id} button`).forEach((b) => b.addEventListener("click", () => { S[key] = +b.dataset[attr]; syncUI(); }));
+$("tourBtn").addEventListener("click", () => (S.tour ? stopTour() : startTour()));
 for (const [id, key] of [["ghostBtn", "ghost"], ["fieldBtn", "field"], ["lcBtn", "lc"], ["curveBtn", "curve"], ["gridBtn", "grid"], ["autoRes", "autoRes"]])
   $(id).addEventListener("click", () => { S[key] = !S[key]; syncUI(); });
 $("showPanel").addEventListener("click", () => togglePanel());
@@ -890,7 +996,7 @@ function syncUI() {
   P = phys();
   ladderBtns.forEach((b, i) => b.classList.toggle("on", i === S.step));
   fxBtns.forEach((b, i) => b.classList.toggle("on", !!(S.mask & (1 << FX[i].bit))));
-  for (const [id, key, attr] of [["views", "view", "view"], ["styles", "style", "style"], ["maps", "map", "map"], ["bgs", "bg", "bg"]])
+  for (const [id, key, attr] of CHIP_GROUPS)
     document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle("on", +b.dataset[attr] === S[key]));
   for (const [id, key] of [["ghostBtn", "ghost"], ["fieldBtn", "field"], ["lcBtn", "lc"], ["curveBtn", "curve"], ["gridBtn", "grid"], ["autoRes", "autoRes"]])
     $(id).classList.toggle("on", !!S[key]);
@@ -911,7 +1017,7 @@ function syncUI() {
     `f <b>${S.f.toFixed(1)} Hz</b> · P <b>${(period / 1000).toFixed(3)} ms</b> · f<sub>K</sub> ≈ <b>${P.fK.toFixed(0)} Hz</b>` +
     (S.f > P.fK ? ` <span class="warn">beyond break-up (hypothetical)</span>` : "") + `<br>` +
     `v<sub>eq</sub>/c <b class="gold">${betaO.toFixed(3)}</b> · γ <b>${gam.toFixed(3)}</b> · δ <b class="blue">${dHi.toFixed(3)}</b> / <b class="rose">${dLo.toFixed(3)}</b><br>` +
-    `observed g ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>] · g⁴ ∈ [${(dLo / z1) ** 4 < 0.01 ? (dLo / z1) ** 4 : ((dLo / z1) ** 4).toFixed(2)}, ${((dHi / z1) ** 4).toFixed(2)}]<br>` +
+    `observed g ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>] · g⁴ ∈ [${((dLo / z1) ** 4).toPrecision(2)}, ${((dHi / z1) ** 4).toPrecision(3)}]<br>` +
     `R/c <b>${crossUs.toFixed(1)} µs</b> = <b class="gold">${(360 * crossUs / period).toFixed(1)}°</b> of spin · light cylinder c/Ω <b>${P.RLC.toFixed(0)} km</b><br>` +
     `R<sub>pole</sub> <b>${(S.R * (1 + (on(m, "oblate") ? P.o2 : 0))).toFixed(2)} km</b> · ω<sub>drag</sub>/Ω <b>${(P.wS / P.OmKm).toFixed(3)}</b> · I/MR² <b>${P.kappa.toFixed(3)}</b><br>` +
     `surface visible <b>${on(m, "bend") ? (100 * P.visGR).toFixed(0) : 50}%</b> · real ${S.f.toFixed(0)} turns/s shown at ${S.turns.toFixed(2)}/s (×1/${Math.round(S.f / S.turns).toLocaleString()})`;
@@ -1112,8 +1218,12 @@ function drawField(E) {
     const toPix = (q) => q ? [(q[0] + 1) / 2 * vp[2], (q[1] + 1) / 2 * vp[3], q[2]] : null;
     const groups = [];
     if (S.field) for (const ln of fieldLines(mask)) {
-      const pts = ln.pts.map((p) => { const q = toPix(projectPoint(p, eye, mask, tab, cxv, tanH, asp)); if (q) q[2] = Math.max(0, Math.min(1, (ln.rMax - q[2]) / (0.6 * ln.rMax))) ** 1.5; return q; });
-      groups.push({ pts, col: ln.open ? [0.95, 0.42, 0.9] : [0.62, 0.5, 1.0] });
+      const pts = ln.pts.map((p, i) => {
+        const q = toPix(projectPoint(p, eye, mask, tab, cxv, tanH, asp));
+        if (q) q[2] = Math.max(0, Math.min(1, (ln.rMax - q[2]) / (0.6 * ln.rMax))) ** 1.5 * (ln.wts ? ln.wts[i] : 1);
+        return q;
+      });
+      groups.push({ pts, col: ln.sheet ? [1.0, 0.55, 0.18] : ln.open ? [0.85, 0.38, 0.8] : [0.62, 0.5, 1.0], sheet: ln.sheet });
     }
     if (S.lc && isFinite(P.RLC) && P.RLC < 600) {
       const ring = [];
@@ -1121,7 +1231,7 @@ function drawField(E) {
       groups.push({ pts: ring, col: [0.45, 0.85, 1.0], lc: true });
     }
     for (const gp of groups) {
-      for (const [w, a] of gp.lc ? [[1.2, 0.3]] : [[6, 0.06], [1.6, 0.55]]) {
+      for (const [w, a] of gp.lc ? [[1.8, 0.6]] : gp.sheet ? [[7, 0.07], [1.4, 0.5]] : [[6, 0.06], [1.6, 0.55]]) {
         const out = []; pushStrip(out, gp.pts, w * sc, a, W, H, vp);
         if (!out.length) continue;
         lineData = new Float32Array(out);
@@ -1138,11 +1248,50 @@ function uCxValue() {
   return panelOpen && (S.view === 0 || S.view === 2) ? Math.min(0.5, ($("panel").offsetWidth + 24) / innerWidth) : 0;
 }
 
+// ---------------------------------------------------------------- magnetosphere tour (deterministic in τ, so it can be exported frame by frame)
+const TOUR_LEN = 26;
+const TOUR_KEYS = [   // τ, distance, inclination, azimuth, fov
+  [0, 150, 84, 0.2, 46], [8, 170, 88, 0.45, 48], [17, 230, 90, 0.7, 50], [26, 230, 72, 1.3, 50]];
+const TOUR_CAPS = [
+  [0, "Vacuum dipole (Deutsch 1955)", "Empty space around a spinning magnet. Near the star there are closed loops. Beyond the light cylinder (dashed ring, c/Ω) the field becomes a spiral radiation wave. This is a useful starting point, not a real pulsar."],
+  [8, "Plasma-filled magnetosphere (force-free)", "A real pulsar tears charges off its surface and fills its magnetosphere with plasma (Goldreich & Julian 1969). The currents open every field line that reaches the light cylinder. Closed loops (violet) stay inside it, and the open lines from the polar caps (pink) stream out as a wind."],
+  [17, "Striped wind + current sheet", "Beyond the light cylinder the open lines wind into spirals, B_φ = −B_r Ωr sinθ/c. Opposite polarities meet at a wavy current sheet (orange, Bogovalov 1999). Simulations put the pulsed γ-rays there, just beyond the light cylinder. The radio beam comes from the open lines just above the polar caps."],
+];
+function tourAt(tau) {
+  tau = Math.max(0, Math.min(TOUR_LEN, tau));
+  let i = 0; while (i < TOUR_KEYS.length - 2 && tau > TOUR_KEYS[i + 1][0]) i++;
+  const A = TOUR_KEYS[i], B = TOUR_KEYS[i + 1], u = Math.min(1, (tau - A[0]) / (B[0] - A[0])), e = u * u * (3 - 2 * u);
+  [S.dist, S.inc, S.az, S.fov] = [1, 2, 3, 4].map((k) => A[k] + (B[k] - A[k]) * e);
+  S.fmodel = tau < 8 ? 0 : 1;
+  const cap = [...TOUR_CAPS].reverse().find((c) => tau >= c[0]);
+  $("capStep").textContent = `magnetosphere tour · ${Math.floor(tau)} s of ${TOUR_LEN} s · v = 0.4c, light cylinder 2.5 R, tilt 25°`;
+  $("capT").textContent = cap[1]; $("capD").textContent = cap[2];
+  $("caption").style.opacity = 1; S.capT = 0;
+  S.tKm = tau * S.turns / S.f * C_KM;
+  syncUI();
+}
+function startTour() {
+  setGuided(false);
+  S.tour = { tau: 0, saved: { ...S } };
+  Object.assign(S, { step: 8, mask: ladderMask(8), ghost: false, curve: false, field: true, lc: true, view: 0, turns: 0.25, tilt: 25 });
+  setBeta(0.4);
+  $("tourBtn").textContent = "■ Stop tour"; $("tourBtn").classList.add("on");
+  tourAt(0);
+}
+function stopTour() {
+  if (!S.tour) return;
+  const sv = S.tour.saved; S.tour = null;
+  for (const k of ["dist", "inc", "az", "fov", "fmodel", "ghost", "curve", "turns", "beta", "f", "mask", "step", "tilt"]) S[k] = sv[k];
+  $("tourBtn").textContent = "▶ Magnetosphere tour (26 s)"; $("tourBtn").classList.remove("on");
+  syncUI();
+}
+
 let last = performance.now(), fpsAvg = 16, frame = 0;
 function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   fpsAvg = fpsAvg * 0.95 + (dt * 1000) * 0.05;
-  if (!S.paused && S.f > 0) S.tKm += dt * S.turns / S.f * C_KM;
+  if (S.tour && !S.paused) { S.tour.tau += dt; if (S.tour.tau > TOUR_LEN + 2) stopTour(); else tourAt(S.tour.tau); }
+  else if (!S.paused && S.f > 0) S.tKm += dt * S.turns / S.f * C_KM;
   S.capT += dt;
   if (!S.guided && S.capT > 10) $("caption").style.opacity = 0;
   if (S.guided) { S.guideT += dt; if (S.guideT > 12) { S.guideT = 0; setStep((S.step + 1) % LADDER.length); } }
@@ -1171,7 +1320,7 @@ function loop(now) {
 setGuided(true); setStep(0);
 syncUI();
 requestAnimationFrame(loop);
-window.__ns = { S, phys, setStep, setGuided, syncUI, fieldLines, curves };
+window.__ns = { S, phys, setStep, setGuided, syncUI, fieldLines, curves, tourAt, startTour, stopTour, TOUR_LEN };
 </script>
 </body>
 </html>

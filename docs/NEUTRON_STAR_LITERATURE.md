@@ -447,11 +447,37 @@ Numerical check at v_eq = 0.5c, where R_LC = 2R = 24 km:
 - **Near and far zone.** Near the star the corrections are second order, O((Ωr)²). Beyond R_LC the field is transverse 1/r radiation of magnitude ≈ μΩ² sinα/(c² r). Its Poynting flux is the magnetic-dipole spin-down luminance, L = 2μ²Ω⁴ sin²α / (3c³).
 - **The "off" state.** The instantaneous (magnetostatic) field is only an approximation for r ≪ R_LC. Maxwell's equations always give the retarded field.
 
-**What it leaves out**
+**Vacuum is the starting point, not the end state**
 
-- **Plasma.** Real pulsars have plasma-filled, force-free magnetospheres (Goldreich & Julian 1969; Contopoulos, Kazanas & Fendt 1999; Spitkovsky 2006). There the field lines that cross the light cylinder open into a wind with a current sheet. The vacuum picture keeps the near zone right but not the open-field geometry.
-- **Frame dragging.** Its effect on the field (Muslimov & Tsygan 1992) is ignored.
-- **Combining GR with retardation.** The GR correction is evaluated with the retarded moment, as a near-zone approximation.
+- **Plasma fills the magnetosphere.** A rotating magnetized conductor induces surface electric fields strong enough to pull charges off the star and create pairs. The magnetosphere fills with plasma at about the Goldreich–Julian density, n_GJ = Ω·B/(2πec) (Goldreich & Julian 1969).
+- **Force-free.** The plasma's currents make the field force-free: ρE + j×B/c = 0. This is very different from the vacuum solution:
+  - **Closed zone.** It co-rotates and ends at a Y-point on the light cylinder (Contopoulos, Kazanas & Fendt 1999, "CKF", aligned case). Oblique 3D solutions follow from time-dependent simulations (Spitkovsky 2006; Kalapotharakos & Contopoulos 2009; Pétri 2012).
+  - **Open zone.** Every field line that reaches R_LC opens. The open flux is set by the polar cap, sin²θ_pc ≈ R/R_LC (CKF and Gruzinov 2005 find it about 1.2–1.4 times larger). The lines become radial, with B_r ∝ 1/r², and wind up as B_φ = −B_r Ω r sinθ / c. That is the split-monopole wind (Michel 1973), and Bogovalov (1999) gave its exact oblique version.
+  - **Current sheet.** Opposite polarities are separated by a current sheet, n·m(t − r/c) = 0: the wavy "ballerina skirt", or striped wind. It carries the return current and is where reconnection dissipates energy.
+  - **Spin-down.** Force-free spin-down is L ≈ (μ²Ω⁴/c³)(1 + sin²α) (Spitkovsky 2006), not the vacuum 2/3 μ²Ω⁴ sin²α/c³. An aligned force-free rotator still spins down; an aligned vacuum rotator does not.
+- **Where the light comes from moves.**
+  - Radio comes from the open field lines just above the polar caps, at a few to tens of stellar radii.
+  - The pulsed GeV γ-rays seen by Fermi-LAT come from the current sheet and separatrix near and just beyond R_LC (Bai & Spitkovsky 2010; Cerutti, Philippov & Spitkovsky 2016; Kalapotharakos et al. 2018).
+  - The vacuum picture puts no emission there, so it cannot explain the γ-ray light curves.
+
+**What the "Plasma-filled (force-free)" model draws (v1.17).** It is a schematic built from those solutions, not a simulation:
+
+1. **Closed zone.** Co-rotating dipole loops (Schwarzschild-corrected when bending is on), kept only if they stay inside 0.97 R_LC.
+2. **Open zone.** Each polar-cap footpoint (θ₀ < θ_pc) maps to an asymptotic angle by flux conservation:
+   - Dipole flux ∝ sin²θ₀ and split-monopole flux ∝ 1 − cos θ∞, so cos θ∞ = 1 − sin²θ₀ / sin²θ_pc.
+   - The line follows the dipole near the star and blends to that angle between 0.15 and 1.1 R_LC.
+3. **Winding.** A phase ϕ(r) shared by the open lines and the sheet:
+   - Zero (co-rotation) inside 0.5 R_LC.
+   - Then a smooth C¹ ramp into dϕ/dr = −Ω/c, the Archimedean spiral of the split monopole.
+4. **Current sheet.** For r ≥ R_LC, the great circle ⟂ m rotated by ϕ(r) on each sphere. Its glow peaks at about 1.4 R_LC to mark the γ-ray zone.
+
+**Not modelled.** These are left out of the plasma model:
+- the exact CKF/Spitkovsky field geometry (Y-point shape, separatrix currents);
+- the ~20–40% larger polar cap;
+- GR corrections to the open zone and frame dragging (Muslimov & Tsygan 1992; Pétri 2016);
+- the particle acceleration and pair cascades themselves.
+
+The in-app **Magnetosphere tour** (26 s, also exported as `assets/ns_magnetosphere_tour.mp4`) shows the vacuum dipole, then the plasma-filled magnetosphere, then the striped wind and current sheet. It runs at v = 0.4c with a 25° tilt, which puts the light cylinder at 2.5 R.
 
 ## 7. References
 
