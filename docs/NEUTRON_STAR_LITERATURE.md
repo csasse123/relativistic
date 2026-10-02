@@ -430,6 +430,23 @@ exist in research codes (X-PSI, bender)."*
    - The point is placed at its retarded emission time t_obs − (T_ray − T_ref).
    - Points behind the star are hidden unless bent rays reach them.
 
+**Two separate switches (v1.16)**
+
+- **Retarded B field (Maxwell):** the field itself.
+- **Light-travel time:** only when each piece is seen.
+
+Numerical check at v_eq = 0.5c, where R_LC = 2R = 24 km:
+
+| r / R_LC | \|B_ret − B_static\| / \|B_static\| | ∇·B · r / \|B\| |
+|---|---|---|
+| 0.5 | 0.09 | 5e-8 |
+| 1.0 | 0.39 | 1e-8 |
+| 2.0 | 1.72 | 2e-9 |
+| 4.0 | 7.4 | 5e-10 |
+
+- **Near and far zone.** Near the star the corrections are second order, O((Ωr)²). Beyond R_LC the field is transverse 1/r radiation of magnitude ≈ μΩ² sinα/(c² r). Its Poynting flux is the magnetic-dipole spin-down luminance, L = 2μ²Ω⁴ sin²α / (3c³).
+- **The "off" state.** The instantaneous (magnetostatic) field is only an approximation for r ≪ R_LC. Maxwell's equations always give the retarded field.
+
 **What it leaves out**
 
 - **Plasma.** Real pulsars have plasma-filled, force-free magnetospheres (Goldreich & Julian 1969; Contopoulos, Kazanas & Fendt 1999; Spitkovsky 2006). There the field lines that cross the light cylinder open into a wind with a current sheet. The vacuum picture keeps the near zone right but not the open-field geometry.

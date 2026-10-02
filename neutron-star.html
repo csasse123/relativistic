@@ -166,6 +166,8 @@
     Brightness follows g⁴ beaming and limb darkening, and the hot caps use NASA's brightness scale
     (yellow = 1 = the cap seen face-on with no relativity).
     <b>Magnetic field:</b> a rotating vacuum dipole with retarded fields (Deutsch 1955), whose lines sweep back toward the light cylinder c/Ω.
+    Two separate chips: <b>Retarded B field</b> changes the field itself (Maxwell: changes spread out at c, with radiation beyond c/Ω).
+    <b>Light-travel time</b> only changes when you see each piece, as if the lines glowed.
     Near the star it uses the Schwarzschild dipole shape (Wasserman &amp; Shapiro 1983). The lines are seen through the same
     light bending and light-travel delay as the surface. A real pulsar's plasma-filled (force-free) magnetosphere opens
     the field lines at the light cylinder (Spitkovsky 2006).
@@ -174,7 +176,7 @@
 </div>
 
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.15.0</div>
+<div class="build" id="build">v1.16.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -498,7 +500,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.15.0";
+const BUILD = "v1.16.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -520,6 +522,7 @@ const FX = [
   { key: "shapiro",  bit: 7, label: "Shapiro delay", gr: true },
   { key: "oblate",   bit: 8, label: "Oblate shape", gr: true },
   { key: "drag",     bit: 9, label: "Frame dragging", gr: true },
+  { key: "fieldret", bit: 10, label: "Retarded B field (Maxwell)" },
 ];
 const BIT = Object.fromEntries(FX.map((f) => [f.key, f.bit]));
 const LADDER = [
@@ -527,8 +530,8 @@ const LADDER = [
     d: "Straight rays, no light delay, no colour change. You see exactly half the surface. The magnetic field is a static dipole, and the hot cap dims to zero when it turns away." },
   { name: "+ contraction", add: ["contract"], t: "Length contraction (Ehrenfest)",
     d: "Convention: each feature has a fixed proper size, so moving at v it is 1/γ shorter along the spin. Grid cells and caps narrow in longitude, most at the equator. At real spins γ ≈ 1.02, so set v/c ≈ 0.7 to see it." },
-  { name: "+ light time", add: ["retard"], t: "Light-travel time (Rømer delay)",
-    d: "Light from the limb left ~R/c earlier than light from the centre, so the limbs show the past and the grid shears. The field now lags too: retarded fields sweep the field lines back into a spiral toward the light cylinder c/Ω." },
+  { name: "+ light time", add: ["retard", "fieldret"], t: "Light-travel time: what you see, and the field itself",
+    d: "Two separate effects, with two chips. Viewing delay: light from the limb left ~R/c earlier, so the limbs show the past and the grid shears. Retarded field: a change in the magnet's orientation spreads out at c, so the field lines trail behind and wind into a spiral beyond the light cylinder c/Ω, where the field becomes radiation. That radiation is what spins pulsars down." },
   { name: "+ aberration", add: ["aberr"], t: "Aberration → Terrell–Penrose",
     d: "Each patch emits in its own moving frame: cos α′ = δ cos α. With the light delay this is the Terrell–Penrose effect. The approaching limb faces you more (brighter), the receding limb turns away." },
   { name: "+ Doppler", add: ["doppler"], t: "Relativistic Doppler shift",
@@ -716,7 +719,7 @@ function cached(map, key, make) {                     // small LRU: split / ster
   const v = make(); map.set(key, v); if (map.size > 4) map.delete(map.keys().next().value); return v;
 }
 function fieldLines(mask) {
-  const ret = on(mask, "retard"), gr = on(mask, "bend"), obl = on(mask, "oblate");
+  const ret = on(mask, "fieldret"), gr = on(mask, "bend"), obl = on(mask, "oblate");   // field shape; viewing delay is "retard"
   const key = [ret, gr, obl, S.M, S.R, S.f, S.tilt].join(",");
   return cached(fieldCache, key, () => traceField(ret, gr, obl));
 }
