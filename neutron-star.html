@@ -201,7 +201,7 @@
 <div id="scalebar" style="position:fixed;z-index:5;bottom:30px;pointer-events:none;font:600 0.62rem JetBrains Mono,monospace;color:#a9c8e8;text-align:center">
   <div id="scaleLine" style="height:6px;border:1.5px solid #a9c8e8;border-top:none"></div><div>10 km at the star's centre (before lensing)</div></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel</div>
-<div class="build" id="build">v1.22.0</div>
+<div class="build" id="build">v1.23.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -525,7 +525,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.22.0";
+const BUILD = "v1.23.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -1444,6 +1444,179 @@ setGuided(true); setStep(0);
 syncUI();
 requestAnimationFrame(loop);
 window.__ns = { S, phys, setStep, setGuided, syncUI, fieldLines, curves, tourAt, startTour, stopTour, TOUR_LEN };
+</script>
+<script>
+"use strict";
+// =============================================================================== educational tooltips
+// Every control explains what it does, what to look for, and how exact the physics behind it is.
+const BADGE = {
+  exact: ["Exact", "#34d399", "Exact within the stated model (e.g. the Schwarzschild spacetime outside a non-rotating star). No numerical shortcut beyond the integration step."],
+  approx: ["Approximation", "#fbbf24", "A published approximation or fit; the tip says how good it is."],
+  schem: ["Schematic", "#b08cff", "Shows the right structure, built from known solutions, but is not a full simulation."],
+  conv: ["Convention", "#f472b6", "Depends on a modelling choice that the tip states."],
+  disp: ["Display only", "#7fd8ff", "A visual aid: changes what you see, not the physics."],
+  assumed: ["Assumed", "#fb7185", "An input value that has not been measured for this star."],
+};
+const T = (title, body, k, extra) => ({ title, body, k, extra });
+const TIPS = {
+  // ---------------------------------------------------------------- ladder
+  ladder: [
+    T("Step 0 · Newton", "Everyday physics: light is instant and travels in straight lines, nothing changes colour. You see exactly half of the ball, and a hot cap vanishes completely when it turns away. This is the reference every other step is compared against.", "exact"),
+    T("Step 1 · + length contraction", "Special relativity: something moving at speed v is measured shorter along its motion by 1/γ, where γ = 1/√(1−v²/c²). The surface moves fastest at the equator, so grid cells and caps narrow there. At the real 716 Hz this is only ~2%; set v/c ≈ 0.7 to really see it.", "conv", "For a spinning ball this is a convention: a rigid disc cannot be spun up without stretching (the Ehrenfest paradox). Here each painted feature keeps a fixed size in its own moving frame."),
+    T("Step 2 · + light-travel time", "Light from the limb left about R/c ≈ 40 µs earlier than light from the centre of the disc. At 716 turns per second the star turns about 10° in that time, so you see the edges where they were, not where they are: the grid shears. The magnetic field lags too, because it also spreads at the speed of light.", "exact"),
+    T("Step 3 · + aberration (Terrell–Penrose)", "A moving surface throws its light forward, like rain hitting a running person's face. Each patch emits at a different angle in its own frame: cos α′ = δ cos α. Together with the light delay this is the Terrell–Penrose effect: moving objects appear rotated, not just squashed.", "exact"),
+    T("Step 4 · + Doppler shift", "The side turning toward you is blueshifted, the side turning away is redshifted, by δ = 1/γ(1−β cos ξ). Watch the grid colour: violet-blue on the approaching limb, green-yellow on the receding limb.", "exact"),
+    T("Step 5 · + relativistic beaming", "Light from the approaching side is not only bluer but much brighter: total intensity scales as g⁴. The brightness curve becomes lopsided — this asymmetry is one of the things NICER measures to weigh neutron stars.", "exact"),
+    T("Step 6 · + light bending (general relativity)", "Gravity bends light. The star looks bigger than it is, you can see over the poles and around the back — about 3/4 of the surface at once — and the hot cap never fully disappears. Every pixel is a photon traced backwards along a curved path.", "exact", "Schwarzschild spacetime (the exact solution outside a non-rotating mass). Rotation adds small corrections, see steps 8–9."),
+    T("Step 7 · + gravitational redshift & Shapiro delay", "Light climbing out of the deep gravity well loses energy (redshift √(1−r_s/R) ≈ 0.81) and takes extra time (Shapiro delay). Clocks on the surface run ~19% slow. The hot cap turns from yellow to orange: about half as bright as without gravity.", "exact"),
+    T("Step 8 · everything", "The spinning star bulges at the equator, and it drags spacetime around with it (frame dragging). This is the physics used to fit NICER X-ray data, plus frame dragging.", "approx", "Oblateness: AlGendy & Morsink 2014 fit (≈1% accurate). Frame dragging: first-order slow-rotation formula. Both are small at real spins."),
+  ],
+  // ---------------------------------------------------------------- single effects
+  fx: {
+    contract: T("Length contraction", "Moving lengths shrink by 1/γ along the motion. Features narrow in longitude, most at the equator, not at all at the poles.", "conv", "Assumes each surface feature has a fixed size in its own moving frame (Ehrenfest convention). Tiny (~2%) at real spins."),
+    retard: T("Light-travel time (what you see)", "You see each point of the star where it was when its light left, computed along the actual (bent) ray. This shears the rotating pattern and delays when you see each field line. Switch it off for the impossible 'instant light' view.", "exact"),
+    fieldret: T("Retarded B field (light-time twist)", "Changes in the magnet's orientation spread outward at the speed of light, so far parts of the field still point the way the magnet pointed earlier: field lines twist into a spiral. Beyond the light cylinder the field becomes radiation. This changes the field itself, not just how you see it.", "exact", "Exact for a point magnetic dipole in empty space (Deutsch 1955 / Jackson). The plasma-filled model's winding is schematic."),
+    aberr: T("Aberration", "Light emitted by a moving surface is tilted forward. Changes how bright each patch looks near the edge (limb darkening is computed in the surface's own frame). Combined with light-travel time, this is the Terrell–Penrose effect.", "exact"),
+    doppler: T("Doppler colour", "Approaching side bluer, receding side redder. In the blue-wireframe style the grid hue shows how a 490 nm reference line would shift; in the thermal style the exact blackbody colour shift is shown.", "exact", "The shift is exact; the 490 nm colour coding is a display choice."),
+    beam: T("Beaming (g³ per frequency, g⁴ total)", "Relativistic beaming: specific intensity Iν/ν³ is invariant, so at a fixed frequency brightness scales as g³ and in total as g⁴. Makes the approaching side glow and the receding side fade.", "exact", "The wireframe shows a compressed (g⁴)^0.4 so both sides stay visible; the hot-cap colours and the brightness curve use the true g⁴."),
+    bend: T("Light bending", "General relativity: light follows curved paths (null geodesics) around the star. Each pixel's photon is traced backwards with RK4 integration. Switch off to see straight-line (Newtonian) optics.", "exact", "Schwarzschild exterior. For the background sky far from the edge a weak-field shortcut is used (up to ~0.7° off right next to the limb)."),
+    grz: T("Gravitational redshift", "Light loses energy climbing out of gravity: redshift factor √(1−r_s/R) ≈ 0.81 for a 1.4 M☉, 12 km star. Surface clocks also run slow, which makes the surface's speed relative to local observers higher.", "exact"),
+    shapiro: T("Shapiro delay", "Light passing through a gravity well takes extra time (measured for real with radar to Venus and in binary pulsars). Here it adds to every light-travel delay.", "exact"),
+    oblate: T("Oblate shape", "A spinning star bulges at its equator. At 716 Hz the pole-to-pole diameter is ~11% smaller than the equatorial one.", "approx", "AlGendy & Morsink 2014 fit to full numerical models (≈1% accurate in radius). Clamped at the break-up spin."),
+    drag: T("Frame dragging", "A spinning mass drags spacetime around with it (Lense–Thirring effect, measured by Gravity Probe B around Earth). Light passing the star is twisted slightly along the spin.", "approx", "First-order slow-rotation formula ω = 2GJ/(c²r³); moment of inertia from the Lattimer & Schutz 2005 fit. Small: ~0.6° twist."),
+  },
+  guided: T("Guided ladder", "Steps through all nine physics steps automatically, about 12 seconds each, with an explanation for each. Click any step to stop and explore it yourself.", "disp"),
+  pause: T("Pause (Space)", "Freezes time. All physics stays switched as it is, so you can study one moment, orbit around it, or change effects on a frozen star.", "disp"),
+  // ---------------------------------------------------------------- look
+  style: [
+    T("Blue wireframe", "A clean scientific-illustration style, inspired by NASA's NICER animations: translucent body, glowing latitude/longitude grid. Grid hue shows the Doppler shift, brightness shows beaming, hot caps show observed brightness on NASA's red→yellow scale.", "disp", "Colours are an encoding; the physics underneath is the same as in the thermal style."),
+    T("Thermal blackbody", "Shows the surface as glowing hot gas. Real neutron-star surfaces are ~1–4 million K and shine in X-rays; temperatures are scaled down ×1/400 into visible colours, then shifted exactly as relativity shifts them (a blackbody at T is seen as a blackbody at gT).", "exact", "The ×1/400 scaling into visible light is a display choice."),
+  ],
+  map: [
+    T("No colour map", "The normal surface.", "disp"),
+    T("Doppler × redshift map (g)", "Colours each surface point by the total frequency shift g = Doppler × gravity: red = light arrives redshifted (g < 1), blue = blueshifted (g > 1). The single most important number for what the star looks like.", "exact"),
+    T("Light-delay map", "Colours each point by how much later its light reaches you than light from the nearest point (purple → yellow, scale in the Numbers panel). Shows why the pattern shears: the limbs are seen in the past.", "exact"),
+  ],
+  ghostBtn: T("Ghost of previous step", "Draws the grid of the previous ladder step as faint white lines on top of the current one, so you can see exactly what the newest effect moved.", "disp"),
+  fieldBtn: T("Magnetic field lines", "Shows the star's magnetic field. Neutron stars have the strongest steady magnetic fields known. Lines are drawn through the same light bending and light delay as the surface, and hidden where the star blocks them.", "schem", "Field lines are not visible in reality; they are drawn as if they glowed."),
+  lcBtn: T("Light cylinder", "The dashed ring at radius c/Ω: anything co-rotating with the star at this distance would move at the speed of light. Inside, the magnetic field can co-rotate; outside, it must open up or become radiation. 67 km at 716 Hz.", "exact"),
+  curveBtn: T("Brightness curve", "The X-ray brightness of the hot caps over two rotations, computed from a 64×64 ray-traced image with all currently switched physics. This pulse shape is what NICER measures to determine neutron-star masses and radii. Dashed: the same without any relativity.", "exact", "Bolometric (all-frequency) flux of the hot caps only; the cooler surface is ignored, as in NICER models."),
+  gridBtn: T("Latitude/longitude grid", "Coordinate lines painted onto the surface (every 10° and 30°, equator, gold prime meridian). They make rotation, light bending and shearing visible.", "disp"),
+  raysBtn: T("Incoming light rays", "Starlight passing the star, along the same curved light paths the renderer traces. Faint pulses travel inward at the speed of light (slowed down like everything else). Rays aimed closer than 1.24 R hit the star; the others bend and cross behind it — gravity acting as a lens.", "exact", "Deflection verified against the exact Schwarzschild integral to within 0.06°."),
+  bcolBtn: T("Colour field lines by |B|", "Colours the magnetic field lines by field strength in tesla, on a log scale from 1/100,000 of the polar field (violet) to the polar field (amber). Legend in the Star section.", "approx", "Dipole strength (with the general-relativity correction near the star) inside the light cylinder; 1/r² plasma wind or 1/r vacuum wave outside."),
+  scaleBtn: T("10 km scale bar", "A 10 km bar at the distance of the star's centre, for a sense of size. A neutron star is about the size of a city.", "disp", "Ignores light bending, which makes the star look ~25% bigger than this scale suggests."),
+  fmodel: [
+    T("Plasma-filled (force-free) magnetosphere", "What real pulsars are thought to have: the star pulls charges off its surface and fills its surroundings with plasma. Field lines that reach the light cylinder open up into a spiral wind; a wavy current sheet (orange) separates the two magnetic polarities — where the pulsed γ-rays are thought to come from.", "schem", "Built from known solutions (Goldreich–Julian, Michel, Bogovalov, Contopoulos et al.), not a full simulation like Spitkovsky 2006."),
+    T("Vacuum dipole", "A spinning magnet in empty space — the textbook starting point. Closed loops near the star; beyond the light cylinder the field becomes a spiral radiation wave. Not a real pulsar, but the reference every model is compared to.", "exact", "Exact for a point dipole in vacuum (Deutsch 1955), with the general-relativity correction near the star."),
+  ],
+  tourBtn: T("Magnetosphere tour (26 s)", "A short guided film: vacuum dipole → plasma-filled magnetosphere → striped wind and current sheet. Uses a hypothetical fast spin (v = 0.4c) so the light cylinder fits on screen. Your settings are restored afterwards.", "disp"),
+  bg: [
+    T("Studio blue background", "A dark blue backdrop with a faint grid on the sky. The grid is lensed by the star's gravity like real starlight, producing the soft glow and arcs around the star.", "exact", "The lensing is real; the backdrop itself is decorative."),
+    T("Star field background", "A random field of stars of different colours. Near the star's edge, gravity magnifies and stretches the starlight into arcs — gravitational lensing.", "exact"),
+  ],
+  // ---------------------------------------------------------------- view
+  view: [
+    T("Mono", "One normal view.", "disp"),
+    T("Newton | current", "Split screen: left without any relativity, right with the physics currently switched on. The quickest way to see what relativity does.", "disp"),
+    T("Anaglyph (red/cyan)", "3D for red/cyan glasses. Each eye is ray-traced separately from its own position — so even the light delays and colours differ slightly between the eyes.", "exact"),
+    T("Cross-eye stereo", "Side-by-side 3D: cross your eyes until the two images merge (left image = right eye).", "exact"),
+    T("Parallel stereo", "Side-by-side 3D for parallel viewing or a phone VR viewer (left image = left eye).", "exact"),
+  ],
+  sep: T("Eye baseline", "Distance between your two virtual eyes, in km. Real eyes (6.5 cm apart) would see no depth at all at this distance, so you are a giant with eyes kilometres apart. Rule of thumb: about 1/30 of the viewing distance.", "disp"),
+  inc: T("Inclination", "Angle between the star's spin axis and your line of sight. 0° = looking down on the north pole, 90° = looking at the equator edge-on. Inclination strongly changes the brightness curve, which is how NICER measures it.", "exact"),
+  dist: T("Your distance", "How far you are from the star's centre. A teaching viewpoint: real telescopes are light-years away, where the image settles to the 'view from infinity' — same physics, just smaller.", "disp"),
+  fov: T("Field of view", "Zoom of the virtual camera (vertical opening angle).", "disp"),
+  turns: T("Playback speed (slow motion)", "The real star turns 716 times per second. This only slows down what you watch; all delays and shifts are computed at the true spin, so every phase you see is correct.", "disp"),
+  expo: T("Exposure", "Overall brightness of the picture, like a camera's exposure. Does not change the physics or the brightness curve.", "disp"),
+  res: T("Render resolution", "Pixels per screen pixel. Lower is faster on slow computers; every pixel is a separate light-path calculation.", "disp"),
+  autoRes: T("Auto resolution", "Automatically lowers the resolution when the frame rate drops and raises it when there is headroom.", "disp"),
+  // ---------------------------------------------------------------- star
+  f: T("Spin frequency", "Turns per second. The fastest known neutron star, PSR J1748−2446ad, spins 716 times per second. Above roughly 1,000 Hz (break-up) a real star would fly apart — higher values are hypothetical, to make the effects easy to see.", "exact"),
+  beta: T("Equator speed v/c", "How fast the equator moves as a fraction of light speed — the key number for all special-relativity effects (sets the spin for you). Real neutron stars reach up to ~0.25c; above that is hypothetical. Held fixed while you step through the ladder.", "exact"),
+  m: T("Mass", "In solar masses (M☉). Measured neutron stars range from about 1.2 to 2.1 M☉. More mass at the same size means stronger gravity: more light bending and redshift.", "exact"),
+  r: T("Equatorial radius", "Radius at the equator in km. Measured radii are about 11–13 km — a whole Sun's worth of mass squeezed into a city. The ratio of mass to radius (compactness) controls all gravity effects.", "exact"),
+  tilt: T("Magnetic tilt", "Angle between the magnetic axis and the spin axis. The hot caps sit at the magnetic poles, and the tilt makes them sweep around like a lighthouse — that is what makes a pulsar pulse.", "assumed", "Rarely measured; NICER finds real hot spots are often not even on opposite sides."),
+  bp: T("Polar magnetic field", "Field strength at the magnetic pole, in tesla (log scale). Usually estimated from how fast the pulsar slows down: B ∝ √(P·Ṗ). Millisecond pulsars: ~10⁴–10⁵ T; ordinary pulsars ~10⁸ T; magnetars up to 10¹¹ T. For comparison: a hospital MRI is 3 T.", "approx", "Spin-down estimate with order-unity uncertainty; for J1748−2446ad assumed (its slow-down is not measured cleanly)."),
+  spot: T("Hot-cap size", "Angular radius of the two hot spots at the magnetic poles, heated by particles raining down along the field lines. NICER fits find sizes of a few to ~20 degrees.", "assumed"),
+  betaPreset: (b) => T(`Equator at ${b}c`, b <= 0.25 ? "Within reach of real neutron stars." : "Hypothetical: faster than any real neutron star can spin without breaking apart. Use it to see the special-relativity effects clearly.", b <= 0.25 ? "exact" : "assumed"),
+};
+
+// --------------------------------------------------------------- tooltip box
+(function () {
+  const css = document.createElement("style");
+  css.textContent = `
+  #tip { position: fixed; z-index: 50; max-width: 340px; pointer-events: none; opacity: 0; transition: opacity 0.12s;
+    background: rgba(6, 14, 34, 0.97); border: 1px solid rgba(110, 200, 255, 0.35); border-radius: 12px; padding: 10px 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5); font-size: 0.74rem; line-height: 1.45; color: #c6d6ea; }
+  #tip.on { opacity: 1; }
+  #tip .tt { font: 700 0.82rem "Space Grotesk", system-ui, sans-serif; color: #e6f4ff; margin-bottom: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  #tip .tb { font: 700 0.56rem "JetBrains Mono", monospace; letter-spacing: 0.08em; text-transform: uppercase; color: #04101f; border-radius: 999px; padding: 2px 7px; }
+  #tip .tx { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(110,200,255,0.15); color: #9fb6cf; font-size: 0.7rem; }
+  #tip .tk { margin-top: 4px; color: #7f98b6; font-size: 0.66rem; font-style: italic; }
+  .legend .tb { font: 700 0.54rem "JetBrains Mono", monospace; letter-spacing: 0.06em; text-transform: uppercase; color: #04101f; border-radius: 999px; padding: 1px 6px; margin: 0 2px; white-space: nowrap; cursor: help; }`;
+  document.head.appendChild(css);
+  const box = document.createElement("div"); box.id = "tip"; document.body.appendChild(box);
+  const badge = (k) => { const [n, c] = BADGE[k]; return `<span class="tb" style="background:${c}">${n}</span>`; };
+  const render = (t) => `<div class="tt">${t.title} ${badge(t.k)}</div>${t.body}` +
+    (t.extra ? `<div class="tx">${t.extra}</div>` : "") + `<div class="tk">${BADGE[t.k][2]}</div>`;
+  const tipOf = new WeakMap();
+  const attach = (el, t) => { if (el && t) { tipOf.set(el, t); el.removeAttribute("title"); el.style.cursor = el.style.cursor || "help"; } };
+  function place(el) {
+    const r = el.getBoundingClientRect(), bw = box.offsetWidth, bh = box.offsetHeight;
+    let x = r.left - bw - 10, y = r.top;                       // prefer left of the panel
+    if (x < 8) x = Math.min(innerWidth - bw - 8, r.left);
+    if (x === r.left || x < 8) y = r.bottom + 8;
+    if (y + bh > innerHeight - 8) y = Math.max(8, innerHeight - bh - 8);
+    box.style.left = `${Math.max(8, x)}px`; box.style.top = `${y}px`;
+  }
+  let cur = null, hideT = 0;
+  function show(el) { const t = tipOf.get(el); if (!t) return; cur = el; box.innerHTML = render(t); box.classList.add("on"); place(el); }
+  function hide() { cur = null; box.classList.remove("on"); }
+  const find = (n) => { while (n && n !== document.body) { if (tipOf.has(n)) return n; n = n.parentElement; } return null; };
+  document.addEventListener("pointerover", (e) => { if (e.pointerType === "touch") return; const el = find(e.target); if (el && el !== cur) show(el); else if (!el) hide(); });
+  document.addEventListener("focusin", (e) => { const el = find(e.target); if (el) show(el); });
+  document.addEventListener("focusout", hide);
+  let lp = 0;                                                    // touch: long-press shows the tip
+  document.addEventListener("touchstart", (e) => { const el = find(e.target); clearTimeout(lp); if (el) lp = setTimeout(() => { show(el); clearTimeout(hideT); hideT = setTimeout(hide, 4000); }, 450); }, { passive: true });
+  document.addEventListener("touchend", () => clearTimeout(lp), { passive: true });
+  $("panel").addEventListener("scroll", hide);
+
+  // --------------------------------------------------------------- wire every control
+  [...$("ladder").children].forEach((b, i) => attach(b, TIPS.ladder[i]));
+  [...$("fx").children].forEach((b, i) => attach(b, TIPS.fx[FX[i].key]));
+  attach($("guided"), TIPS.guided); attach($("pause"), TIPS.pause);
+  document.querySelectorAll("#styles button").forEach((b) => attach(b, TIPS.style[+b.dataset.style]));
+  document.querySelectorAll("#maps button").forEach((b) => attach(b, TIPS.map[+b.dataset.map]));
+  document.querySelectorAll("#fmodels button").forEach((b) => attach(b, TIPS.fmodel[+b.dataset.fmodel === 1 ? 0 : 1]));
+  document.querySelectorAll("#bgs button").forEach((b) => attach(b, TIPS.bg[+b.dataset.bg]));
+  document.querySelectorAll("#views button").forEach((b) => attach(b, TIPS.view[+b.dataset.view]));
+  for (const id of ["ghostBtn", "fieldBtn", "lcBtn", "curveBtn", "gridBtn", "raysBtn", "bcolBtn", "scaleBtn", "tourBtn", "autoRes"]) attach($(id), TIPS[id]);
+  for (const id of ["sep", "inc", "dist", "fov", "turns", "expo", "res", "f", "beta", "m", "r", "tilt", "bp", "spot"]) {
+    attach($(id), TIPS[id]);
+    const lab = $(id + "Val") && $(id + "Val").closest("label"); if (lab) attach(lab, TIPS[id]);
+  }
+  [...$("betaPresets").children].forEach((b) => attach(b, TIPS.betaPreset(parseFloat(b.textContent))));
+  [...$("presets").children].forEach((b, i) => attach(b, T(PRESETS[i].name, PRESETS[i].note,
+    /Hypothetical/.test(PRESETS[i].name) ? "assumed" : "approx", `Magnetic field: ${PRESETS[i].bnote}.`)));
+  // section headings
+  const H = [...document.querySelectorAll("#panel h2")];
+  const HT = [
+    T("Physics ladder", "Build up the physics one effect at a time, from Newton to everything, like the steps in a textbook. Or switch single effects on and off below.", "disp"),
+    T("Look", "How the star and its surroundings are drawn. Hover each button: the badge says whether it is physics or just a visual aid.", "disp"),
+    T("View", "Where you look from, and in 2D or 3D. None of these change the physics.", "disp"),
+    T("The star", "Choose a real pulsar or set your own. Each preset says which values are measured and which are assumed.", "disp"),
+    T("Numbers", "Live values for the current star: sizes, speeds, shifts, delays, field strength. g is the total frequency shift (Doppler × gravity); 1+z is the gravitational redshift; f_K the spin at which the star would break apart.", "exact"),
+  ];
+  H.forEach((h, i) => attach(h, HT[i]));
+  // legend line at the top of the panel
+  const leg = document.createElement("div");
+  leg.className = "help legend";
+  leg.innerHTML = `<b>New here?</b> Hover any button or slider (long-press on a phone) for what it does and what to look for. ` +
+    `The badge says how exact it is: ` + Object.keys(BADGE).map((k) => { const s = document.createElement("span"); s.className = "tb"; s.style.background = BADGE[k][1]; s.textContent = BADGE[k][0]; s.dataset.k = k; return s.outerHTML; }).join(" ");
+  $("panel").insertBefore(leg, $("panel").firstChild);
+  leg.querySelectorAll(".tb").forEach((s) => attach(s, T(BADGE[s.dataset.k][0], BADGE[s.dataset.k][2], s.dataset.k)));
+  window.__tips = { TIPS, BADGE };
+})();
 </script>
 </body>
 </html>
