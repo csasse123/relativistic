@@ -4,7 +4,7 @@
 (Newton → length contraction → light travel time → aberration → Doppler → beaming → light bending → redshift/Shapiro →
 oblateness + frame dragging), stereo views, a magnetosphere model (vacuum dipole and plasma-filled), a brightness curve,
 an incoming-light beam, reality-check warnings, hover tips, an intro film and a guided tour.
-**Live:** https://csasse123.github.io/relativistic/neutron-star.html (GitHub Pages, deploys from `main`). **Version:** v1.27.0.
+**Live:** https://csasse123.github.io/relativistic/neutron-star.html (GitHub Pages, deploys from `main`). **Version:** v1.27.1.
 
 ## Working rules from the owner (follow these)
 - Be efficient and concise. **Always bump the build number** (`BUILD` in the page, the `build` div, and the other pages' version strings).
@@ -20,11 +20,11 @@ an incoming-light beam, reality-check warnings, hover tips, an intro film and a 
 - `assets/intro/script.json`: the 8-scene narration (also the subtitles). Scene visuals: `SCN` / `CAM` in the last `<script>` block of `neutron-star.html`.
 - `tools/make_intro_voice.mjs`, `tools/render_intro.mjs`: narration and MP4 export. Test pages with Playwright (`?export=intro`, `?nowelcome`).
 
-## The one thing to do now (needs the Mac)
-1. `ELEVENLABS_VOICE_NAME="Christian" node tools/make_intro_voice.mjs`: reads the Keychain key, checks the quota (script ≈ 2,060 characters), writes `assets/intro/s1.mp3 … s8.mp3` and `durations.json`. Listen to the clips; fix any odd reading by respelling in `script.json`, delete that mp3, rerun.
-2. `node tools/render_intro.mjs` (needs Chrome, ffmpeg, `npm i -D playwright`): writes `exports/neutron-star-intro_1080p.mp4` (about 2.5 minutes, 1080p, narrated).
-3. Commit the mp3s and `durations.json` (not `exports/`) so the live page narrates too, bump the build, push, PR, merge.
-4. Check the finished film end to end (timing of subtitles against the voice, nothing overlapping), then give the owner the MP4.
+## Intro film: done (v1.27.1)
+Narration (ElevenLabs voice "Christian") is committed: `assets/intro/s1.mp3 … s8.mp3`, `durations.json` (154.8 s). The page narrates it.
+The MP4 is rendered locally (not committed): `HEADLESS=chrome node tools/render_intro.mjs` (headless Chrome, real GPU, no window; about 7 min; `npm i` first).
+A visible-window render can be disturbed by anything touching that window; use `HEADLESS=chrome`.
+Redo a clip: respell in `script.json`, delete its mp3, rerun `ELEVENLABS_VOICE_NAME="Christian" node tools/make_intro_voice.mjs`, re-render.
 
 ## Open items
 - The owner has not yet reviewed the magnetic field lines on the live page; expect comments.

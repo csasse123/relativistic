@@ -2,7 +2,7 @@
 // Needs: Google Chrome, ffmpeg, and once: npm i -D playwright. Run tools/make_intro_voice.mjs first for the narration
 // (without it you get a silent film with subtitles).
 // Usage: node tools/render_intro.mjs [out=exports/neutron-star-intro_1080p.mp4]
-// Env: FPS (30), SIZE (1920x1080), HEADLESS=1 (bundled Chromium, software GL; slow), MAXSEC (render only the first N seconds, to test).
+// Env: FPS (30), SIZE (1920x1080), HEADLESS=1 (bundled Chromium, software GL; slow), HEADLESS=chrome (installed Chrome, headless, real GPU; no window to disturb), MAXSEC (render only the first N seconds, to test).
 import { chromium } from "playwright"; import http from "http"; import fs from "fs"; import path from "path"; import { spawn } from "child_process";
 const root = path.resolve(new URL("..", import.meta.url).pathname), out = process.argv[2] || "exports/neutron-star-intro_1080p.mp4";
 const fps = +(process.env.FPS || 30), [W, H] = (process.env.SIZE || "1920x1080").split("x").map(Number), MAXSEC = +(process.env.MAXSEC || 0);
@@ -10,7 +10,7 @@ fs.mkdirSync(path.dirname(path.join(root, out)), { recursive: true });
 const types = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".png": "image/png", ".jpg": "image/jpeg" };
 const server = http.createServer((q, r) => { const p = path.join(root, decodeURIComponent(q.url.split("?")[0])); fs.readFile(p, (e, b) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { "content-type": types[path.extname(p)] || "application/octet-stream" }); r.end(b); }); }).listen(8766);
 const headless = !!process.env.HEADLESS;
-const browser = await chromium.launch(headless ? { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] } : { channel: "chrome", headless: false, args: [`--window-size=${W},${H}`] });
+const browser = await chromium.launch(process.env.HEADLESS === "chrome" ? { channel: "chrome", headless: true, args: [`--window-size=${W},${H}`] } : headless ? { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] } : { channel: "chrome", headless: false, args: [`--window-size=${W},${H}`] });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 page.on("pageerror", (e) => console.error("page error:", e.message));
 await page.goto("http://localhost:8766/neutron-star.html?export=intro&nowelcome"); await page.waitForFunction(() => window.__introReady, null, { timeout: 60000 });
