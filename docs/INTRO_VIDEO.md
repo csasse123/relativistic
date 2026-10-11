@@ -22,21 +22,38 @@ The intro is a ~2.5 minute film for complete beginners. It is not a recording: e
 Edit `assets/intro/script.json` (`text` is both the subtitle and the narration; `min` is a minimum scene length in
 seconds). Visuals per scene are in `SCN` / `CAM` in the intro block at the end of `neutron-star.html`.
 
-## Make the narration (ElevenLabs)
+## Make the narration (ElevenLabs, your own voice)
+
+**Run this on your own computer, not in a cloud session.** A cloud Claude session cannot reach `api.elevenlabs.io` and has no
+key; a *local* session (or a plain Terminal on your Mac) can. That is why the Origin tutorial session can narrate: it runs
+on the Mac, with the key in the macOS Keychain.
+
+One-time setup (the key never appears in a chat or in shell history, because `-w` prompts for it):
 
 ```bash
-export ELEVENLABS_API_KEY=...        # your key
-export ELEVENLABS_VOICE_ID=...       # the voice id from your ElevenLabs voice library
-node tools/make_intro_voice.mjs      # writes assets/intro/s1.mp3 … s8.mp3 and durations.json (--force to redo)
+security add-generic-password -a "$USER" -s elevenlabs -w      # paste the key at the prompt
 ```
 
-- One request per scene, model `eleven_multilingual_v2` (override with `ELEVENLABS_MODEL`), settings: stability 0.5,
-  similarity 0.8, style 0.15. Re-running skips scenes that already have an mp3, so you can regenerate only the one
-  you edited (delete its mp3, or use `--force` for all).
-- `durations.json` makes every scene exactly as long as its narration plus 0.3 s lead-in and 0.9 s tail. The page
-  reads it too: once the mp3s are committed, the intro in the page plays with your voice, with no other change.
-- Guidance for the voice: warm, curious, unhurried, like a science presenter talking to a friend; short pauses between
-  sentences (the script already has them as full stops).
+The key needs these permissions (ElevenLabs web UI: Developers > API Keys): `text_to_speech`, `voices_read`, `user_read`.
+On other systems set `ELEVENLABS_API_KEY` instead.
+
+```bash
+git clone https://github.com/csasse123/relativistic && cd relativistic     # or git pull in your clone
+ELEVENLABS_VOICE_NAME="Christian" node tools/make_intro_voice.mjs         # your cloned voice, looked up by name
+# (or ELEVENLABS_VOICE_ID=<id> to skip the lookup)
+```
+
+- Each scene is one request, with the neighbouring scenes sent as `previous_text` / `next_text` for continuity (retried without
+  them if refused). Model `eleven_v4` by default (falls back to `eleven_multilingual_v2` if refused; override with
+  `ELEVENLABS_MODEL`). No voice settings are sent, so your voice's own defaults apply (`ELEVENLABS_STABILITY`,
+  `ELEVENLABS_SIMILARITY`, `ELEVENLABS_STYLE` override).
+- It first checks your quota. The whole script is about **2,060 characters**; it stops if too few are left (`--yes` to try anyway).
+- Re-running skips scenes that already have an mp3, so you can regenerate just one (delete its mp3, or `--force` for all) and
+  not pay twice. Format is `mp3_44100_128` (the 192 kbps format needs a higher plan).
+- `durations.json` makes every scene exactly as long as its narration plus 0.3 s lead-in and 0.9 s tail. The page reads it too:
+  once the mp3s and `durations.json` are committed, the intro on the live page plays with your voice.
+- Tip from the Origin project: if a number or name is read oddly (digit by digit, say), spell it as you want to hear it in
+  `script.json` (the subtitle then shows the same words).
 
 ## Render the MP4
 
