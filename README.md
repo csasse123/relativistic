@@ -78,6 +78,8 @@ The vacuum dipole remains as the starting point to compare against. **▶ Magnet
 
 **Tutorial tooltips (v1.23):** every button and slider (71 controls) has a hover tooltip, or long-press on a phone. Each says what the control does and what to look for, with a badge for how exact it is: *Exact* (within the stated model), *Approximation*, *Schematic*, *Convention*, *Display only* or *Assumed*.
 
+**Audit (v1.26):** every formula re-derived and checked against X-PSI, bender and exact integrations ([`docs/AUDIT_2026-10.md`](docs/AUDIT_2026-10.md)). Fixed: frame dragging now bends prograde and retrograde light differently (gravitomagnetic force, verified against the exact slow-rotation geodesic); the background sky next to the limb is no longer over-bent; the field-line light delay is solved robustly (no more zigzags); the light beam comes from a fixed direction in space; the lensing lookup covers the view at 0.15° resolution; field lines sweeping past the viewpoint fade out, and nearer lines are drawn thicker.
+
 **Reality checks and layout (v1.25):**
 - **Warning box** under the title whenever a setting leaves real physics: spin parameter χ = cJ/GM² beyond the slow-rotation gravity model (> 0.45) or above 1, spin past break-up, compactness beyond the causality limit (R < 2.9 GM/c²), masses outside the measured range, or fields above the quantum critical 4.4×10⁹ T. Special relativity stays exact at any speed; the gravity part is flagged as a what-if.
 - **Control drawer:** the panel slides away behind a "Controls" tab (or press H), and the star glides back to the centre.
