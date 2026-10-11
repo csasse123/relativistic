@@ -93,8 +93,15 @@
     font: 500 clamp(1rem, 1.9vw, 1.35rem)/1.4 "DM Sans", system-ui, sans-serif; color: #fff; text-shadow: 0 2px 12px #000, 0 0 3px #000; transition: opacity 0.25s; }
   #introBar { position: fixed; z-index: 8; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center;
     background: rgba(6,14,34,0.8); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; backdrop-filter: blur(10px); }
-  #introBar button { border: none; background: none; color: #dbe9fb; cursor: pointer; font: 600 0.8rem "JetBrains Mono", monospace; padding: 4px 6px; border-radius: 8px; }
+  #introBar button { white-space: nowrap; border: none; background: none; color: #dbe9fb; cursor: pointer; font: 600 0.8rem "JetBrains Mono", monospace; padding: 4px 6px; border-radius: 8px; }
   #introBar button:hover { background: rgba(110,200,255,0.18); }
+  #introSkip { position: fixed; z-index: 9; bottom: 24px; left: 24px; display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 8px; }
+  #introSkip button { cursor: pointer; border-radius: 999px; font: 600 0.82rem "DM Sans", system-ui, sans-serif; padding: 8px 16px; backdrop-filter: blur(10px); white-space: nowrap; }
+  #ibSkipTour { border: 1px solid #9a7cff; background: linear-gradient(90deg, rgba(60,110,220,0.55), rgba(130,70,230,0.55)); color: #fff; }
+  #ibSkipTour:hover { filter: brightness(1.2); }
+  #ibSound { border: 1px solid var(--line); background: rgba(6,14,34,0.85); color: #dbe9fb; animation: soundpulse 1.6s ease-in-out infinite; }
+  #ibSound[hidden] { display: none; }
+  @keyframes soundpulse { 50% { box-shadow: 0 0 0 5px rgba(110,200,255,0.25); } }
   #ibDots { display: flex; gap: 6px; padding: 0 6px; }
   #ibDots i { width: 22px; height: 6px; border-radius: 3px; background: rgba(150,190,240,0.25); cursor: pointer; overflow: hidden; position: relative; }
   #ibDots i.done { background: rgba(130,180,255,0.7); }
@@ -114,10 +121,20 @@
   #tbub .tb { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
   #tbub .tb button { border: 1px solid var(--line); background: rgba(10,24,50,0.9); color: #cfe0f5; border-radius: 999px; padding: 5px 12px; font-size: 0.74rem; cursor: pointer; }
   #tbub .tb button.go { border-color: #9a7cff; background: linear-gradient(90deg, rgba(60,110,220,0.5), rgba(130,70,230,0.5)); color: #fff; font-weight: 600; }
+  @media (max-width: 900px) {
+    body.intro #introSkip { left: 50%; transform: translateX(-50%); bottom: 12px; align-items: center; }
+    body.intro #introBar { bottom: 58px; max-width: 96vw; gap: 4px; padding: 5px 8px; }
+    body.intro #ibDots i { width: 14px; }
+    body.intro #sub { bottom: 108px; }
+    body.intro.nosound #introBar { bottom: 101px; }
+    body.intro.nosound #sub { bottom: 151px; }
+  }
   @media (max-width: 720px) {
     #fact { right: 12px; top: 64px; max-width: 70vw; }
     #sub { bottom: calc(44vh + 54px); }
     #introBar { bottom: calc(44vh + 8px); }
+    body.intro .panel { display: none; }
+    body.intro #fact { top: 158px; left: 14px; right: 14px; max-width: none; text-align: left; }
     #welcome { bottom: calc(44vh + 12px); }
     .caption .d { display: none; }
     .panel { top: auto; bottom: 0; right: 0; left: 0; width: 100%; max-height: 44vh; border-radius: 16px 16px 0 0; }
@@ -280,6 +297,10 @@
   <div class="chips"><button type="button" id="wIntro" class="cta">▶ Watch the intro</button><button type="button" id="wTour" class="cta">🧭 Interactive tour</button><button type="button" id="wExplore">Just explore</button></div>
 </div>
 <div id="introUI" hidden>
+  <div id="introSkip">
+    <button type="button" id="ibSkipTour" title="Leave the intro and start the interactive tour (Esc leaves without the tour)">Skip intro ▸ interactive tour</button>
+    <button type="button" id="ibSound" hidden>🔊 Click anywhere for sound</button>
+  </div>
   <div id="qmark">?</div>
   <div id="fact"><div class="big"></div><div class="small"></div></div>
   <div id="sub"></div>
@@ -289,13 +310,13 @@
     <button type="button" id="ibNext" title="Next scene">⏭</button>
     <div id="ibDots"></div>
     <button type="button" id="ibVoice" title="Narration on / off"></button>
-    <button type="button" id="ibClose" title="Leave the intro (Esc)">Skip ✕</button>
+    <button type="button" id="ibClose" title="Leave the intro and just explore (Esc)">Skip ✕</button>
   </div>
 </div>
 <div id="spot" hidden></div>
 <div id="tbub" hidden></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel · ?: help tips · I: intro · T: tour</div>
-<div class="build" id="build">v1.27.1</div>
+<div class="build" id="build">v1.28.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -633,7 +654,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.27.1";
+const BUILD = "v1.28.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -2013,10 +2034,20 @@ const TIPS = {
   }
   // narration: ElevenLabs mp3 per scene if present (assets/intro/sN.mp3), otherwise an optional browser voice
   const aud = new Audio(); let leadT = 0;
+  // browsers block sound until the visitor has touched the page: show a prompt, and resume mid-scene on the first touch
+  let needSound = false;
+  function blocked() { if (!I.active || I.exp) return; needSound = true; $("ibSound").hidden = false; document.body.classList.add("nosound"); }
+  function resumeSound() {
+    if (!needSound) return; needSound = false; $("ibSound").hidden = true; document.body.classList.remove("nosound");
+    if (!I.active || I.mute || !voice || S.paused) return;
+    const i = Math.max(0, I.idx), off = Math.max(0, I.t - starts[i] - (voice.lead || 0.3));
+    aud.src = `assets/intro/s${i + 1}.mp3`; aud.addEventListener("loadedmetadata", () => { try { aud.currentTime = off; } catch (e) { /* ignore */ } }, { once: true }); aud.play().catch(() => {});
+  }
+  for (const ev of ["pointerdown", "keydown"]) window.addEventListener(ev, resumeSound, true);
   function stopVoice() { clearTimeout(leadT); try { aud.pause(); } catch (e) { /* ignore */ } if (window.speechSynthesis) speechSynthesis.cancel(); }
   function playScene(i) {
     stopVoice(); if (I.exp || S.paused) return;
-    if (voice && !I.mute) { aud.src = `assets/intro/s${i + 1}.mp3`; leadT = setTimeout(() => aud.play().catch(() => {}), (voice.lead || 0.3) * 1000); }
+    if (voice && !I.mute) { aud.src = `assets/intro/s${i + 1}.mp3`; leadT = setTimeout(() => aud.play().catch(blocked), (voice.lead || 0.3) * 1000); }
     else if (!voice && I.speech && window.speechSynthesis) { const u = new SpeechSynthesisUtterance(script.scenes[i].text); u.rate = 0.98; speechSynthesis.speak(u); }
   }
   function setVoiceBtn() {
@@ -2044,7 +2075,7 @@ const TIPS = {
     hideWelcome(); ls.set("nsIntroSeen", "1");
   }
   function stopIntro(finished) {
-    if (!I.active) return; I.active = false; stopVoice();
+    if (!I.active) return; I.active = false; stopVoice(); needSound = false; $("ibSound").hidden = true; document.body.classList.remove("nosound");
     document.body.classList.remove("intro", "introLimits"); $("introUI").hidden = true; $("curve").classList.remove("tr");
     Object.assign(S, I.saved); S.beta = I.saved.beta; syncUI(); $("pause").classList.toggle("on", S.paused);
     $("caption").style.opacity = 0;
@@ -2053,6 +2084,7 @@ const TIPS = {
   }
   $("introBtn").addEventListener("click", startIntro);
   $("ibClose").addEventListener("click", () => stopIntro(false));
+  $("ibSkipTour").addEventListener("click", startGuide);
   $("ibPlay").addEventListener("click", () => $("pause").click());
   const jump = (k) => { if (!I.active) return; k = clamp(k, 0, starts.length - 1); I.t = starts[k] + 0.01; I.idx = -1; };
   $("ibPrev").addEventListener("click", () => jump((I.idx > 0 && I.t - starts[I.idx] < 2.5 ? I.idx - 1 : I.idx)));
@@ -2137,14 +2169,16 @@ const TIPS = {
       [...$("ibDots").children].forEach((d, i) => d.addEventListener("click", () => jump(i)));
     }
     if (EXPORT && script) {
-      I.exp = true; document.body.classList.add("intro"); $("introBar").style.display = "none"; $("introUI").hidden = false; $("panelTab").style.display = "none";
+      I.exp = true; document.body.classList.add("intro"); $("introBar").style.display = "none"; $("introSkip").style.display = "none"; $("introUI").hidden = false; $("panelTab").style.display = "none";
       if (panelOpen()) togglePanel();
       Object.assign(S, { paused: true, autoRes: false, res: 1 }); $("build").style.display = "none"; hideWelcome();
       window.__introInfo = () => ({ total, starts, durs, lead: voice && voice.lead ? voice.lead : 0.3, voice: !!voice });
       window.__introFrame = (t) => { I.active = true; introAt(t); };
       window.__introReady = true; return;
     }
-    if (!ls.get("nsWelcome") && !Q.has("nowelcome")) $("welcome").hidden = false;
+    // the intro plays by default on a first visit (?intro forces it, ?nointro / ?nowelcome suppress it); returning visitors land on the page
+    if (script && !Q.has("nointro") && !Q.has("nowelcome") && (Q.has("intro") || !ls.get("nsIntroSeen"))) startIntro();
+    else if (!ls.get("nsWelcome") && !Q.has("nowelcome")) $("welcome").hidden = false;
   }
   boot();
 })();
