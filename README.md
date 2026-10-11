@@ -78,6 +78,12 @@ The vacuum dipole remains as the starting point to compare against. **▶ Magnet
 
 **Tutorial tooltips (v1.23):** every button and slider (71 controls) has a hover tooltip, or long-press on a phone. Each says what the control does and what to look for, with a badge for how exact it is: *Exact* (within the stated model), *Approximation*, *Schematic*, *Convention*, *Display only* or *Assumed*.
 
+**Introduction and tour (v1.27):**
+- **▶ Watch the intro** (key **I**): a 2.5-minute film for complete beginners, running on the live renderer. It covers what a neutron star is, the physics ladder, how gravity bends light, the magnetic field, how NICER measures pulses, where the physics is exact, approximate or unknown, and how to explore. Subtitles always; narration plays if `assets/intro/s*.mp3` exist.
+- **🧭 Interactive tour** (key **T**): a one-minute spotlight tour of the controls.
+- A welcome card on the first visit, and collapsible panel sections.
+- Make the narrated MP4 with your ElevenLabs voice: [`docs/INTRO_VIDEO.md`](docs/INTRO_VIDEO.md) (`tools/make_intro_voice.mjs`, `tools/render_intro.mjs`).
+
 **Audit (v1.26):** every formula re-derived and checked against X-PSI, bender and exact integrations ([`docs/AUDIT_2026-10.md`](docs/AUDIT_2026-10.md)). Fixed: frame dragging now bends prograde and retrograde light differently (gravitomagnetic force, verified against the exact slow-rotation geodesic); the background sky next to the limb is no longer over-bent; the field-line light delay is solved robustly (no more zigzags); the light beam comes from a fixed direction in space; the lensing lookup covers the view at 0.15° resolution; field lines sweeping past the viewpoint fade out, and nearer lines are drawn thicker.
 
 **Reality checks and layout (v1.25):**
