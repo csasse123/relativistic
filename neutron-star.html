@@ -216,7 +216,7 @@
 <div id="scalebar" style="position:fixed;z-index:5;bottom:30px;pointer-events:none;font:600 0.62rem JetBrains Mono,monospace;color:#a9c8e8;text-align:center">
   <div id="scaleLine" style="height:6px;border:1.5px solid #a9c8e8;border-top:none"></div><div>10 km at the star's centre (before lensing)</div></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel · ?: help tips</div>
-<div class="build" id="build">v1.25.1</div>
+<div class="build" id="build">v1.26.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -262,56 +262,66 @@ float lum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 float limb(float mu) { return (1.0 + 2.06 * mu) / 3.06; }   // electron-scattering atmosphere
 
 // ---------------------------------------------------------------- geodesics
-// Schwarzschild null geodesics in Cartesian form: d²x/dλ² = −3/2 r_s h² x / r⁵, dt/dλ = 1/(1 − r_s/r)
-float gRs, gBend, gO2;
-vec3 acc(vec3 x, float h2) { float r2 = dot(x, x); return -1.5 * gRs * gBend * h2 * x / (r2 * r2 * sqrt(r2)); }
+// Schwarzschild null geodesics in Cartesian form: d²x/dλ² = −3/2 r_s h² x / r⁵, h = |x × v|, dt/dλ = 1/(1 − r_s/r).
+// Frame dragging (first order in J, the slow-rotation metric's gravitomagnetic term): a photon feels
+// a = −2 v × B_J, B_J = J (3 r̂ r̂_z − ẑ)/r³, which bends prograde light less and retrograde light more
+// (equatorial weak field: ∓4J/b²). Photon paths are not reversible in a rotating spacetime, so the ray traced
+// backwards from the eye (v = −v_photon) gets a = +2 v × B_J.
+float gRs, gBend, gO2, gJ;
+vec3 acc(vec3 x, vec3 v) {
+  float r2 = dot(x, x), r = sqrt(r2); vec3 L = cross(x, v);
+  vec3 a = -1.5 * gRs * gBend * dot(L, L) * x / (r2 * r2 * r);
+  if (gJ != 0.0) { vec3 rh = x / r; vec3 BJ = gJ * (3.0 * rh * rh.z - vec3(0.0, 0.0, 1.0)) / (r2 * r); a += 2.0 * cross(v, BJ); }
+  return a;
+}
 float rSurf(vec3 x) { float c = x.z * x.z / dot(x, x); return uReq * (1.0 + gO2 * c); }
-void rk4(inout vec3 x, inout vec3 v, float dl, float h2) {
-  vec3 a1 = acc(x, h2);
-  vec3 v2 = v + 0.5 * dl * a1;  vec3 a2 = acc(x + 0.5 * dl * v, h2);
-  vec3 v3 = v + 0.5 * dl * a2;  vec3 a3 = acc(x + 0.5 * dl * v2, h2);
-  vec3 v4 = v + dl * a3;        vec3 a4 = acc(x + dl * v3, h2);
+void rk4(inout vec3 x, inout vec3 v, float dl) {
+  vec3 a1 = acc(x, v);
+  vec3 v2 = v + 0.5 * dl * a1;  vec3 a2 = acc(x + 0.5 * dl * v, v2);
+  vec3 v3 = v + 0.5 * dl * a2;  vec3 a3 = acc(x + 0.5 * dl * v2, v3);
+  vec3 v4 = v + dl * a3;        vec3 a4 = acc(x + dl * v3, v4);
   x += dl / 6.0 * (v + 2.0 * v2 + 2.0 * v3 + v4);
   v += dl / 6.0 * (a1 + 2.0 * a2 + 2.0 * a3 + a4);
 }
 vec3 rotZ(vec3 p, float a) { float c = cos(a), s = sin(a); return vec3(c * p.x - s * p.y, s * p.x + c * p.y, p.z); }
-vec3 escapeDir(vec3 x, vec3 v) {      // weak-field remainder to infinity: Δ = r_s/b (1 − x̂·v̂)
+// Remaining weak-field deflection from x (direction v) to infinity, integrating −3/2 r_s b³/(b²+s²)^{5/2} along the
+// straight continuation: Δ = (r_s/b)[1 − (x̂·v̂)(1 + b²/(2r²))]. Used only beyond 4 R, where it is good to ~0.01°.
+vec3 escapeDir(vec3 x, vec3 v) {
   vec3 vn = normalize(v); vec3 bv = x - dot(x, vn) * vn; float b = max(length(bv), 1e-4);
-  return normalize(vn - gBend * gRs / b * (1.0 - dot(normalize(x), vn)) * bv / b);
+  float r2 = dot(x, x), cr = dot(x, vn) / sqrt(r2);
+  return normalize(vn - gBend * gRs / b * (1.0 - cr * (1.0 + 0.5 * b * b / r2)) * bv / b);
 }
 bool trace(int m, vec3 x0, vec3 dLoc, out vec3 X, out vec3 V, out float T, out vec3 sky) {
-  bool shap = F(m, 7), drag = F(m, 9);
-  gRs = uRs; gBend = F(m, 5) ? 1.0 : 0.0; gO2 = F(m, 8) ? uO2 : 0.0;
+  bool shap = F(m, 7);
+  gRs = uRs; gBend = F(m, 5) ? 1.0 : 0.0; gO2 = F(m, 8) ? uO2 : 0.0; gJ = F(m, 9) ? uJ : 0.0;
   float rc = length(x0); vec3 rh = x0 / rc;
   vec3 v = dLoc;
   if (gBend > 0.5) { float vr = dot(dLoc, rh); v = vr * rh + (dLoc - vr * rh) / sqrt(1.0 - uRs / rc); }
   vec3 L = cross(x0, v); float h2 = dot(L, L);
   X = vec3(0); V = vec3(0); T = 0.0;
-  float rEsc = 4.0 * uReq;
+  float rEsc = 8.0 * uReq;              // hand-off to the analytic remainder: worst error 0.06° at 8 R
   if (h2 > rEsc * rEsc) { sky = escapeDir(x0, v); return false; }
   vec3 x = x0; float t = 0.0;
-  for (int i = 0; i < 260; i++) {
+  for (int i = 0; i < 330; i++) {
     float r = length(x);
     if (r > rEsc && dot(x, v) > 0.0) { sky = escapeDir(x, v); return false; }
     float dist = r - rSurf(x);
     float dl = clamp(max(0.6 * dist, 0.022 * r), 0.004 * uReq, 0.25 * r);
     vec3 xp = x, vp = v;
-    rk4(x, v, dl, h2);
+    rk4(x, v, dl);
     float rm = 0.5 * (r + length(x));
     float dtf = shap ? 1.0 / (1.0 - uRs / rm) : 0.5 * (length(vp) + length(v));
     if (length(x) < rSurf(x)) {
       float lo = 0.0, hi = dl;
       for (int k = 0; k < 8; k++) {
-        float mid = 0.5 * (lo + hi); vec3 xt = xp, vt = vp; rk4(xt, vt, mid, h2);
+        float mid = 0.5 * (lo + hi); vec3 xt = xp, vt = vp; rk4(xt, vt, mid);
         if (length(xt) < rSurf(xt)) hi = mid; else lo = mid;
       }
-      x = xp; v = vp; rk4(x, v, hi, h2);
+      x = xp; v = vp; rk4(x, v, hi);
       t += hi * dtf;
-      if (drag) { float w = -2.0 * uJ / (rm * rm * rm) * hi * dtf; x = rotZ(x, w); v = rotZ(v, w); }
       X = x; V = v; T = t; return true;
     }
     t += dl * dtf;
-    if (drag) { float w = -2.0 * uJ / (rm * rm * rm) * dl * dtf; x = rotZ(x, w); v = rotZ(v, w); }   // Lense–Thirring
   }
   sky = normalize(v); return false;
 }
@@ -333,10 +343,14 @@ SP surfPoint(int m, vec3 X, vec3 V, float T, vec3 eye) {
   vec3 ephi = rho > 1e-6 ? vec3(-X.y, X.x, 0.0) / rho : vec3(0.0);
   float w = F(m, 9) ? 2.0 * uJ / (r * r * r) : 0.0;
   float N = F(m, 6) ? sqrt(1.0 - uRs / r) : 1.0;
-  float betaO = clamp(uOm * rho / N, 0.0, 0.995);
+  // Exact for the slow-rotation metric (Cunningham–Bardeen form): g = N√(1 − β_Z²)/(1 − Ω ℓ), ℓ = L_z/E the photon's
+  // conserved angular momentum per energy, β_Z = (Ω − ω)ρ/N the emitter's speed against the local dragged frame.
+  // With E = 1, L_z = (x × v_forward)_z − ωρ² dt/dλ (the second term only when the trace carries the drift).
   float betaZ = clamp((uOm - w) * rho / N, 0.0, 0.995);
   s.gam = inversesqrt(1.0 - betaZ * betaZ);
-  float delta = 1.0 / (s.gam * (1.0 - betaO * dot(k, ephi)));      // g = N√(1−β_Z²)/(1 − β_Ω cos ξ)
+  float Nb2 = F(m, 5) ? 1.0 - uRs / r : 1.0;
+  float Lz = (X.x * fw.y - X.y * fw.x) - w * rho * rho / Nb2;
+  float delta = 1.0 / (s.gam * (1.0 - uOm * Lz));                  // = δ = 1/γ(1 − β cos ξ) without dragging
   s.mu = F(m, 2) ? clamp(delta * cosA, 0.0, 1.0) : cosA;           // aberration cos α' = δ cos α
   float rc = length(eye);
   float Tref = (rc - uReq) + (F(m, 7) ? uRs * log((rc - uRs) / (uReq - uRs)) : 0.0);
@@ -540,7 +554,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.25.1";
+const BUILD = "v1.26.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -583,7 +597,7 @@ const LADDER = [
   { name: "+ redshift", add: ["grz", "shapiro"], t: "Gravitational redshift + Shapiro delay",
     d: "Everything is redshifted by √(1 − r_s/R) ≈ 0.81 (g⁴ ≈ 0.43), so the hot cap turns from yellow to orange, as in NASA's 'strong gravity' panel. Surface clocks run slow, and climbing out of the well delays the light." },
   { name: "Everything", add: ["oblate", "drag"], t: "Everything: oblate star + frame dragging",
-    d: "The spinning star bulges at the equator (AlGendy & Morsink 2014), and spacetime is dragged around it (Lense–Thirring). That is NICER's oblate-Schwarzschild pulse-fit physics, plus frame dragging." },
+    d: "The spinning star bulges at the equator (AlGendy & Morsink 2014), and spacetime is dragged around it (Lense–Thirring): light passing with the spin is bent less, against it more. That is NICER's oblate-Schwarzschild pulse-fit physics, plus frame dragging." },
 ];
 function ladderMask(step) { let m = 0; for (let i = 1; i <= step; i++) for (const k of LADDER[i].add) m |= 1 << BIT[k]; return m; }
 
@@ -731,8 +745,10 @@ function phys() {
   const mr = M / R, kappa = 0.237 * (1 + 4.2 * mr + 90 * mr ** 4);  // I/MR², Lattimer & Schutz 2005
   const J = kappa * (rs / 2) * R * R * OmKm;                        // km²
   const wS = 2 * J / R ** 3;
-  const cosPsiMax = 1 - 1 / (1 - rs / R);                           // Beloborodov 2002, α = 90°
-  const visGR = cosPsiMax < -1 ? 1 : (1 - cosPsiMax) / 2;
+  // visible fraction: exact angle swept by the limb ray (α = 90°, b = R/N) from the surface to infinity,
+  // ψ_max = ∫₀^{1/R} du / √(N²/R² − u²(1 − r_s u)), with u = (1 − t²)/R to tame the endpoint
+  let psiMax = 0; { const n = 400, NR2 = (1 - rs / R) / (R * R); for (let i = 0; i < n; i++) { const t = (i + 0.5) / n, u = (1 - t * t) / R, f = NR2 - u * u * (1 - rs * u); psiMax += (2 * t / R) / Math.sqrt(Math.max(f, 1e-30)) / n; } }
+  const visGR = psiMax >= Math.PI ? 1 : (1 - Math.cos(psiMax)) / 2;
   const RLC = OmKm > 0 ? 1 / OmKm : Infinity;                       // light cylinder c/Ω
   return { rs, x, lapse, Om, OmKm, fK, o2, kappa, J, wS, visGR, RLC };
 }
@@ -892,19 +908,22 @@ function traceForceFree(ret, gr, obl) {
 // ---------------------------------------------------------------- lensed projection of 3D points (field lines)
 // For one eye, trace a fan of rays in a plane (Binet equation u'' + u = 3M u²) and tabulate r(α, ψ) and t(α, ψ);
 // a point at (r, ψ) is seen at the local angle α whose ray passes through it, at the time it emitted.
-const NA = 180, NPSI = 360;
-function rayTable(rc, mask) {
+// The fan covers only the visible field (plus margin) at fine resolution: ~0.15° per ray instead of 1° over the full
+// half-plane, so lines on screen are smooth rather than kinked at every ray boundary.
+const NPSI = 300, NA = 320;
+function rayTable(rc, mask, tanH = 0.5, asp = 1.8) {
   const bend = on(mask, "bend"), shap = on(mask, "shapiro"), obl = on(mask, "oblate");
-  const key = [rc.toFixed(3), bend, shap, obl, S.M, S.R, S.f].join(",");
-  return cached(rayCache, key, () => buildRays(rc, bend, shap, obl));
+  const aMax = Math.min(Math.PI, 1.4 * Math.atan(tanH * Math.sqrt(1 + asp * asp)) + 0.05);
+  const key = [rc.toFixed(3), bend, shap, obl, S.M, S.R, S.f, aMax.toFixed(4)].join(",");
+  return cached(rayCache, key, () => buildRays(rc, bend, shap, obl, aMax));
 }
-function buildRays(rc, bend, shap, obl) {
+function buildRays(rc, bend, shap, obl, aMax) {
   const M = bend ? P.rs / 2 : 0, Mt = shap ? P.rs / 2 : 0, Rocc = S.R * (1 + (obl ? P.o2 / 2 : 0));
-  const dpsi = Math.PI / NPSI, Nc = Math.sqrt(1 - 2 * M / rc);
+  const dpsi = Math.PI / NPSI, Nc = Math.sqrt(1 - 2 * M / rc), dA = aMax / NA;
   const Ut = new Float32Array(NA * (NPSI + 1)), Tt = new Float32Array(NA * (NPSI + 1));
   const acc = (u) => -u + 3 * M * u * u;
   for (let i = 0; i < NA; i++) {
-    const al = (i + 0.5) / NA * Math.PI, b = rc * Math.sin(al) / Nc;
+    const al = (i + 0.5) * dA, b = rc * Math.sin(al) / Nc;
     let u = 1 / rc, up = Math.sqrt(Math.max(0, 1 / (b * b) - u * u * (1 - 2 * M * u))) * (al < Math.PI / 2 ? 1 : -1);
     let t = 0, state = 0;
     const base = i * (NPSI + 1); Ut[base] = u;
@@ -924,7 +943,7 @@ function buildRays(rc, bend, shap, obl) {
       Ut[base + j] = u; Tt[base + j] = t;
     }
   }
-  return { Ut, Tt, dpsi };
+  return { Ut, Tt, dpsi, dA };
 }
 function locate(tab, rP, psi) {
   const jf = Math.min(psi / tab.dpsi, NPSI - 1e-6), j0 = Math.floor(jf), fr = jf - j0;
@@ -935,31 +954,53 @@ function locate(tab, rP, psi) {
     return 1 / (a + (b - a) * fr);
   };
   const tAt = (i) => { const a = tab.Tt[i * (NPSI + 1) + j0], b = tab.Tt[i * (NPSI + 1) + j0 + 1]; return a + (b - a) * fr; };
-  if (rAt(NA - 1) < rP) return null;
+  if (rAt(NA - 1) < rP) return null;                                  // outside the fan (off screen)
   let lo = 0, hi = NA - 1;
   while (lo < hi) { const mid = (lo + hi) >> 1; if (rAt(mid) >= rP) hi = mid; else lo = mid + 1; }
-  const dA = Math.PI / NA;
+  const dA = tab.dA;
   if (lo === 0) return { al: 0.5 * dA, t: tAt(0) };
   const r0 = rAt(lo - 1), r1 = rAt(lo);
-  if (r0 === 0) return r1 <= 1.06 * rP ? { al: (lo + 0.5) * dA, t: tAt(lo) } : null;
-  const fr2 = r1 === Infinity ? 0 : (rP - r0) / (r1 - r0);
+  if (r0 === 0) return r1 <= 1.03 * rP ? { al: (lo + 0.5) * dA, t: tAt(lo) } : null;   // just inside the limb's shadow edge
+  const fr2 = (1 / r0 - 1 / rP) / (1 / r0 - (r1 === Infinity ? 0 : 1 / r1));          // interpolate in u = 1/r (smooth at large r)
   return { al: (lo - 0.5 + fr2) * dA, t: tAt(lo - 1) + (tAt(lo) - tAt(lo - 1)) * fr2 };
 }
 // project a body-frame point (pattern at t = 0) for an eye; returns NDC [x, y] or null
 function projectPoint(pBody, eye, mask, tab, cx, tanH, asp, fixed = false) {   // fixed: lab-frame point, not corotating
   const rc = Math.hypot(...eye.p), ch = eye.p.map((v) => v / rc);
   const Tref = (rc - S.R) + (on(mask, "shapiro") ? P.rs * Math.log((rc - P.rs) / (S.R - P.rs)) : 0);
-  let te = S.tKm, res = null, pl = null;
-  for (let it = 0; it < (on(mask, "retard") && !fixed ? 3 : 1); it++) {
-    pl = fixed ? pBody : rotZ(pBody, P.OmKm * te);
-    const rP = Math.hypot(...pl), ph = pl.map((v) => v / rP);
-    const cp = Math.max(-1, Math.min(1, v3.dot(ch, ph)));
-    res = locate(tab, rP, Math.acos(cp));
-    if (!res) return null;
-    res.ph = ph; res.cp = cp;
-    if (it === 0 && on(mask, "retard")) { const d = Math.hypot(pl[0] - eye.p[0], pl[1] - eye.p[1], pl[2] - eye.p[2]); te = S.tKm - (d - Tref); }
-    else te = S.tKm - (res.t - Tref);
+  const rP = Math.hypot(...pBody), rho = Math.hypot(pBody[0], pBody[1]);
+  // viewing delay for a corotating point: solve g(te) = te − t + T(te) − Tref = 0, T = lensed light time to the point's
+  // position at emission time te. Start from the straight-line estimate, then secant steps. A point hidden behind the
+  // star at its emission time is hidden. Beyond the light cylinder the pattern moves faster than light and g can have
+  // several roots (several images); the root nearest the straight-line estimate is followed, so a line is continuous
+  // except where two of its images merge and vanish, where it jumps, as the real view of such a pattern would.
+  const delayed = on(mask, "retard") && !fixed;
+  const at = (te) => { const pl = rotZ(pBody, P.OmKm * te), ph = pl.map((v) => v / rP), cp = Math.max(-1, Math.min(1, v3.dot(ch, ph)));
+    const r = locate(tab, rP, Math.acos(cp)); return r ? { r, pl, ph, cp } : null; };
+  let te = S.tKm, cur = at(te);
+  if (!cur) return null;
+  if (delayed) {
+    // g(te) = te − t + T(te) − Tref. Scan from the observer's clock toward the root nearest to it (the most recent
+    // emission = the primary image), step ≤ 0.3 rad of rotation, then bisect. Hidden samples (null) are skipped.
+    const gAt = (c, te) => te - S.tKm + (c.r.t - Tref);
+    const dStep = Math.min(0.3 / Math.max(P.OmKm, 1e-6), Math.max(0.5, rP / 6));
+    let tA = S.tKm, gA = gAt(cur, tA), dir = gA > 0 ? -1 : 1, tB = tA, gB = gA, found = false;
+    for (let k = 0; k < 40; k++) {
+      tB = tA + dir * dStep; const cB = at(tB);
+      if (!cB) { tA = tB; gA = NaN; continue; }
+      gB = gAt(cB, tB);
+      if (!isNaN(gA) && (gA > 0) !== (gB > 0)) { found = true; break; }
+      tA = tB; gA = gB;
+    }
+    if (!found) return null;
+    let lo = tA, hi = tB;
+    for (let k = 0; k < 9; k++) {
+      const mid = 0.5 * (lo + hi), cm = at(mid); if (!cm) return null;
+      if ((gAt(cm, mid) > 0) === (gA > 0)) lo = mid; else hi = mid;
+    }
+    te = 0.5 * (lo + hi); cur = at(te); if (!cur) return null;
   }
+  const res = cur.r, pl = cur.pl; res.ph = cur.ph; res.cp = cur.cp;
   let e = v3.add(res.ph, v3.sc(ch, -res.cp)); const el = v3.len(e);
   if (el < 1e-6) e = eye.U; else e = v3.sc(e, 1 / el);
   const d = v3.add(v3.sc(ch, -Math.cos(res.al)), v3.sc(e, Math.sin(res.al)));
@@ -1043,7 +1084,7 @@ function syncUI() {
   const N = on(m, "grz") ? P.lapse : 1, betaO = P.OmKm * S.R / N;
   if (betaO > 0.97) { S.f = Math.floor(0.97 * C_KM * N / (2 * Math.PI * S.R)); return syncUI(); }   // keep v < c
   $("beta").value = betaO; $("betaVal").textContent = `${betaO.toFixed(3)} c`;
-  const beta = (P.OmKm - (on(m, "drag") ? P.wS : 0)) * S.R / N;
+  const beta = (P.OmKm - (on(m, "drag") ? P.wS : 0)) * S.R / N;                           // β_Z at the equator
   const gam = 1 / Math.sqrt(1 - beta * beta), dHi = 1 / (gam * (1 - betaO)), dLo = 1 / (gam * (1 + betaO));
   const z1 = on(m, "grz") ? 1 / P.lapse : 1;
   const period = 1e6 / S.f, crossUs = S.R / C_KM * 1e6;
@@ -1062,10 +1103,10 @@ function syncUI() {
   $("meta").innerHTML =
     `M <b>${S.M.toFixed(2)} M☉</b> · R<sub>eq</sub> <b>${S.R.toFixed(2)} km</b> · r<sub>s</sub> <b>${P.rs.toFixed(2)} km</b><br>` +
     `compactness GM/Rc² <b>${P.x.toFixed(3)}</b> · 1+z <b class="rose">${(1 / P.lapse).toFixed(3)}</b><br>` +
-    `f <b>${S.f.toFixed(1)} Hz</b> · P <b>${(period / 1000).toFixed(3)} ms</b> · f<sub>K</sub> ≈ <b>${P.fK.toFixed(0)} Hz</b>` +
+    `f <b>${S.f.toFixed(1)} Hz</b> · P <b>${(period / 1000).toFixed(3)} ms</b> · f<sub>K</sub> ≈ <b>${P.fK.toFixed(0)} Hz</b> <span style="color:#7f98b6">(uses R<sub>eq</sub>; ~10% low at 716 Hz)</span>` +
     (S.f > P.fK ? ` <span class="warn">beyond break-up (hypothetical)</span>` : "") + `<br>` +
     `v<sub>eq</sub>/c <b class="gold">${betaO.toFixed(3)}</b> · γ <b>${gam.toFixed(3)}</b> · δ <b class="blue">${dHi.toFixed(3)}</b> / <b class="rose">${dLo.toFixed(3)}</b><br>` +
-    `observed g ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>] · g⁴ ∈ [${((dLo / z1) ** 4).toPrecision(2)}, ${((dHi / z1) ** 4).toPrecision(3)}]<br>` +
+    `observed g (at infinity) ∈ [<b class="rose">${(dLo / z1).toFixed(3)}</b>, <b class="blue">${(dHi / z1).toFixed(3)}</b>] · g⁴ ∈ [${((dLo / z1) ** 4).toPrecision(2)}, ${((dHi / z1) ** 4).toPrecision(3)}]<br>` +
     `R/c <b>${crossUs.toFixed(1)} µs</b> = <b class="gold">${(360 * crossUs / period).toFixed(1)}°</b> of spin · light cylinder c/Ω <b>${P.RLC.toFixed(0)} km</b><br>` +
     `R<sub>pole</sub> <b>${(S.R * (1 + (on(m, "oblate") ? P.o2 : 0))).toFixed(2)} km</b> · ω<sub>drag</sub>/Ω <b>${(P.wS / P.OmKm).toFixed(3)}</b> · I/MR² <b>${P.kappa.toFixed(3)}</b> · spin χ = cJ/GM² <b class="${P.J / (P.rs / 2) ** 2 > 0.45 ? "rose" : ""}">${(P.J / (P.rs / 2) ** 2).toFixed(2)}</b><br>` +
     `diameter <b>${(2 * S.R).toFixed(1)} km</b> equatorial · <b>${(2 * Rpole).toFixed(1)} km</b> pole to pole (spin flattening, o₂ ${P.o2.toFixed(3)})<br>` +
@@ -1076,6 +1117,7 @@ function syncUI() {
   if (chi > 1) warn.push(`<b>Spin parameter χ = ${chi.toFixed(2)} &gt; 1.</b> No star or black hole can spin this fast. The special-relativity effects (light delay, aberration, Doppler, beaming, contraction) are still exact kinematics, but the gravity part is a what-if using a non-spinning spacetime.`);
   else if (chi > 0.45) warn.push(`<b>Spin parameter χ = ${chi.toFixed(2)}.</b> Beyond the slow-rotation gravity model (good to χ ≈ 0.3–0.4); bending, redshift and frame dragging are approximate. Special relativity stays exact.`);
   if (S.f > P.fK) warn.push(`<b>Faster than break-up (~${P.fK.toFixed(0)} Hz).</b> A real star would shed mass from its equator; the bulge is frozen at its break-up shape.`);
+  if (S.R < 1.5 * P.rs) warn.push(`<b>Photon sphere outside the star</b> (R &lt; 1.5 r_s = ${(1.5 * P.rs).toFixed(1)} km): light can orbit the star. The renderer follows each ray for only about one loop, so the sky next to the limb is unreliable.`);
   if (S.R < 2.9 * Mg) warn.push(`<b>More compact than causality allows</b> (R &lt; 2.9 GM/c² = ${(2.9 * Mg).toFixed(1)} km): no known matter is this stiff; light could orbit the star.`);
   if (S.M > 2.3) warn.push(`<b>Mass ${S.M.toFixed(2)} M☉</b> is above the heaviest measured neutron stars (~2.1 M☉); most models would collapse to a black hole.`);
   if (S.M < 1.1) warn.push(`<b>Mass ${S.M.toFixed(2)} M☉</b> is below the lightest known neutron star (~1.17 M☉).`);
@@ -1160,7 +1202,7 @@ function ghostMask() { return S.ghost && S.step > 0 ? ladderMask(S.step - 1) : -
 function pulsePass(eyeList) {
   if (!pulseFbo) return;
   const c = eyeList[0].p, r = Math.hypot(...c);
-  const sinA = Math.min(0.995, 1.5 * S.R / r), tanP = Math.min(4, sinA / Math.sqrt(1 - sinA * sinA));
+  const sinA = Math.min(0.995, 1.25 * S.R / (P.lapse * r)), tanP = Math.min(4, sinA / Math.sqrt(1 - sinA * sinA));   // lensed image radius ≈ R/N
   const mono = [{ p: c, ...basis(c) }, { p: c, ...basis(c) }];
   gl.bindFramebuffer(gl.FRAMEBUFFER, pulseFbo); gl.viewport(0, 0, PN, PN);
   const flux = [];
@@ -1251,13 +1293,13 @@ function drawCurve() {
 // d²x/dλ² = −3/2 r_s h² x / r⁵ (off when light bending is off), RK4 with the same step rule, absorbed at the surface,
 // dt/dλ = 1/(1 − r_s/r) with the Shapiro delay on. Rays are computed once in a canonical frame (beam along +x) and
 // rotated to the view, which is exact because the Schwarzschild field is spherically symmetric.
-// Brightness of the fog = density of photon paths (photon number is conserved, so this is the flux), times the
-// blueshift 1/√(1 − r_s/r) a local static observer measures when gravitational redshift is on.
+// Brightness of the fog = density of photon paths (photon number is conserved along a bundle, so this is the flux
+// a camera records; a local static observer would also see each photon blueshifted by 1/N, not shown).
 // All rays leave one plane at t = 0: the travelling bright bands are wavefronts (their lag near the star = Shapiro delay).
 const beamCache = new Map();
 function beamRays(mask) {
-  const bend = on(mask, "bend"), shap = on(mask, "shapiro"), grz = on(mask, "grz");
-  return cached(beamCache, [bend, shap, grz, S.M, S.R].join(","), () => {
+  const bend = on(mask, "bend"), shap = on(mask, "shapiro"), grz = on(mask, "grz"), Jd = on(mask, "drag") ? P.J : 0;
+  return cached(beamCache, [bend, shap, grz, Jd, S.M, S.R].join(","), () => {
     const rs = P.rs, gB = bend ? 1 : 0, Rs = S.R, L0 = 150;
     const starts = [];
     for (const bf of [0.5, 0.9, 1.2, 1.45, 1.75]) for (const sg of [1, -1]) starts.push([sg * bf * Rs, 0, true]);  // crisp lines
@@ -1266,16 +1308,20 @@ function beamRays(mask) {
     const out = [];
     for (const [y0, z0, hi] of starts) {
       let x = [-L0, y0, z0], v = [1, 0, 0], t = 0;
-      const Lc = v3.cross(x, v), h2 = v3.dot(Lc, Lc);
-      const acc = (y) => { const r2 = v3.dot(y, y); return v3.sc(y, -1.5 * rs * gB * h2 / (r2 * r2 * Math.sqrt(r2))); };
+      const acc = (y, u) => {                                                  // forward photon: a = −2 u × B_J
+        const r2 = v3.dot(y, y), r = Math.sqrt(r2), Lc = v3.cross(y, u);
+        let a = v3.sc(y, -1.5 * rs * gB * v3.dot(Lc, Lc) / (r2 * r2 * r));
+        if (Jd) { const rh = v3.sc(y, 1 / r), BJ = v3.sc([3 * rh[0] * rh[2], 3 * rh[1] * rh[2], 3 * rh[2] * rh[2] - 1], Jd / (r2 * r)); a = v3.add(a, v3.sc(v3.cross(u, BJ), -2)); }
+        return a;
+      };
       const rk4 = (x, v, dl) => {
-        const a1 = acc(x), v2 = v3.add(v, v3.sc(a1, dl / 2)), a2 = acc(v3.add(x, v3.sc(v, dl / 2)));
-        const v3_ = v3.add(v, v3.sc(a2, dl / 2)), a3 = acc(v3.add(x, v3.sc(v2, dl / 2)));
-        const v4 = v3.add(v, v3.sc(a3, dl)), a4 = acc(v3.add(x, v3.sc(v3_, dl)));
+        const a1 = acc(x, v), v2 = v3.add(v, v3.sc(a1, dl / 2)), a2 = acc(v3.add(x, v3.sc(v, dl / 2)), v2);
+        const v3_ = v3.add(v, v3.sc(a2, dl / 2)), a3 = acc(v3.add(x, v3.sc(v2, dl / 2)), v3_);
+        const v4 = v3.add(v, v3.sc(a3, dl)), a4 = acc(v3.add(x, v3.sc(v3_, dl)), v4);
         return [v3.add(x, v3.sc(v3.add(v3.add(v, v3.sc(v2, 2)), v3.add(v3.sc(v3_, 2), v4)), dl / 6)),
                 v3.add(v, v3.sc(v3.add(v3.add(a1, v3.sc(a2, 2)), v3.add(v3.sc(a3, 2), a4)), dl / 6))];
       };
-      const wOf = (r) => (grz ? 1 / Math.sqrt(1 - rs / r) : 1);
+      const wOf = (r) => 1;                                                // fog = photon-path density (what a camera records)
       const pts = [x], ts = [0], ws = [wOf(L0)];
       let since = 0;
       for (let i = 0; i < 4000; i++) {
@@ -1298,6 +1344,9 @@ function beamRays(mask) {
     return out;
   });
 }
+// beam direction fixed in the star's frame (chosen so the default view sees it side-on, from the left)
+const BEAM_D = (() => { const i = 62 * Math.PI / 180, az = 0.4, c = [Math.sin(i) * Math.cos(az), Math.sin(i) * Math.sin(az), Math.cos(i)];
+  const b = basis(c); const d = v3.add(v3.sc(b.R, 0.97), v3.sc(b.F, 0.25)); return v3.sc(d, 1 / v3.len(d)); })();
 const beamGL = new Map(), beamLast = new Map();                          // projected vertex buffers per view
 let beamLastT = 0;
 function beamBuffer(eye, mask, tab, cxv, tanH, asp) {
@@ -1307,15 +1356,16 @@ function beamBuffer(eye, mask, tab, cxv, tanH, asp) {
   if (drag && beamLast.has(mask) && now - beamLastT < 160) return beamLast.get(mask);
   beamLastT = now;
   const norm = (a) => v3.sc(a, 1 / v3.len(a));
-  const d = norm(v3.add(v3.sc(eye.R, 0.97), v3.sc(eye.F, 0.25)));        // light arrives from the left of the view
-  const e1 = norm(v3.add(eye.U, v3.sc(d, -v3.dot(eye.U, d)))), e2 = v3.cross(d, e1);
+  const d = BEAM_D;                                                        // a distant star: fixed direction in space
+  const e1 = norm(v3.add([0, 0, 1], v3.sc(d, -d[2]))), e2 = v3.cross(d, e1);
   const data = []; let nHi = 0;
   for (const ray of beamRays(mask)) {
     let prev = null;
     for (let i = 0; i < ray.pts.length; i++) {
       const c = ray.pts[i], w = [d[0] * c[0] + e1[0] * c[1] + e2[0] * c[2], d[1] * c[0] + e1[1] * c[1] + e2[1] * c[2], d[2] * c[0] + e1[2] * c[1] + e2[2] * c[2]];
       const q = projectPoint(w, eye, mask, tab, cxv, tanH, asp, true);
-      const cur = q ? [q[0], q[1], ray.ts[i], ray.ws[i]] : null;
+      const dn = Math.hypot(w[0] - eye.p[0], w[1] - eye.p[1], w[2] - eye.p[2]) / Math.hypot(...eye.p), fa = Math.min(1, Math.max(0, (dn - 0.3) / 0.25));
+      const cur = q ? [q[0], q[1], ray.ts[i], ray.ws[i] * fa * fa * (3 - 2 * fa)] : null;
       if (prev && cur && Math.abs(cur[0] - prev[0]) + Math.abs(cur[1] - prev[1]) < 0.6) data.push(...prev, ...cur);
       prev = cur;
     }
@@ -1378,7 +1428,7 @@ function drawBeam(E) {
   const fw = Math.max(16, Math.round(W / k)), fh = Math.max(16, Math.round(H / k));
   fogTargets(fw, fh);
   const views = viewList(E, W, H), BEAMC = [0.62, 0.8, 1.0];
-  const entries = views.map(([e, mask, vp, tint, cxv]) => [beamBuffer(E[e], mask, rayTable(Math.hypot(...E[e].p), mask), 0, tanH, vp[2] / vp[3]), vp, tint, cxv]);
+  const entries = views.map(([e, mask, vp, tint, cxv]) => [beamBuffer(E[e], mask, rayTable(Math.hypot(...E[e].p), mask, tanH, vp[2] / vp[3]), 0, tanH, vp[2] / vp[3]), vp, tint, cxv]);
   // 1) photon-path density into a low-resolution buffer
   gl.bindFramebuffer(gl.FRAMEBUFFER, fog.fbo[0]); gl.viewport(0, 0, fw, fh);
   gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -1434,10 +1484,11 @@ function pushStrip(out, pts, wPx, aCenter, W, H, vp, col) {
     const a = pts[i], b = pts[i + 1]; if (!a || !b) continue;
     let dx = b[0] - a[0], dy = b[1] - a[1]; const L = Math.hypot(dx, dy); if (L < 1e-3 || L > W * 0.5) continue;
     const nx = -dy / L * wPx / 2, ny = dx / L * wPx / 2;
-    const ca = a.length > 3 ? a.slice(3) : col, cb = b.length > 3 ? b.slice(3) : col;
+    const ca = a.length > 4 ? a.slice(4) : col, cb = b.length > 4 ? b.slice(4) : col;
+    const wa = a[3] ?? 1, wb = b[3] ?? 1;                                   // perspective width factor per point
     const P = (x, y, al, c) => [((vp[0] + x) / W) * 2 - 1, ((vp[1] + y) / H) * 2 - 1, al, c[0], c[1], c[2]];
-    const A0 = P(a[0] + nx, a[1] + ny, 0, ca), A1 = P(a[0], a[1], aCenter * a[2], ca), A2 = P(a[0] - nx, a[1] - ny, 0, ca);
-    const B0 = P(b[0] + nx, b[1] + ny, 0, cb), B1 = P(b[0], b[1], aCenter * b[2], cb), B2 = P(b[0] - nx, b[1] - ny, 0, cb);
+    const A0 = P(a[0] + nx * wa, a[1] + ny * wa, 0, ca), A1 = P(a[0], a[1], aCenter * a[2], ca), A2 = P(a[0] - nx * wa, a[1] - ny * wa, 0, ca);
+    const B0 = P(b[0] + nx * wb, b[1] + ny * wb, 0, cb), B1 = P(b[0], b[1], aCenter * b[2], cb), B2 = P(b[0] - nx * wb, b[1] - ny * wb, 0, cb);
     out.push(...A0, ...A1, ...B0, ...B0, ...A1, ...B1, ...A1, ...A2, ...B1, ...B1, ...A2, ...B2);
   }
 }
@@ -1458,15 +1509,21 @@ function drawField(E) {
   gl.useProgram(LN.p); gl.bindVertexArray(lineVao);
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
   for (const [e, mask, vp, tint, cxv] of views) {
-    const eye = E[e], rc = Math.hypot(...eye.p), tab = rayTable(rc, mask), asp = vp[2] / vp[3];
+    const eye = E[e], rc = Math.hypot(...eye.p), asp = vp[2] / vp[3], tab = rayTable(rc, mask, tanH, asp);
     const toPix = (q) => q ? [(q[0] + 1) / 2 * vp[2], (q[1] + 1) / 2 * vp[3], q[2]] : null;
+    // lines sweeping past the camera would blow up in perspective: fade them out inside ~0.45 of the viewing distance,
+    // and scale the width with distance (nearer = thicker) as a depth cue
+    const D = Math.hypot(...eye.p);
+    const nearFade = (p) => { const d = Math.hypot(p[0] - eye.p[0], p[1] - eye.p[1], p[2] - eye.p[2]) / D; const t = Math.min(1, Math.max(0, (d - 0.3) / 0.25)); return [t * t * (3 - 2 * t), Math.min(1.8, Math.max(0.45, 0.9 / Math.max(d, 0.2)))]; };
     const groups = [];
     if (S.field) for (const ln of fieldLines(mask)) {
       const byB = S.bcol && !ln.sheet;
       const pts = ln.pts.map((p, i) => {
         const q = toPix(projectPoint(p, eye, mask, tab, cxv, tanH, asp));
         if (q) {
-          q[2] = Math.max(0, Math.min(1, (ln.rMax - q[2]) / (0.6 * ln.rMax))) ** 1.5 * (ln.wts ? ln.wts[i] : 1);
+          const [fa, wf] = nearFade(p);
+          q[2] = Math.max(0, Math.min(1, (ln.rMax - q[2]) / (0.6 * ln.rMax))) ** 1.5 * (ln.wts ? ln.wts[i] : 1) * fa;
+          q[3] = wf;
           if (byB) q.push(...bColour(bMag(p)).map((v, k) => v * tint[k]));
         }
         return q;
@@ -1475,7 +1532,7 @@ function drawField(E) {
     }
     if (S.lc && isFinite(P.RLC) && P.RLC < 600) {
       const ring = [];
-      for (let k = 0; k <= 128; k++) { const a = k / 128 * 2 * Math.PI; const q = toPix(projectPoint(rotZ([P.RLC * Math.cos(a), P.RLC * Math.sin(a), 0], -P.OmKm * S.tKm), eye, 0 | (mask & ~(1 << BIT.retard)), tab, cxv, tanH, asp)); if (q) q[2] = (k % 8 < 5) ? 1 : 0; ring.push(q && q[2] ? q : null); }
+      for (let k = 0; k <= 128; k++) { const a = k / 128 * 2 * Math.PI; const lp = [P.RLC * Math.cos(a), P.RLC * Math.sin(a), 0]; const q = toPix(projectPoint(rotZ(lp, -P.OmKm * S.tKm), eye, 0 | (mask & ~(1 << BIT.retard)), tab, cxv, tanH, asp)); if (q) { const [fa, wf] = nearFade(lp); q[2] = (k % 8 < 5) ? fa : 0; q[3] = wf; } ring.push(q && q[2] ? q : null); }
       groups.push({ pts: ring, col: [0.45, 0.85, 1.0], lc: true });
     }
     for (const gp of groups) {
@@ -1615,13 +1672,13 @@ const TIPS = {
     retard: T("Light-travel time (what you see)", "You see each point of the star where it was when its light left, computed along the actual (bent) ray. This shears the rotating pattern and delays when you see each field line. Switch it off for the impossible 'instant light' view.", "exact"),
     fieldret: T("Retarded B field (light-time twist)", "Changes in the magnet's orientation spread outward at the speed of light, so far parts of the field still point the way the magnet pointed earlier: field lines twist into a spiral. Beyond the light cylinder the field becomes radiation. This changes the field itself, not just how you see it.", "exact", "Exact for a point magnetic dipole in empty space (Deutsch 1955 / Jackson). The plasma-filled model's winding is schematic."),
     aberr: T("Aberration", "Light emitted by a moving surface is tilted forward. Changes how bright each patch looks near the edge (limb darkening is computed in the surface's own frame). Combined with light-travel time, this is the Terrell–Penrose effect.", "exact"),
-    doppler: T("Doppler colour", "Approaching side bluer, receding side redder. In the blue-wireframe style the grid hue shows how a 490 nm reference line would shift; in the thermal style the exact blackbody colour shift is shown.", "exact", "The shift is exact; the 490 nm colour coding is a display choice."),
+    doppler: T("Doppler colour", "Approaching side bluer, receding side redder. In the blue-wireframe style the grid hue shows how a 490 nm reference line would shift; in the thermal style the exact blackbody colour shift is shown.", "exact", "The shift is exact; the 490 nm colour coding is a display choice and shows the Doppler part only (the gravitational redshift is in the g map and in the thermal style)."),
     beam: T("Beaming (g³ per frequency, g⁴ total)", "Relativistic beaming: specific intensity Iν/ν³ is invariant, so at a fixed frequency brightness scales as g³ and in total as g⁴. Makes the approaching side glow and the receding side fade.", "exact", "The wireframe shows a compressed (g⁴)^0.4 so both sides stay visible; the hot-cap colours and the brightness curve use the true g⁴."),
     bend: T("Light bending", "General relativity: light follows curved paths (null geodesics) around the star. Each pixel's photon is traced backwards with RK4 integration. Switch off to see straight-line (Newtonian) optics.", "exact", "Schwarzschild exterior. For the background sky far from the edge a weak-field shortcut is used (up to ~0.7° off right next to the limb)."),
     grz: T("Gravitational redshift", "Light loses energy climbing out of gravity: redshift factor √(1−r_s/R) ≈ 0.81 for a 1.4 M☉, 12 km star. Surface clocks also run slow, which makes the surface's speed relative to local observers higher.", "exact"),
     shapiro: T("Shapiro delay", "Light passing through a gravity well takes extra time (measured for real with radar to Venus and in binary pulsars). Here it adds to every light-travel delay.", "exact"),
     oblate: T("Oblate shape", "A spinning star bulges at its equator. At 716 Hz the pole-to-pole diameter is ~11% smaller than the equatorial one.", "approx", "AlGendy & Morsink 2014 fit to full numerical models (≈1% accurate in radius). Clamped at the break-up spin."),
-    drag: T("Frame dragging", "A spinning mass drags spacetime around with it (Lense–Thirring effect, measured by Gravity Probe B around Earth). Light passing the star is twisted slightly along the spin.", "approx", "First-order slow-rotation formula ω = 2GJ/(c²r³); moment of inertia from the Lattimer & Schutz 2005 fit. Small: ~0.6° twist."),
+    drag: T("Frame dragging", "A spinning mass drags spacetime around with it (Lense–Thirring effect, measured by Gravity Probe B around Earth). Light passing the star with its spin is bent less, light passing against it is bent more (by 4GJ/c³b² in the weak field: ±1.6° at 15 km, several degrees for rays grazing the limb), and the surface moves slightly slower relative to the local dragged space.", "approx", "First order in the spin: gravitomagnetic force on the photon and ω = 2GJ/(c²r³); moment of inertia from the Lattimer & Schutz 2005 fit. Verified against the exact slow-rotation geodesic: right sign and size, under-estimating the effect by ~25% for limb-grazing rays."),
   },
   guided: T("Guided ladder", "Steps through all nine physics steps automatically, about 12 seconds each, with an explanation for each. Click any step to stop and explore it yourself.", "disp"),
   pause: T("Pause (Space)", "Freezes time. All physics stays switched as it is, so you can study one moment, orbit around it, or change effects on a frozen star.", "disp"),
@@ -1636,11 +1693,11 @@ const TIPS = {
     T("Light-delay map", "Colours each point by how much later its light reaches you than light from the nearest point (purple → yellow, scale in the Numbers panel). Shows why the pattern shears: the limbs are seen in the past.", "exact"),
   ],
   ghostBtn: T("Ghost of previous step", "Draws the grid of the previous ladder step as faint white lines on top of the current one, so you can see exactly what the newest effect moved.", "disp"),
-  fieldBtn: T("Magnetic field lines", "Shows the star's magnetic field. Neutron stars have the strongest steady magnetic fields known. Lines are drawn through the same light bending and light delay as the surface, and hidden where the star blocks them.", "schem", "Field lines are not visible in reality; they are drawn as if they glowed."),
+  fieldBtn: T("Magnetic field lines", "Shows the star's magnetic field. Neutron stars have the strongest steady magnetic fields known. Lines are drawn through the same light bending and light delay as the surface, and hidden where the star blocks them. Lines that would pass right by your viewpoint are faded out, and nearer lines are drawn thicker.", "schem", "Field lines are not visible in reality; they are drawn as if they glowed. With light-travel time on, each point is shown where it was when its light left. Beyond the light cylinder the field pattern sweeps round faster than light, so parts of it can have several delayed images; where two images merge a line visibly breaks, as a real view of such a pattern would."),
   lcBtn: T("Light cylinder", "The dashed ring at radius c/Ω: anything co-rotating with the star at this distance would move at the speed of light. Inside, the magnetic field can co-rotate; outside, it must open up or become radiation. 67 km at 716 Hz.", "exact"),
   curveBtn: T("Brightness curve", "The X-ray brightness of the hot caps over two rotations, computed from a 64×64 ray-traced image with all currently switched physics. This pulse shape is what NICER measures to determine neutron-star masses and radii. Dashed: the same without any relativity.", "exact", "Bolometric (all-frequency) flux of the hot caps only; the cooler surface is ignored, as in NICER models."),
   gridBtn: T("Latitude/longitude grid", "Coordinate lines painted onto the surface (every 10° and 30°, equator, gold prime meridian). They make rotation, light bending and shearing visible.", "disp"),
-  raysBtn: T("Incoming light beam", "A broad beam of starlight streaming past the star — about 430 light paths, each traced along the same curved path the renderer uses, drawn as a glowing fog. The fog is brighter where paths crowd together (more light per area): you see the star's dark shadow behind it, and the bright focal line where gravity bends the light together — the star acting as a lens. Bright bands are wavefronts moving at the speed of light (slowed down); they lag where gravity delays them. Switch light bending off and the beam goes straight.", "exact",
+  raysBtn: T("Incoming light beam", "A broad beam of starlight from one distant star, fixed in space (orbit around to see it from other angles, including head-on) — about 430 light paths, each traced along the same curved path the renderer uses, drawn as a glowing fog. The fog is brighter where paths crowd together (more light per area, the flux): you see the star's dark shadow behind it, and the bright focal line where gravity bends the light together — the star acting as a lens. Bright bands are wavefronts moving at the speed of light (slowed down); they lag where gravity delays them. Switch light bending off and the beam goes straight.", "exact",
     "Paths verified against the exact Schwarzschild deflection (within 0.06°). Does the magnetic field bend light? No: in Maxwell's theory light passes straight through a static magnetic field. Quantum 'vacuum birefringence' only changes polarization, and only near 4.4×10⁹ T (this star: ~10⁴ T); plasma in the magnetosphere bends radio waves only. All bending here is gravity."),
   beam: T("Light-beam brightness", "How bright the incoming light beam is drawn. The brightness ratios across the beam — darker shadow, brighter focus — stay physical; this only scales the whole beam.", "disp"),
   bcolBtn: T("Colour field lines by |B|", "Colours the magnetic field lines by field strength in tesla, on a log scale from 1/100,000 of the polar field (violet) to the polar field (amber). Legend in the Star section.", "approx", "Dipole strength (with the general-relativity correction near the star) inside the light cylinder; 1/r² plasma wind or 1/r vacuum wave outside."),

@@ -479,6 +479,31 @@ Numerical check at v_eq = 0.5c, where R_LC = 2R = 24 km:
 
 The in-app **Magnetosphere tour** (26 s, also exported as `assets/ns_magnetosphere_tour.mp4`) shows the vacuum dipole, then the plasma-filled magnetosphere, then the striped wind and current sheet. It runs at v = 0.4c with a 25° tilt, which puts the light cylinder at 2.5 R.
 
+## 6c. October 2026 audit (v1.26)
+
+An adversarial re-derivation of every formula in the renderer, checked against X-PSI and bender source and against
+independent integrations, is in [`AUDIT_2026-10.md`](AUDIT_2026-10.md). Verified exact: the Cartesian geodesic form and
+affine parameter, both camera and surface frame rescalings, dt/dλ and the Tref log term, the oblate normal, the
+Doppler/redshift factor g = N√(1−β_Z²)/(1 − Ωℓ), aberration and the comoving limb law, the blackbody LUT (so the
+thermal style's blackbody-at-gT is exact), the image-plane flux integral, the AGM14 oblateness, Lattimer–Schutz I,
+J, ω and χ, the retarded dipole including the 1/r term's sign, the Schwarzschild-dipole series, the polar cap and
+flux mapping, the trailing-spiral sign, the force-free spin-down units, B_Q and the 2.9 GM/c² causality limit.
+
+Three real errors were found and fixed:
+
+1. **Frame dragging.** Rotating the traced ray with the dragged space gives only a uniform image twist, and the
+   differential Lense–Thirring bending (prograde light bent less, retrograde more, ∓4GJ/c³b² in the weak field;
+   Sereno & De Luca 2006) came out with the wrong sign. The renderer now applies the first-order gravitomagnetic
+   force a = −2 v × B_J, B_J = J(3r̂ r̂_z − ẑ)/r³, equivalent to the slow-rotation Hamiltonian to first order in J,
+   with the sign reversed for the backward-traced ray. Against the exact slow-rotation geodesic: right sign and
+   size, ~25% low for limb-grazing rays (b < 1.4 R).
+2. **Background-sky remainder.** The analytic deflection remaining beyond the integration region lacked the
+   geometric term b²/(2r²); the sky next to the limb was over-bent by up to ~1°. Fixed and the hand-off moved to 8 R
+   (worst error 0.06°).
+3. **Field-line light delay.** The fixed-point iteration for "where was this corotating point when its light left"
+   has contraction factor Ωρ/c and diverges beyond the light cylinder; its fallbacks produced zigzag lines. It is now
+   a bracketing scan plus bisection that finds the most recent emission.
+
 ## 7. References
 
 (arXiv IDs for Lattimer & Schutz, Lattimer & Prakash, Poutanen & Gierliński, Fonseca+21 and Hessels+06 are from memory [mem]; the rest appeared in search results.)
