@@ -316,7 +316,7 @@
 <div id="spot" hidden></div>
 <div id="tbub" hidden></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel · ?: help tips · I: intro · T: tour</div>
-<div class="build" id="build">v1.28.0</div>
+<div class="build" id="build">v1.29.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -654,7 +654,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.28.0";
+const BUILD = "v1.29.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -2044,6 +2044,14 @@ const TIPS = {
     aud.src = `assets/intro/s${i + 1}.mp3`; aud.addEventListener("loadedmetadata", () => { try { aud.currentTime = off; } catch (e) { /* ignore */ } }, { once: true }); aud.play().catch(() => {});
   }
   for (const ev of ["pointerdown", "keydown"]) window.addEventListener(ev, resumeSound, true);
+  // quiet background music (assets/intro/music.mp3, ElevenLabs Music), locked to the intro clock; about 13 dB under the narration
+  const mus = new Audio(); let hasMusic = false; const MUS_VOL = 0.06;
+  function musicTick() {
+    if (!hasMusic || I.mute || S.paused || needSound) { if (!mus.paused) mus.pause(); return; }
+    if (mus.seekable.length && Math.abs(mus.currentTime - I.t) > 0.7) { try { mus.currentTime = I.t; } catch (e) { /* not seekable yet */ } }
+    mus.volume = MUS_VOL * clamp(Math.min(I.t / 2.5, (total - I.t) / 3), 0, 1);
+    if (mus.paused) mus.play().catch(blocked);
+  }
   function stopVoice() { clearTimeout(leadT); try { aud.pause(); } catch (e) { /* ignore */ } if (window.speechSynthesis) speechSynthesis.cancel(); }
   function playScene(i) {
     stopVoice(); if (I.exp || S.paused) return;
@@ -2061,6 +2069,7 @@ const TIPS = {
     if (!I.active || I.exp) return;
     const dt = Math.min(0.5, (now - I.last) / 1000); I.last = now;
     if (!S.paused) I.t += dt;
+    musicTick();
     if (S.paused !== wasPaused) { wasPaused = S.paused; if (S.paused) { stopVoice(); } else playScene(Math.max(0, I.idx)); }
     if (I.t >= total) { stopIntro(true); return; }
     const i = introAt(I.t);
@@ -2075,7 +2084,7 @@ const TIPS = {
     hideWelcome(); ls.set("nsIntroSeen", "1");
   }
   function stopIntro(finished) {
-    if (!I.active) return; I.active = false; stopVoice(); needSound = false; $("ibSound").hidden = true; document.body.classList.remove("nosound");
+    if (!I.active) return; I.active = false; stopVoice(); mus.pause(); needSound = false; $("ibSound").hidden = true; document.body.classList.remove("nosound");
     document.body.classList.remove("intro", "introLimits"); $("introUI").hidden = true; $("curve").classList.remove("tr");
     Object.assign(S, I.saved); S.beta = I.saved.beta; syncUI(); $("pause").classList.toggle("on", S.paused);
     $("caption").style.opacity = 0;
@@ -2089,7 +2098,7 @@ const TIPS = {
   const jump = (k) => { if (!I.active) return; k = clamp(k, 0, starts.length - 1); I.t = starts[k] + 0.01; I.idx = -1; };
   $("ibPrev").addEventListener("click", () => jump((I.idx > 0 && I.t - starts[I.idx] < 2.5 ? I.idx - 1 : I.idx)));
   $("ibNext").addEventListener("click", () => { if (I.idx + 1 < starts.length) jump(I.idx + 1); else stopIntro(true); });
-  $("ibVoice").addEventListener("click", () => { if (voice) I.mute = !I.mute; else I.speech = !I.speech; setVoiceBtn(); stopVoice(); if (I.active && !S.paused) playScene(Math.max(0, I.idx)); });
+  $("ibVoice").addEventListener("click", () => { if (voice) I.mute = !I.mute; else I.speech = !I.speech; setVoiceBtn(); stopVoice(); if (I.mute) mus.pause(); if (I.active && !S.paused) playScene(Math.max(0, I.idx)); });
 
   // ------------------------------------------------------------------- guided tour (spotlight)
   const G = { on: false, i: 0, base: null };
@@ -2162,6 +2171,7 @@ const TIPS = {
   async function boot() {
     try { script = await (await fetch("assets/intro/script.json")).json(); } catch (e) { script = null; }
     if (script) { try { const r = await fetch("assets/intro/durations.json"); if (r.ok) voice = await r.json(); } catch (e) { voice = null; } }
+    if (script && !EXPORT) { try { const r = await fetch("assets/intro/music.mp3", { method: "HEAD" }); if (r.ok) { mus.src = "assets/intro/music.mp3"; mus.preload = "auto"; hasMusic = true; } } catch (e) { hasMusic = false; } }
     if (!script) { $("introBtn").style.display = "none"; $("wIntro").style.display = "none"; }
     else {
       plan(); $("introBtn").textContent = `▶ Watch the intro (${Math.max(1, Math.round(total / 30) / 2)} min)`;
