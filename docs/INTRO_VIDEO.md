@@ -77,3 +77,12 @@ aloud with the browser's own voice (a preview only: quality and accent depend on
 A spotlight tour of the 14 controls that matter most (`GST` in the same block). Each stop switches something on so the
 effect is visible and, when the tour ends, every setting is restored. The first visit shows a welcome card with both
 options; panel sections are collapsible (and remembered).
+
+## Background music (ElevenLabs Music)
+
+`node tools/make_intro_music.mjs` composes `assets/intro/music.mp3` with ElevenLabs Music (`music_v1`, one section per scene, quiet
+instrumental: warm pads, sparse piano, low strings, no drums or vocals), as long as the film plus a 3 s tail. Same key as the narration.
+Re-run with `--force` after changing scene lengths (`durations.json`) or the moods (`MOOD` in the script).
+The page plays it at about 13 dB under the narration, locked to the intro clock (pause, skip and scene jumps follow), and the
+🔊 button mutes narration and music together. `render_intro.mjs` mixes it into the MP4 with the same level, a gentle duck while the
+voice speaks, a fade in and out, and the whole mix at -16 LUFS.
