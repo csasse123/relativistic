@@ -22,7 +22,12 @@ let filter = "";
 if (info.voice) {
   const n = info.durs.length, lead = Math.round(info.lead * 1000);
   info.durs.forEach((_, i) => args.push("-i", path.join(root, `assets/intro/s${i + 1}.mp3`)));
-  filter = info.durs.map((d, i) => `[${i + 1}:a]adelay=${lead}:all=1,apad=whole_dur=${d.toFixed(3)}[a${i}]`).join(";") + ";" + info.durs.map((_, i) => `[a${i}]`).join("") + `concat=n=${n}:v=0:a=1[aout]`;
+  const music = path.join(root, "assets/intro/music.mp3"), hasMusic = fs.existsSync(music);
+  filter = info.durs.map((d, i) => `[${i + 1}:a]adelay=${lead}:all=1,apad=whole_dur=${d.toFixed(3)}[a${i}]`).join(";") + ";" + info.durs.map((_, i) => `[a${i}]`).join("") + `concat=n=${n}:v=0:a=1[voice]`;
+  // music: 13 dB under the narration, ducked a little while it speaks, faded in and out; then the whole mix to -16 LUFS
+  if (hasMusic) { args.push("-i", music); const T = info.total;
+    filter += `;[${n + 1}:a]atrim=0:${T.toFixed(3)},volume=0.052,afade=t=in:d=2.5,afade=t=out:st=${(T - 3).toFixed(3)}:d=3[mq];[voice]asplit[v1][v2];[mq][v2]sidechaincompress=threshold=0.02:ratio=3:attack=150:release=700[md];[v1][md]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-16:TP=-1.5[aout]`; }
+  else filter += ";[voice]anull[aout]";
   args.push("-filter_complex", filter, "-map", "0:v", "-map", "[aout]", "-c:a", "aac", "-b:a", "192k", "-ar", "48000");
 }
 args.push("-c:v", "libx264", "-preset", "slow", "-crf", "17", "-profile:v", "high", "-pix_fmt", "yuv420p", "-r", String(fps), "-t", total.toFixed(3), "-movflags", "+faststart", path.join(root, out));
