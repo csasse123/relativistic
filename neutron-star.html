@@ -63,7 +63,62 @@
   .toggle { position: fixed; z-index: 7; top: 12px; right: 12px; display: none !important; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 7px 12px; font: 600 0.7rem "JetBrains Mono", monospace; cursor: pointer; }
   .toggle.show { display: block; }
   .warn { color: #fb7185; font-weight: 700; }
+  /* accordion sections */
+  .sec > h2 { cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; }
+  .sec > h2::after { content: "▾"; color: #6fd6ff; opacity: 0.8; transition: transform 0.2s; }
+  .sec.collapsed > h2::after { transform: rotate(-90deg); }
+  .sec.collapsed > .secBody { display: none; }
+  .sec.collapsed > h2 { margin-bottom: 4px; }
+  /* intro / tour entry buttons */
+  .chips button.cta { border-color: rgba(176,140,255,0.6); background: linear-gradient(90deg, rgba(60,110,220,0.4), rgba(130,70,230,0.4)); color: #f2f6ff; font-weight: 600; padding: 7px 12px; }
+  .chips button.cta.pulse { animation: ctaPulse 1.4s ease-in-out 4; }
+  @keyframes ctaPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(176,140,255,0.0); } 50% { box-shadow: 0 0 0 6px rgba(176,140,255,0.35); } }
+  /* welcome card */
+  #welcome { position: fixed; left: 50%; bottom: 44px; transform: translateX(-50%); z-index: 20; width: min(560px, 94vw);
+    background: rgba(6,14,34,0.92); border: 1px solid rgba(176,140,255,0.45); border-radius: 16px; padding: 14px 16px 12px; backdrop-filter: blur(12px);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.55); }
+  #welcome[hidden] { display: none; }
+  #welcome h3 { font: 700 1.05rem "Space Grotesk", system-ui, sans-serif; margin-bottom: 4px; color: #eaf3ff; }
+  #welcome p { font-size: 0.8rem; color: #a9c0da; line-height: 1.45; margin-bottom: 10px; }
+  #welcome .chips { margin-bottom: 0; }
+  #welcome .chips button { font-size: 0.78rem; padding: 7px 12px; }
+  /* intro overlay */
+  #introUI[hidden] { display: none; }
+  body.intro .hint, body.intro #panelTab, body.intro .build { display: none; }
+  body.intro:not(.introLimits) #validity { display: none !important; }
+  #fact { position: fixed; z-index: 6; top: 22px; right: 28px; text-align: right; max-width: 46vw; pointer-events: none; transition: opacity 0.4s; }
+  #fact .big { font: 700 clamp(1.3rem, 3.2vw, 2.4rem)/1.1 "Space Grotesk", system-ui, sans-serif; color: #f4f8ff; text-shadow: 0 0 24px rgba(90,170,255,0.55), 0 2px 10px #000; letter-spacing: -0.02em; }
+  #fact .small { margin-top: 6px; font: 600 clamp(0.7rem, 1.2vw, 0.9rem) "JetBrains Mono", monospace; color: #9fc4ee; text-shadow: 0 1px 8px #000; }
+  #sub { position: fixed; z-index: 6; left: 50%; bottom: 78px; transform: translateX(-50%); width: min(760px, 90vw); text-align: center; pointer-events: none;
+    font: 500 clamp(1rem, 1.9vw, 1.35rem)/1.4 "DM Sans", system-ui, sans-serif; color: #fff; text-shadow: 0 2px 12px #000, 0 0 3px #000; transition: opacity 0.25s; }
+  #introBar { position: fixed; z-index: 8; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center;
+    background: rgba(6,14,34,0.8); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; backdrop-filter: blur(10px); }
+  #introBar button { border: none; background: none; color: #dbe9fb; cursor: pointer; font: 600 0.8rem "JetBrains Mono", monospace; padding: 4px 6px; border-radius: 8px; }
+  #introBar button:hover { background: rgba(110,200,255,0.18); }
+  #ibDots { display: flex; gap: 6px; padding: 0 6px; }
+  #ibDots i { width: 22px; height: 6px; border-radius: 3px; background: rgba(150,190,240,0.25); cursor: pointer; overflow: hidden; position: relative; }
+  #ibDots i.done { background: rgba(130,180,255,0.7); }
+  #ibDots i.now { background: rgba(150,190,240,0.3); }
+  #ibDots i.now::after { content: ""; position: absolute; inset: 0; width: var(--p, 0%); background: #9fd0ff; }
+  #qmark { position: fixed; z-index: 4; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity 0.8s;
+    font: 700 min(46vh, 40vw) "Space Grotesk", system-ui, sans-serif; color: rgba(150,200,255,0.5); text-shadow: 0 0 60px rgba(90,160,255,0.6); }
+  #curve.tr { left: auto; right: 16px; top: 100px; bottom: auto; }
+  /* spotlight tour */
+  #spot { position: fixed; z-index: 60; border-radius: 12px; pointer-events: none; box-shadow: 0 0 0 100vmax rgba(2,6,16,0.74), 0 0 0 2px rgba(111,214,255,0.9), 0 0 24px 4px rgba(111,214,255,0.45);
+    transition: left 0.3s, top 0.3s, width 0.3s, height 0.3s; }
+  #spot[hidden], #tbub[hidden] { display: none; }
+  #tbub { position: fixed; z-index: 61; background: rgba(8,18,40,0.98); border: 1px solid rgba(111,214,255,0.5); border-radius: 14px; padding: 12px 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
+  #tbub .tn { font: 700 0.58rem "JetBrains Mono", monospace; letter-spacing: 0.12em; color: #b08cff; text-transform: uppercase; }
+  #tbub .tt { font: 700 1rem "Space Grotesk", system-ui, sans-serif; color: #eaf5ff; margin: 3px 0 4px; }
+  #tbub .tx { font-size: 0.78rem; color: #b5c9e0; line-height: 1.5; }
+  #tbub .tb { display: flex; gap: 6px; margin-top: 10px; justify-content: flex-end; }
+  #tbub .tb button { border: 1px solid var(--line); background: rgba(10,24,50,0.9); color: #cfe0f5; border-radius: 999px; padding: 5px 12px; font-size: 0.74rem; cursor: pointer; }
+  #tbub .tb button.go { border-color: #9a7cff; background: linear-gradient(90deg, rgba(60,110,220,0.5), rgba(130,70,230,0.5)); color: #fff; font-weight: 600; }
   @media (max-width: 720px) {
+    #fact { right: 12px; top: 64px; max-width: 70vw; }
+    #sub { bottom: calc(44vh + 54px); }
+    #introBar { bottom: calc(44vh + 8px); }
+    #welcome { bottom: calc(44vh + 12px); }
     .caption .d { display: none; }
     .panel { top: auto; bottom: 0; right: 0; left: 0; width: 100%; max-height: 44vh; border-radius: 16px 16px 0 0; }
     .panel.hidden { transform: translateY(calc(100% + 20px)); }
@@ -89,6 +144,10 @@
 <button id="panelTab" type="button">Hide controls ›</button>
 
 <div class="panel" id="panel">
+  <div class="chips" id="introRow" style="margin-bottom:10px">
+    <button type="button" id="introBtn" class="cta">▶ Watch the intro (2 min)</button>
+    <button type="button" id="tourStart" class="cta">🧭 Interactive tour</button>
+  </div>
   <h2>1 · Physics ladder</h2>
   <div class="help">
     Each step <b>adds</b> one effect. The <b>white ghost grid</b> shows where the grid was one step earlier, so you see exactly what
@@ -215,8 +274,28 @@
 
 <div id="scalebar" style="position:fixed;z-index:5;bottom:30px;pointer-events:none;font:600 0.62rem JetBrains Mono,monospace;color:#a9c8e8;text-align:center">
   <div id="scaleLine" style="height:6px;border:1.5px solid #a9c8e8;border-top:none"></div><div>10 km at the star's centre (before lensing)</div></div>
-<div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel · ?: help tips</div>
-<div class="build" id="build">v1.26.0</div>
+<div id="welcome" hidden>
+  <h3>New to neutron stars?</h3>
+  <p>A neutron star is a collapsed star the size of a city, heavier than the Sun, spinning hundreds of times a second. This page lets you switch on the physics one effect at a time and see what each does. Start with the 2-minute intro, or take a 1-minute tour of the controls.</p>
+  <div class="chips"><button type="button" id="wIntro" class="cta">▶ Watch the intro</button><button type="button" id="wTour" class="cta">🧭 Interactive tour</button><button type="button" id="wExplore">Just explore</button></div>
+</div>
+<div id="introUI" hidden>
+  <div id="qmark">?</div>
+  <div id="fact"><div class="big"></div><div class="small"></div></div>
+  <div id="sub"></div>
+  <div id="introBar">
+    <button type="button" id="ibPrev" title="Previous scene">⏮</button>
+    <button type="button" id="ibPlay" title="Pause / play (Space)">⏸</button>
+    <button type="button" id="ibNext" title="Next scene">⏭</button>
+    <div id="ibDots"></div>
+    <button type="button" id="ibVoice" title="Narration on / off"></button>
+    <button type="button" id="ibClose" title="Leave the intro (Esc)">Skip ✕</button>
+  </div>
+</div>
+<div id="spot" hidden></div>
+<div id="tbub" hidden></div>
+<div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel · ?: help tips · I: intro · T: tour</div>
+<div class="build" id="build">v1.27.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -554,7 +633,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.26.0";
+const BUILD = "v1.27.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -1600,6 +1679,7 @@ function loop(now) {
   fpsAvg = fpsAvg * 0.95 + (dt * 1000) * 0.05;
   if (S.tour && !S.paused) { S.tour.tau += dt; if (S.tour.tau > TOUR_LEN + 2) stopTour(); else tourAt(S.tour.tau); }
   else if (!S.paused && S.f > 0) S.tKm += dt * S.turns / S.f * C_KM;
+  if (window.__introTick) window.__introTick(now);
   S.capT += dt;
   if (!S.guided && S.capT > 10) $("caption").style.opacity = 0;
   if (S.guided) { S.guideT += dt; if (S.guideT > 12) { S.guideT = 0; setStep((S.step + 1) % LADDER.length); } }
@@ -1822,7 +1902,7 @@ const TIPS = {
   leg.innerHTML = `<div class="chips" style="margin-bottom:6px"><button type="button" id="helpBtn"></button></div><span id="helpText"><b>New here?</b> Rest the mouse on any button or slider (long-press on a phone) for what it does and what to look for. ` +
     `The badge says how exact it is: ` + Object.keys(BADGE).map((k) => { const s = document.createElement("span"); s.className = "tb"; s.style.background = BADGE[k][1]; s.textContent = BADGE[k][0]; s.dataset.k = k; return s.outerHTML; }).join(" ");
   leg.innerHTML += `</span>`;
-  $("panel").insertBefore(leg, $("panel").firstChild);
+  $("panel").insertBefore(leg, $("introRow").nextSibling);
   function setHelp(v) {
     helpOn = v; if (!v) hide();
     try { localStorage.setItem("nsHelpTips", v ? "on" : "off"); } catch (e) { /* ignore */ }
@@ -1834,7 +1914,239 @@ const TIPS = {
   window.addEventListener("keydown", (e) => { if (e.key === "?" && e.target.tagName !== "INPUT") setHelp(!helpOn); });
   setHelp(helpOn);
   leg.querySelectorAll(".tb").forEach((s) => attach(s, T(BADGE[s.dataset.k][0], BADGE[s.dataset.k][2], s.dataset.k)));
-  window.__tips = { TIPS, BADGE };
+  window.__tips = { TIPS, BADGE }; window.__tipApi = { attach, T };
+})();
+</script>
+<script>
+"use strict";
+// =============================================================================== onboarding: sections, intro film, guided tour
+(function () {
+  const Q = new URLSearchParams(location.search), EXPORT = Q.get("export") === "intro";
+  const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked */ } } };
+  const api = window.__tipApi || { attach() {}, T: () => ({}) };
+  const clamp = (x, a, b) => Math.min(b, Math.max(a, x)), ease = (x) => x * x * (3 - 2 * x);
+  const SAVE = ["dist", "inc", "az", "fov", "fmodel", "ghost", "curve", "turns", "beta", "f", "mask", "step", "tilt", "bcol", "rays", "scale", "field", "lc", "grid", "view", "bg", "style", "map", "expo", "Bp", "M", "R", "spot", "paused", "beam"];
+  const snapshot = () => SAVE.reduce((o, k) => ((o[k] = S[k]), o), {});
+
+  // ------------------------------------------------------------------- collapsible panel sections
+  const SEC_KEY = "nsSections", secs = [];
+  { let cur = null;
+    [...$("panel").children].forEach((el) => {
+      if (el.tagName === "H2") {
+        cur = document.createElement("div"); cur.className = "sec"; $("panel").insertBefore(cur, el); cur.appendChild(el);
+        cur.body = document.createElement("div"); cur.body.className = "secBody"; cur.appendChild(cur.body); secs.push(cur);
+      } else if (cur) cur.body.appendChild(el);
+    }); }
+  let secState = null; try { secState = JSON.parse(ls.get(SEC_KEY) || "null"); } catch (e) { /* ignore */ }
+  const openState = secState && secState.length === secs.length ? secState : [true, true, false, false, false];
+  secs.forEach((sec, i) => {
+    sec.classList.toggle("collapsed", !openState[i]);
+    sec.firstChild.addEventListener("click", () => { sec.classList.toggle("collapsed"); ls.set(SEC_KEY, JSON.stringify(secs.map((x) => !x.classList.contains("collapsed")))); });
+  });
+  const expand = (el) => { const sec = el.closest(".sec"); if (sec) sec.classList.remove("collapsed"); };
+  const panelOpen = () => !$("panel").classList.contains("hidden");
+
+  // ------------------------------------------------------------------- the intro film
+  // Every scene drives the real renderer; a scene is (state, camera path, subtitle, fact). The timeline is a pure function of
+  // time, so the page can play it live (with narration) or export it frame by frame (tools/render_intro.mjs).
+  let script = null, voice = null, durs = [], starts = [], total = 0, phase0 = [], subs = [];
+  const I = { active: false, t: 0, idx: -1, sig: "", last: 0, saved: null, panelOpen: false, mute: false, speech: false, exp: false, doneUI: "" };
+  const REAL = { f: 716, beta: null, M: 1.4, R: 12, tilt: 48, Bp: 4e4, fmodel: 1, bg: 1, view: 0, style: 0, map: 0, grid: true, ghost: false, bcol: false, scale: false,
+    expo: 0, step: 0, field: false, lc: false, rays: false, curve: false, beam: 1 };
+  const TURNS = { what: 0.1, spin: 0.35, ladder: 0.25, gravity: 0.2, magnet: 0.25, pulse: 0.35, limits: 0.2, invite: 0.2 };
+  const CAM = {   // [dist km, inclination°, azimuth rad, fov°] at scene start → end
+    what: [[110, 72, 3.0, 38], [75, 68, 2.2, 34]], spin: [[75, 68, 2.2, 34], [68, 62, 1.2, 34]], ladder: [[68, 62, 1.2, 34], [78, 66, 0.5, 36]],
+    gravity: [[78, 66, 0.5, 36], [90, 64, 0.4, 40]], magnet: [[115, 84, 0.2, 46], [150, 88, 0.7, 48]], pulse: [[70, 62, 0.7, 34], [70, 62, 0.4, 34]],   // pulse: dist and inclination fixed so the curve can fill
+    limits: [[70, 62, 0.4, 34], [85, 62, 0.9, 36]], invite: [[85, 62, 0.9, 36], [85, 62, 1.6, 36]] };
+  const SCN = {
+    what: () => ({ fact: ["24 km across", "1.4 × the mass of the Sun · one teaspoon ≈ billions of tonnes"] }),
+    spin: () => ({ fact: ["716 turns every second", "fastest known · equator ≈ 0.2 × the speed of light (for a typical size)"] }),
+    ladder: (u) => { const k = u < 0.34 ? 0 : u < 0.68 ? 1 : 2;
+      return { w: { beta: 0.5, step: [0, 2, 4][k] }, fact: [["Newton: an ordinary spinning ball", "+ light travel time: the pattern shears", "+ Doppler: blue toward you, red away"][k], "spun up to 0.5 c so you can see it — real stars can't"] }; },
+    gravity: (u) => ({ w: { step: u < 0.3 ? 4 : 6, rays: u > 0.08 }, fact: u < 0.3 ? ["Without gravity: light goes straight", "sharp shadow behind the star"] : ["Gravity on: light bends around the star", "you see ¾ of the surface at once"] }),
+    magnet: (u) => ({ w: { beta: 0.4, tilt: 25, step: 8, field: true, lc: true, fmodel: u < 0.4 ? 0 : 1, rays: u > 0.86, beam: 0.35 },
+      fact: u < 0.4 ? ["Vacuum dipole", "the textbook picture: a magnet in empty space"] : u <= 0.86 ? ["Plasma-filled magnetosphere", "closed loops, open wind, and a current sheet (orange)"] : ["Light ignores the magnetic field", "all the bending is gravity"] }),
+    pulse: () => ({ w: { step: 8, curve: true }, curveRight: true, fact: ["Brightness over time", "the pulse that NASA's NICER measures"] }),
+    limits: (u) => { const warn = u > 0.35 && u < 0.78;
+      return { w: { step: 8, beta: warn ? 0.9 : null, expo: u > 0.78 ? -1.2 : 0 }, limits: warn, q: u > 0.78,
+        fact: u < 0.35 ? ["Exact: light bending · Doppler · delays", "approximate: frame dragging · schematic: magnetosphere"] : warn ? ["Past what a real star can survive", "the red warning box tells you"] : ["Inside? Nobody knows.", "neutrons? quarks? one of physics' open questions"] }; },
+    invite: (u) => ({ w: { step: 8, field: true, rays: true }, panel: u > 0.4, fact: ["Your turn", "drag · rest on a button · turn up the speed"] }),
+  };
+  const words = (t) => t.split(/\s+/).length;
+  function plan() {
+    durs = script.scenes.map((sc, i) => (voice && voice.scene_dur && voice.scene_dur[i]) || Math.max(sc.min || 8, words(sc.text) / 2.5 + 1.5));
+    starts = []; phase0 = []; total = 0; let ph = 0;
+    durs.forEach((d, i) => { starts.push(total); phase0.push(ph); total += d; ph += (TURNS[script.scenes[i].id] || 0.2) * d; });
+    subs = script.scenes.map((sc, i) => {
+      const parts = sc.text.match(/[^.?!]+[.?!]+(?:\s|$)|[^.?!]+$/g).map((x) => x.trim()), len = parts.reduce((a, x) => a + x.length, 0);
+      const lead = (voice && voice.lead ? voice.lead : 0.3) / durs[i], span = 0.92 - lead; let c = 0;
+      return parts.map((text) => { const a = lead + span * c / len; c += text.length; return { text, a, b: lead + span * c / len }; });
+    });
+  }
+  function apply(sc) {
+    const w = { ...REAL, ...(sc.w || {}) }, sig = JSON.stringify(w);
+    if (sig === I.sig) return; I.sig = sig;
+    const { step, ...rest } = w; Object.assign(S, rest); S.step = step; S.mask = ladderMask(step); syncUI();
+  }
+  let lastSub = "", lastFact = "";
+  function introAt(t) {
+    t = clamp(t, 0, total - 1e-3);
+    let i = 0; while (i + 1 < starts.length && t >= starts[i + 1]) i++;
+    const id = script.scenes[i].id, u = clamp((t - starts[i]) / durs[i], 0, 1), sc = SCN[id](u);
+    apply(sc);
+    const [A, B] = CAM[id], e = ease(u); [S.dist, S.inc, S.az, S.fov] = [0, 1, 2, 3].map((k) => A[k] + (B[k] - A[k]) * e);
+    S.turns = TURNS[id]; S.tKm = (phase0[i] + S.turns * (t - starts[i])) / S.f * C_KM;
+    S.capT = 0; $("caption").style.opacity = 1;
+    $("capStep").textContent = `introduction · ${i + 1} of ${starts.length}`; $("capT").textContent = script.scenes[i].title; $("capD").textContent = "";
+    const sub = (subs[i].find((x) => u >= x.a && u < x.b) || { text: "" }).text;
+    if (sub !== lastSub) { lastSub = sub; $("sub").textContent = sub; }
+    const fk = sc.fact.join("|"); if (fk !== lastFact) { lastFact = fk; $("fact").querySelector(".big").textContent = sc.fact[0]; $("fact").querySelector(".small").textContent = sc.fact[1]; }
+    $("curve").classList.toggle("tr", !!sc.curveRight);
+    document.body.classList.toggle("introLimits", !!sc.limits);
+    $("qmark").style.opacity = sc.q ? 1 : 0;
+    if (!I.exp) {
+      if (!!sc.panel !== I.panelOpen) { I.panelOpen = !!sc.panel; if (I.panelOpen !== panelOpen()) togglePanel(); }
+      [...$("ibDots").children].forEach((d, k) => { d.className = k < i ? "done" : k === i ? "now" : ""; if (k === i) d.style.setProperty("--p", `${u * 100}%`); });
+      $("ibPlay").textContent = S.paused ? "▶" : "⏸";
+    }
+    return i;
+  }
+  // narration: ElevenLabs mp3 per scene if present (assets/intro/sN.mp3), otherwise an optional browser voice
+  const aud = new Audio(); let leadT = 0;
+  function stopVoice() { clearTimeout(leadT); try { aud.pause(); } catch (e) { /* ignore */ } if (window.speechSynthesis) speechSynthesis.cancel(); }
+  function playScene(i) {
+    stopVoice(); if (I.exp || S.paused) return;
+    if (voice && !I.mute) { aud.src = `assets/intro/s${i + 1}.mp3`; leadT = setTimeout(() => aud.play().catch(() => {}), (voice.lead || 0.3) * 1000); }
+    else if (!voice && I.speech && window.speechSynthesis) { const u = new SpeechSynthesisUtterance(script.scenes[i].text); u.rate = 0.98; speechSynthesis.speak(u); }
+  }
+  function setVoiceBtn() {
+    const b = $("ibVoice");
+    if (voice) { b.style.display = ""; b.textContent = I.mute ? "🔇" : "🔊"; }
+    else if (window.speechSynthesis) { b.style.display = ""; b.textContent = I.speech ? "🗣 on" : "🗣 off"; b.title = "Read the subtitles aloud with your browser's voice (a preview: the film is designed for a studio narrator)"; }
+    else b.style.display = "none";
+  }
+  let wasPaused = false;
+  window.__introTick = function (now) {
+    if (!I.active || I.exp) return;
+    const dt = Math.min(0.5, (now - I.last) / 1000); I.last = now;
+    if (!S.paused) I.t += dt;
+    if (S.paused !== wasPaused) { wasPaused = S.paused; if (S.paused) { stopVoice(); } else playScene(Math.max(0, I.idx)); }
+    if (I.t >= total) { stopIntro(true); return; }
+    const i = introAt(I.t);
+    if (i !== I.idx) { I.idx = i; playScene(i); }
+  };
+  function startIntro() {
+    if (!script || I.active) return;
+    if (S.tour) stopTour(); if (G.on) endGuide(); setGuided(false);
+    I.saved = snapshot(); I.panelOpen = false; I.panelWas = panelOpen(); if (I.panelWas) togglePanel();
+    I.active = true; I.t = 0; I.idx = -1; I.sig = ""; I.last = performance.now(); S.paused = false; wasPaused = false; $("pause").classList.remove("on");
+    document.body.classList.add("intro"); $("introUI").hidden = false; setVoiceBtn();
+    hideWelcome(); ls.set("nsIntroSeen", "1");
+  }
+  function stopIntro(finished) {
+    if (!I.active) return; I.active = false; stopVoice();
+    document.body.classList.remove("intro", "introLimits"); $("introUI").hidden = true; $("curve").classList.remove("tr");
+    Object.assign(S, I.saved); S.beta = I.saved.beta; syncUI(); $("pause").classList.toggle("on", S.paused);
+    $("caption").style.opacity = 0;
+    const want = finished ? true : I.panelWas; if (want !== panelOpen()) togglePanel();
+    if (finished) { for (const id of ["tourStart"]) { $(id).classList.remove("pulse"); void $(id).offsetWidth; $(id).classList.add("pulse"); } }
+  }
+  $("introBtn").addEventListener("click", startIntro);
+  $("ibClose").addEventListener("click", () => stopIntro(false));
+  $("ibPlay").addEventListener("click", () => $("pause").click());
+  const jump = (k) => { if (!I.active) return; k = clamp(k, 0, starts.length - 1); I.t = starts[k] + 0.01; I.idx = -1; };
+  $("ibPrev").addEventListener("click", () => jump((I.idx > 0 && I.t - starts[I.idx] < 2.5 ? I.idx - 1 : I.idx)));
+  $("ibNext").addEventListener("click", () => { if (I.idx + 1 < starts.length) jump(I.idx + 1); else stopIntro(true); });
+  $("ibVoice").addEventListener("click", () => { if (voice) I.mute = !I.mute; else I.speech = !I.speech; setVoiceBtn(); stopVoice(); if (I.active && !S.paused) playScene(Math.max(0, I.idx)); });
+
+  // ------------------------------------------------------------------- guided tour (spotlight)
+  const G = { on: false, i: 0, base: null };
+  const set = (o) => { Object.assign(S, o); syncUI(); };
+  const GST = [
+    { title: "Welcome to the tour", text: "One minute, 14 stops. Use the buttons, or the → and ← keys; Esc leaves. You can click anything while the tour is open. Hovering a button later explains it, and shows a badge for how exact its physics is." },
+    { sel: "#ladder", title: "The physics ladder", text: "Each button adds one more piece of physics on top of the last. 0 is everyday Newtonian physics; 8 is everything. We just switched on step 4: motion (special relativity) is on, gravity is not yet. Press G to watch them all automatically.", act: () => { S.guided = false; set({ step: 4, mask: ladderMask(4) }); } },
+    { sel: "#fx", title: "Or one effect at a time", text: "Switch single effects on and off to see exactly what each one does. Solid buttons are about motion (special relativity); dashed ones are gravity (general relativity).", act: () => set({ step: -1 }) },
+    { sel: "#styles", title: "Surface style", text: "A clean blue wireframe, or a glowing hot-gas look (thermal blackbody). Same physics, different drawing." },
+    { sel: "#maps", title: "Colour maps", text: "Paint the surface by how much its light is shifted (red = redshifted, blue = blueshifted), or by how late its light arrives. We just turned on the shift map.", act: () => set({ map: 1 }) },
+    { sel: "#fieldBtn", parent: true, title: "Overlays", text: "The previous step's grid as a ghost, magnetic field lines, the light cylinder, the brightness curve, and a beam of starlight bending around the star. Each can be switched off." },
+    { sel: "#fmodels", title: "Magnetic field model", text: "Plasma-filled is what real pulsars are thought to have; a vacuum dipole is the textbook starting point. Hover them for what is exact and what is schematic.", act: () => set({ field: true, fmodel: 1 }) },
+    { sel: "#tourBtn", title: "The magnetosphere tour", text: "A 26-second film from vacuum to plasma to the striped wind. It changes your settings for the film and restores them afterwards." },
+    { sel: "#views", title: "Views", text: "Compare Newton with the current physics side by side, or look in 3D with red/cyan glasses or cross-eyed. Each eye is ray-traced separately. We switched on the side-by-side view.", act: () => set({ view: 1 }) },
+    { sel: "#beta", title: "The speed dial", text: "How fast the equator moves, as a fraction of light speed. Real neutron stars reach about 0.25 c; beyond that is a what-if for seeing the effects clearly. We set 0.5 c.", act: () => { S.beta = null; set({ view: 0, step: 8, mask: ladderMask(8) }); setBeta(0.5); syncUI(); } },
+    { sel: "#validity", title: "The reality check", text: "Whenever you leave real physics (too fast, too compact, too heavy, too strong a field), a red warning appears here, and says what is still exact and what became a what-if.", act: () => { setBeta(0.9); syncUI(); } },
+    { sel: "#presets", title: "Real pulsars", text: "Jump to the fastest known pulsar or to NASA's NICER targets. Each preset says which numbers are measured and which are assumed.", act: () => { S.beta = null; set({ f: 716 }); } },
+    { sel: "#meta", title: "The numbers", text: "Sizes, speeds, light delays, Doppler and gravitational shifts, field strength and more, all live for the current star.", act: () => { S.beta = null; set({ f: 716 }); } },
+    { sel: "#helpBtn", title: "Help tips", text: "Rest on any control (or long-press on a phone) for an explanation. Too much? Switch them off here, or press ?." },
+    { sel: "#panelTab", title: "Sliding the controls away", text: "This tab slides the whole panel out of the way for an unobstructed view. Press H to bring it back." },
+    { title: "That's it!", text: "Drag to turn the star, scroll to zoom. Press I for the 2-minute intro film, T to repeat this tour, G for the guided ladder. Enjoy exploring." },
+  ];
+  function guidePlace() {
+    const st = GST[G.i], el = st.sel ? (st.parent ? document.querySelector(st.sel).parentElement : document.querySelector(st.sel)) : null, sp = $("spot"), bub = $("tbub");
+    let waited = 60;
+    if (el && el.closest("#panel") && !panelOpen()) { togglePanel(); waited = 480; }
+    if (el) { expand(el); el.scrollIntoView({ block: "nearest" }); }
+    $("tip").classList.remove("on");
+    bub.innerHTML = `<div class="tn">tour · ${G.i + 1} / ${GST.length}</div><div class="tt">${st.title}</div><div class="tx">${st.text}</div>` +
+      `<div class="tb"><button type="button" id="gSkip">Leave</button>${G.i ? `<button type="button" id="gBack">Back</button>` : ""}<button type="button" class="go" id="gNext">${G.i === GST.length - 1 ? "Finish" : "Next"}</button></div>`;
+    $("gSkip").onclick = endGuide; $("gNext").onclick = () => (G.i === GST.length - 1 ? endGuide() : guideGo(G.i + 1)); if ($("gBack")) $("gBack").onclick = () => guideGo(G.i - 1);
+    setTimeout(() => {
+      if (!G.on) return;
+      const bw = Math.min(330, innerWidth - 24); bub.style.width = `${bw}px`; bub.hidden = false; const bh = bub.offsetHeight;
+      if (!el) { sp.hidden = false; Object.assign(sp.style, { left: "50%", top: "50%", width: "0px", height: "0px" }); bub.style.left = `${(innerWidth - bw) / 2}px`; bub.style.top = `${(innerHeight - bh) / 2}px`; return; }
+      const r = el.getBoundingClientRect(); sp.hidden = false;
+      Object.assign(sp.style, { left: `${r.left - 6}px`, top: `${r.top - 6}px`, width: `${r.width + 12}px`, height: `${r.height + 12}px` });
+      let x, y;
+      if (innerWidth < 720) { x = 12; y = r.top > innerHeight / 2 ? 12 : innerHeight - bh - 12; }
+      else { x = r.left - bw - 22; if (x < 12) x = r.right + 22; if (x + bw > innerWidth - 12) x = Math.max(12, innerWidth - bw - 12); y = clamp(r.top + r.height / 2 - bh / 2, 12, innerHeight - bh - 12); }
+      bub.style.left = `${x}px`; bub.style.top = `${y}px`;
+    }, waited);
+  }
+  function guideGo(i) { G.i = clamp(i, 0, GST.length - 1); Object.assign(S, G.base); S.beta = G.base.beta; GST[G.i].act ? GST[G.i].act() : syncUI(); guidePlace(); }
+  function startGuide() {
+    if (G.on) return; if (I.active) stopIntro(false); if (S.tour) stopTour(); setGuided(false); hideWelcome();
+    G.on = true; G.base = snapshot(); ls.set("nsTourSeen", "1"); guideGo(0);
+  }
+  function endGuide() {
+    if (!G.on) return; G.on = false; $("spot").hidden = true; $("tbub").hidden = true;
+    Object.assign(S, G.base); S.beta = G.base.beta; syncUI();
+  }
+  $("tourStart").addEventListener("click", startGuide);
+  window.addEventListener("resize", () => { if (G.on) guidePlace(); });
+
+  // ------------------------------------------------------------------- welcome card, keys, tooltips
+  function hideWelcome() { $("welcome").hidden = true; ls.set("nsWelcome", "1"); }
+  $("wIntro").addEventListener("click", startIntro); $("wTour").addEventListener("click", startGuide); $("wExplore").addEventListener("click", hideWelcome);
+  window.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT") return;
+    if (G.on) { if (e.key === "ArrowRight") { e.preventDefault(); (G.i === GST.length - 1 ? endGuide : () => guideGo(G.i + 1))(); } else if (e.key === "ArrowLeft") guideGo(G.i - 1); else if (e.key === "Escape") endGuide(); return; }
+    if (I.active) { if (e.key === "Escape") stopIntro(false); else if (e.key === "ArrowRight") $("ibNext").click(); else if (e.key === "ArrowLeft") $("ibPrev").click(); return; }
+    if (e.key === "i" || e.key === "I") startIntro(); else if (e.key === "t" || e.key === "T") startGuide();
+  });
+  const T = api.T;
+  api.attach($("introBtn"), T("Watch the intro", "A 2-minute illustrated introduction for complete beginners: what a neutron star is, what you can explore here, what light does and does not do, and where the physics is exact, approximate or unknown. Every scene runs on the live renderer. Press I.", "disp"));
+  api.attach($("tourStart"), T("Interactive tour", "A one-minute spotlight tour of the controls: it shows you each group of buttons, switches something on so you can see what it does, and restores your settings afterwards. Press T.", "disp"));
+
+  // ------------------------------------------------------------------- boot
+  async function boot() {
+    try { script = await (await fetch("assets/intro/script.json")).json(); } catch (e) { script = null; }
+    if (script) { try { const r = await fetch("assets/intro/durations.json"); if (r.ok) voice = await r.json(); } catch (e) { voice = null; } }
+    if (!script) { $("introBtn").style.display = "none"; $("wIntro").style.display = "none"; }
+    else {
+      plan(); $("introBtn").textContent = `▶ Watch the intro (${Math.max(1, Math.round(total / 30) / 2)} min)`;
+      $("ibDots").innerHTML = script.scenes.map((sc, i) => `<i title="${sc.title}"></i>`).join("");
+      [...$("ibDots").children].forEach((d, i) => d.addEventListener("click", () => jump(i)));
+    }
+    if (EXPORT && script) {
+      I.exp = true; document.body.classList.add("intro"); $("introBar").style.display = "none"; $("introUI").hidden = false; $("panelTab").style.display = "none";
+      if (panelOpen()) togglePanel();
+      Object.assign(S, { paused: true, autoRes: false, res: 1 }); $("build").style.display = "none"; hideWelcome();
+      window.__introInfo = () => ({ total, starts, durs, lead: voice && voice.lead ? voice.lead : 0.3, voice: !!voice });
+      window.__introFrame = (t) => { I.active = true; introAt(t); };
+      window.__introReady = true; return;
+    }
+    if (!ls.get("nsWelcome") && !Q.has("nowelcome")) $("welcome").hidden = false;
+  }
+  boot();
 })();
 </script>
 </body>
