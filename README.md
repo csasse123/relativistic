@@ -2,7 +2,8 @@
 
 **Guided 3D fly-through of a village as light would look near *c*.**
 
-Live: [csasse123.github.io/relativistic](https://csasse123.github.io/relativistic/)
+Live: [csasse123.github.io/relativistic](https://csasse123.github.io/relativistic/)  
+© 2026 Christian Sasse, [CC BY-NC-ND 4.0](NOTICE.md). The deployed site is a minified build (`npm run build`).
 
 ## Experience (v0.6)
 

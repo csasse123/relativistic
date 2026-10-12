@@ -4,7 +4,7 @@
 (Newton → length contraction → light travel time → aberration → Doppler → beaming → light bending → redshift/Shapiro →
 oblateness + frame dragging), stereo views, a magnetosphere model (vacuum dipole and plasma-filled), a brightness curve,
 an incoming-light beam, reality-check warnings, hover tips, an intro film and a guided tour.
-**Live:** https://csasse123.github.io/relativistic/neutron-star.html (GitHub Pages, deploys from `main`). **Version:** v1.30.0.
+**Live:** https://csasse123.github.io/relativistic/neutron-star.html (GitHub Pages, deploys from `main`). **Version:** v1.31.0.
 
 ## Working rules from the owner (follow these)
 - Be efficient and concise. **Always bump the build number** (`BUILD` in the page, the `build` div, and the other pages' version strings).
@@ -15,12 +15,19 @@ an incoming-light beam, reality-check warnings, hover tips, an intro film and a 
 - Never put API keys in chat or files. The ElevenLabs key is in the macOS Keychain, service `elevenlabs`.
 - Commit and push to the working branch; merge to `main` via PR when the owner wants it live.
 
+## Protection and deploy (v1.31.0)
+- Licence: CC BY-NC-ND 4.0 (`LICENSE`, `NOTICE.md`), shown as a small credit bottom-right on every page.
+- The live site is a **build**: `npm ci && node tools/build.mjs --assets` → `dist/` (minified inline JS/CSS, compacted shaders, licence mark, host check). CI (`pages.yml`) runs it and deploys `dist/`; `dist/` is gitignored. Develop and test on the readable source; `node tools/build.mjs` (no `--assets`) builds just the pages.
+- Host check: pages run only on `csasse123.github.io`, `explorables.io`, localhost and file://; elsewhere they show "This is a copy" with a link. Add a host to `HOSTS` in `tools/build.mjs` (custom domain, a friend's mirror).
+- Marker `cs-rel-7f3a91` appears in the meta tag and the code banner, to identify copies.
+- Still open: the repo itself is public, so the readable source is public. Fix = make it private and publish `dist/` from a second public repo (or Cloudflare Pages / Netlify); needs the owner's go-ahead because a private repo cannot serve Pages on a free plan.
+
 ## Where things are
 - `docs/AUDIT_2026-10.md`: the October physics audit (what is exact, what was fixed). `docs/NEUTRON_STAR_LITERATURE.md`: references and formula checks. `docs/INTRO_VIDEO.md`: the intro film pipeline.
 - `assets/intro/script.json`: the 8-scene narration (also the subtitles). Scene visuals: `SCN` / `CAM` in the last `<script>` block of `neutron-star.html`.
 - `tools/make_intro_voice.mjs`, `tools/render_intro.mjs`: narration and MP4 export. Test pages with Playwright (`?export=intro`, `?nowelcome`).
 
-## Intro film: done (v1.27.1), plays by default (v1.28.0), with quiet music (v1.30.0)
+## Intro film: done (v1.27.1), plays by default (v1.28.0), with quiet music (v1.31.0)
 First visit: the intro autostarts (`nsIntroSeen` in localStorage); returning visitors land on the page. `?intro` forces it, `?nointro` / `?nowelcome` suppress it. "Skip intro ▸ interactive tour" ends it and starts the spotlight tour; "Skip ✕" / Esc just leaves. Browsers block sound until a touch, so a "Click anywhere for sound" pill appears and the narration resumes mid-scene on the first touch.
 Narration (ElevenLabs voice "Christian") is committed: `assets/intro/s1.mp3 … s8.mp3`, `durations.json` (154.8 s). The page narrates it.
 The MP4 is rendered locally (not committed): `HEADLESS=chrome node tools/render_intro.mjs` (headless Chrome, real GPU, no window; about 7 min; `npm i` first).
