@@ -5,7 +5,7 @@
     { "id": "what", "title": "A star the size of a city", "min": 9,
       "text": "Meet a neutron star. When a giant star dies, its core collapses into a ball about twenty-four kilometres across, the size of a city, yet heavier than our Sun. One teaspoon would weigh billions of tonnes." },
     { "id": "spin", "title": "And it spins", "min": 8,
-      "text": "And it spins. The fastest known turns seven hundred and sixteen times every second. For a typical size, its equator would race along at a fifth of the speed of light." },
+      "text": "And it spins. The fastest known turns seven hundred and sixteen times every second. For a twelve-kilometre star, its equator would race along at eighteen percent of the speed of light." },
     { "id": "ladder", "title": "Einstein, one effect at a time", "min": 14,
       "text": "Here, you switch on Einstein's physics one effect at a time. Start with an ordinary spinning ball. Add the time light takes to reach you, and the pattern shears. Add the Doppler effect: blue where the surface comes toward you, red where it moves away. I've spun it faster than any real star could, so you can see it." },
     { "id": "gravity", "title": "Gravity bends light", "min": 10,

@@ -316,7 +316,7 @@
 <div id="spot" hidden></div>
 <div id="tbub" hidden></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel · ?: help tips · I: intro · T: tour</div>
-<div class="build" id="build">v1.29.0</div>
+<div class="build" id="build">v1.30.0</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -654,7 +654,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.29.0";
+const BUILD = "v1.30.0";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -1193,6 +1193,10 @@ function syncUI() {
   const BLC = 0.5 * Bp * (S.R / RLCv) ** 3;
   const mu = 0.5 * (Bp * 1e4) * (S.R * 1e5) ** 3, al = S.tilt * Math.PI / 180;      // G cm³
   const Lff = mu * mu * P.Om ** 4 * (1 + Math.sin(al) ** 2) / (2.99792458e10) ** 3 * 1e-7;   // W (Spitkovsky 2006)
+  // how fast that power drains the spin: E = ½IΩ², Ω̇/Ω = L/(IΩ²) (Newtonian moment of inertia I = κMR²; the field strength is the assumption)
+  const Imom = P.kappa * S.M * 1.98847e30 * (S.R * 1e3) ** 2, Erot = 0.5 * Imom * P.Om ** 2, yr = 3.15576e7;
+  const tauY = Erot / Lff / yr, dfYr = S.f * Lff / (Imom * P.Om ** 2) * yr;
+  const fmtYr = (y) => (y >= 1e9 ? `${(y / 1e9).toFixed(1)} billion years` : y >= 1e6 ? `${Math.round(y / 1e6)} million years` : y >= 1e3 ? `${Math.round(y / 1e3)} thousand years` : `${y.toPrecision(2)} years`);
   $("bpVal").textContent = `${(Bp).toExponential(1)} T`;
   $("bp").value = Math.log10(Bp);
   $("bpNote").innerHTML = `B<sub>p</sub> = <b>${fmtT(Bp)}</b> (${(Bp * 1e4).toExponential(1)} G) · <i>${S.bpSrc}</i>.<br>` +
@@ -1211,6 +1215,7 @@ function syncUI() {
     `R<sub>pole</sub> <b>${(S.R * (1 + (on(m, "oblate") ? P.o2 : 0))).toFixed(2)} km</b> · ω<sub>drag</sub>/Ω <b>${(P.wS / P.OmKm).toFixed(3)}</b> · I/MR² <b>${P.kappa.toFixed(3)}</b> · spin χ = cJ/GM² <b class="${P.J / (P.rs / 2) ** 2 > 0.45 ? "rose" : ""}">${(P.J / (P.rs / 2) ** 2).toFixed(2)}</b><br>` +
     `diameter <b>${(2 * S.R).toFixed(1)} km</b> equatorial · <b>${(2 * Rpole).toFixed(1)} km</b> pole to pole (spin flattening, o₂ ${P.o2.toFixed(3)})<br>` +
     `B<sub>p</sub> <b class="gold">${fmtT(Bp)}</b> (see note) · at the light cylinder ≈ <b>${fmtT(BLC)}</b> · spin-down power (force-free) ≈ <b>${Lff.toExponential(1)} W</b><br>` +
+    `spin energy ½IΩ² ≈ <b>${(Erot).toExponential(1)} J</b> · that power drains it in <b>${fmtYr(tauY)}</b> · spin slows by <b>${dfYr.toExponential(1)} Hz</b> per year <span style="color:#7f98b6">(for this B<sub>p</sub>, Newtonian I)</span><br>` +
     `surface visible <b>${on(m, "bend") ? (100 * P.visGR).toFixed(0) : 50}%</b> · real ${S.f.toFixed(0)} turns/s shown at ${S.turns.toFixed(2)}/s (×1/${Math.round(S.f / S.turns).toLocaleString()})`;
   // reality checks: every limit the controls can cross gets a visible warning
   const chi = P.J / (P.rs / 2) ** 2, Mg = P.rs / 2, warn = [];
@@ -1981,7 +1986,7 @@ const TIPS = {
     limits: [[70, 62, 0.4, 34], [85, 62, 0.9, 36]], invite: [[85, 62, 0.9, 36], [85, 62, 1.6, 36]] };
   const SCN = {
     what: () => ({ fact: ["24 km across", "1.4 × the mass of the Sun · one teaspoon ≈ billions of tonnes"] }),
-    spin: () => ({ fact: ["716 turns every second", "fastest known · equator ≈ 0.2 × the speed of light (for a typical size)"] }),
+    spin: () => ({ fact: ["716 turns every second", "fastest known · equator ≈ 0.18 × the speed of light (for a 12 km radius)"] }),
     ladder: (u) => { const k = u < 0.34 ? 0 : u < 0.68 ? 1 : 2;
       return { w: { beta: 0.5, step: [0, 2, 4][k] }, fact: [["Newton: an ordinary spinning ball", "+ light travel time: the pattern shears", "+ Doppler: blue toward you, red away"][k], "spun up to 0.5 c so you can see it — real stars can't"] }; },
     gravity: (u) => ({ w: { step: u < 0.3 ? 4 : 6, rays: u > 0.08 }, fact: u < 0.3 ? ["Without gravity: light goes straight", "sharp shadow behind the star"] : ["Gravity on: light bends around the star", "you see ¾ of the surface at once"] }),
