@@ -5,3 +5,4 @@ node_modules/
 assets/clips/takes/
 exports/
 dist/
+dist-site/

@@ -40,4 +40,12 @@ async function page(file) {
 }
 fs.rmSync(dist, { recursive: true, force: true }); fs.mkdirSync(dist, { recursive: true });
 for (const f of ["index.html", "satellites.html", "video.html", "neutron-star.html"]) if (fs.existsSync(path.join(root, f))) await page(f);
+if (process.argv.includes("--site")) {                                           // dist-site/: just the neutron-star page, ready to upload to any web host
+  const site = path.join(root, "dist-site"); fs.rmSync(site, { recursive: true, force: true }); fs.mkdirSync(path.join(site, "assets"), { recursive: true });
+  fs.copyFileSync(path.join(dist, "neutron-star.html"), path.join(site, "neutron-star.html"));
+  fs.writeFileSync(path.join(site, "index.html"), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=neutron-star.html"><title>Spinning Neutron Star</title><a href="neutron-star.html">Spinning Neutron Star</a>\n');
+  fs.cpSync(path.join(root, "assets/intro"), path.join(site, "assets/intro"), { recursive: true });
+  for (const f of ["LICENSE", "NOTICE.md"]) fs.copyFileSync(path.join(root, f), path.join(site, f));
+  console.log("dist-site/ ready");
+}
 if (process.argv.includes("--assets")) for (const f of fs.readdirSync(root)) if (!/^(\.|dist$|node_modules$|tools$|exports$|package|.*\.html$)/.test(f) && f !== "docs") fs.cpSync(path.join(root, f), path.join(dist, f), { recursive: true });
