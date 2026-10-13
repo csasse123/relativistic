@@ -39,5 +39,5 @@ async function page(file) {
   console.log(`${file}: ${(fs.statSync(path.join(root, file)).size / 1024).toFixed(0)} KB → ${(h.length / 1024).toFixed(0)} KB`);
 }
 fs.rmSync(dist, { recursive: true, force: true }); fs.mkdirSync(dist, { recursive: true });
-for (const f of ["index.html", "satellites.html", "video.html", "neutron-star.html"]) await page(f);
+for (const f of ["index.html", "satellites.html", "video.html", "neutron-star.html"]) if (fs.existsSync(path.join(root, f))) await page(f);
 if (process.argv.includes("--assets")) for (const f of fs.readdirSync(root)) if (!/^(\.|dist$|node_modules$|tools$|exports$|package|.*\.html$)/.test(f) && f !== "docs") fs.cpSync(path.join(root, f), path.join(dist, f), { recursive: true });
