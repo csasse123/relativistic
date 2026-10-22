@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mirrors After Sunset</title>
+<meta name="description" content="Can sunlight-reflecting satellites in low orbit light a city at night? A 3D geometry check of Earth's shadow, orbit speed and mirror constellations." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" />
+<style>
+  :root {
+    color-scheme: dark;
+    --void: #05070b;
+    --panel: #0a0f16;
+    --panel-2: #0f1620;
+    --glass: rgba(7, 11, 17, 0.8);
+    --line: #1b2633;
+    --line-2: #2a3a4c;
+    --ink: #e3e9ef;
+    --body: #c6d1db;
+    --muted: #8a9aab;
+    --faint: #5b6a7a;
+    --sun: #f3b544;
+    --sun-ink: #1a1204;
+    --night: #2f6db5;
+    --cold: #62b6e6;
+    --ok: #5cc793;
+    --half: #e9a93b;
+    --bad: #ee5d5d;
+    --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+    --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { background: var(--void); }
+  body { margin: 0; background: var(--void); color: var(--ink); font: 400 15px/1.6 var(--f-body); }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+  a { color: var(--sun); }
+  .wrap { max-width: 1380px; margin: 0 auto; padding-inline: 20px; }
+
+  /* header */
+  header.top { padding-block: 28px 18px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; align-items: end; }
+  .eyebrow { font: 500 11px/1 var(--f-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  .eyebrow b { color: var(--sun); font-weight: 500; }
+  h1 { font: 700 clamp(34px, 5vw, 58px)/0.98 var(--f-display); letter-spacing: -0.015em; margin: 12px 0 12px; text-wrap: balance; }
+  .lede { margin: 0; color: var(--body); max-width: 60ch; font-size: 16px; }
+  .ask { border-left: 2px solid var(--sun); padding: 4px 0 4px 16px; color: var(--body); font-style: italic; max-width: 58ch; }
+  .ask cite { display: block; font: 500 11px var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; font-style: normal; color: var(--muted); margin-top: 8px; }
+
+  .short { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 22px; }
+  .short div { background: var(--panel); padding: 16px 18px; }
+  .short h3 { margin: 0 0 6px; font: 600 17px/1.2 var(--f-display); text-wrap: balance; }
+  .short p { margin: 0; color: var(--body); font-size: 14px; }
+  .short .k { font: 500 11px var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sun); margin-bottom: 6px; display: block; }
+
+  /* stage */
+  .stagewrap { display: grid; grid-template-columns: minmax(0, 1fr) 330px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
+  .stage { position: relative; height: min(80vh, 780px); min-height: 460px; background: #020308; }
+  canvas#gl { display: block; width: 100%; height: 100%; touch-action: none; }
+  #labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .lbl { position: absolute; transform: translate(10px, -50%); font: 500 11.5px/1.25 var(--f-mono); color: var(--ink); background: rgba(5, 8, 12, 0.74); border-left: 2px solid var(--sun); padding: 3px 7px; white-space: nowrap; border-radius: 0 4px 4px 0; }
+  .lbl::before { content: ""; position: absolute; left: -12px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--sun); }
+  .lbl small { display: block; color: var(--muted); font-weight: 400; }
+  .lbl.n { border-left-color: var(--cold); }
+  .lbl.n::before { background: var(--cold); }
+  .lbl.plain { border-left: 0; background: none; padding: 0; color: var(--muted); }
+  .lbl.plain::before { display: none; }
+
+  .hud-top { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+  .hud-top > * { pointer-events: auto; }
+  .modes { display: flex; flex-wrap: wrap; gap: 2px; background: var(--glass); border: 1px solid var(--line); border-radius: 9px; padding: 4px; backdrop-filter: blur(8px); }
+  .modes button { border: 0; background: transparent; color: var(--muted); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; text-align: left; }
+  .modes button b { font: 500 10.5px var(--f-mono); color: var(--faint); margin-right: 6px; }
+  .modes button.on { background: var(--sun); color: var(--sun-ink); font-weight: 600; }
+  .modes button.on b { color: var(--sun-ink); }
+  .pill { display: inline-flex; align-items: center; gap: 7px; font: 600 11px/1.2 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 7px 11px; border-radius: 999px; max-width: 100%; }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+  .pill.sun { color: var(--sun-ink); background: var(--sun); }
+  .pill.dark { color: #d8eef7; background: #17314a; }
+  .pill.day { color: #0b1520; background: #a8bdd0; }
+
+  .timeline { position: absolute; left: 12px; right: 12px; bottom: 12px; background: var(--glass); border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px 8px; backdrop-filter: blur(8px); }
+  .timeline canvas { width: 100%; height: 34px; display: block; }
+  .tl-text { font: 400 12px var(--f-mono); color: var(--muted); margin-top: 4px; }
+  .tl-text b { color: var(--ink); font-weight: 500; }
+  .caption { position: absolute; left: 12px; bottom: 92px; max-width: min(460px, calc(100% - 24px)); font-size: 13.5px; line-height: 1.45; color: var(--body); background: var(--glass); border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; backdrop-filter: blur(8px); pointer-events: none; }
+  .caption b { color: var(--ink); }
+
+  aside.panel { border-left: 1px solid var(--line); padding: 16px 16px 20px; overflow-y: auto; height: min(80vh, 780px); min-height: 460px; display: flex; flex-direction: column; gap: 16px; }
+  .panel h2 { font: 600 11px/1 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  .ctl { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 10px; margin-bottom: 9px; }
+  .ctl label { font-size: 13px; }
+  .ctl output { font: 500 12px var(--f-mono); color: var(--sun); }
+  .ctl input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--sun); margin: 2px 0 0; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--line-2); background: var(--panel-2); border-radius: 6px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; }
+  .btn:hover { border-color: var(--muted); }
+  .btn.on { background: var(--ink); color: var(--void); border-color: var(--ink); font-weight: 600; }
+  dl.num { display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0; font-variant-numeric: tabular-nums; }
+  dl.num dt, dl.num dd { margin: 0; padding: 5px 0; border-top: 1px solid var(--line); }
+  dl.num dt { color: var(--muted); font-size: 12.5px; padding-right: 8px; }
+  dl.num dd { font: 500 12.5px var(--f-mono); text-align: right; white-space: nowrap; }
+  dl.num dd.hl { color: var(--sun); }
+  .note { font-size: 11.5px; color: var(--faint); margin: 6px 0 0; }
+
+  /* article */
+  article { padding-block: 40px 30px; }
+  article > section > * { min-width: 0; }
+  article > section { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; padding-block: 26px; border-top: 1px solid var(--line); }
+  article h2 { font: 600 24px/1.1 var(--f-display); margin: 0; text-wrap: balance; }
+  article h2 small { display: block; font: 500 11px var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  article p { margin: 0 0 12px; color: var(--body); max-width: 70ch; }
+  article p b, article li b { color: var(--ink); }
+  article ul { margin: 0 0 12px; padding-left: 20px; color: var(--body); max-width: 70ch; }
+  article li { margin-bottom: 6px; }
+  .num-inline { font: 500 0.93em var(--f-mono); color: var(--ink); white-space: nowrap; }
+  figure { margin: 6px 0 16px; }
+  figure svg { width: 100%; height: auto; max-width: 820px; display: block; background: #04060a; border: 1px solid var(--line); border-radius: 10px; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; max-width: 70ch; }
+  .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin: 6px 0 14px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+  th { font: 500 11px var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: var(--panel-2); }
+  tr:last-child td { border-bottom: 0; }
+  td.claim { color: var(--ink); width: 34%; }
+  td.claim q { font-style: italic; }
+  td.v { width: 120px; white-space: nowrap; }
+  td .fig { color: var(--body); }
+  .verdict { display: inline-flex; align-items: center; gap: 6px; font: 600 11px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+  .verdict.ok { color: #072213; background: var(--ok); }
+  .verdict.half { color: #231503; background: var(--half); }
+  .verdict.bad { color: #2a0606; background: var(--bad); }
+  .bottom { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; }
+  .bottom h3 { margin: 0 0 8px; font: 600 20px var(--f-display); }
+  footer { color: var(--faint); font-size: 12.5px; padding-block: 10px 40px; }
+  footer p { max-width: 90ch; margin: 0 0 8px; }
+
+  @media (max-width: 1000px) {
+    header.top { grid-template-columns: 1fr; }
+    .short { grid-template-columns: 1fr; }
+    .stagewrap { grid-template-columns: 1fr; }
+    .stage { height: 64vh; min-height: 420px; }
+    aside.panel { height: auto; min-height: 0; border-left: 0; border-top: 1px solid var(--line); }
+    article > section { grid-template-columns: 1fr; gap: 12px; }
+    .caption { display: none; }
+  }
+  @media (max-width: 560px) {
+    .wrap { padding-inline: 16px; }
+    .modes button { padding: 5px 7px; font-size: 12px; }
+    .modes button b { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow"><span>Sunlight-reflecting satellites · geometry check</span><b id="build">v1.32.0</b></div>
+      <h1>Mirrors After Sunset</h1>
+      <p class="lede">Can a mirror in low orbit bounce sunlight onto a city that is already dark? Yes, but only near dusk and dawn, and only for minutes per mirror. Below: the shadow, the speed, the reflection, and the numbers, in 3D.</p>
+    </div>
+    <blockquote class="ask">Won't the earth block the satellites in earth's shadow? How does the sunlight get bounced then? There was a remark about passing through the earth's atmosphere twice. What am I missing?<cite>Rich · 21 Oct</cite></blockquote>
+  </header>
+
+  <section class="short" aria-label="Short answer">
+    <div><span class="k">1 · Yes, at night they are dark</span><h3>Earth's shadow does block them for most of the night</h3><p>At local midnight a mirror <span data-v="hkm"></span> up is deep inside Earth's shadow. These mirrors can only work near dusk and dawn.</p></div>
+    <div><span class="k">2 · Height buys a little time</span><h3>The mirror still sees the Sun after the ground goes dark</h3><p>At <span data-v="hkm"></span> the shadow begins <span data-v="edgeDeg"></span> (<span data-v="edgeKm"></span>) past the sunset line. Ground that far into the night had sunset about <span data-v="edgeH"></span> earlier.</p></div>
+    <div><span class="k">3 · But each mirror is fast</span><h3>One mirror serves one city for about <span data-v="pass30"></span></h3><p>At <span data-v="vkms"></span> it is high in a city's sky for only minutes. An hour of light needs a steady parade of mirrors, so Fletcher's "train" is right.</p></div>
+  </section>
+
+  <section class="stagewrap" aria-label="3D animation">
+    <div class="stage" id="stage">
+      <canvas id="gl"></canvas>
+      <div id="labels"></div>
+      <div class="hud-top">
+        <div class="modes" id="modes">
+          <button data-m="1"><b>1</b>One mirror, into the night</button>
+          <button data-m="4"><b>2</b>Close-up: its sunset</button>
+          <button data-m="2"><b>3</b>Riding the sunset line</button>
+          <button data-m="3"><b>4</b>A parade of mirrors</button>
+        </div>
+        <span class="pill sun" id="pill">Sunlit</span>
+      </div>
+      <div class="caption" id="caption"></div>
+      <div class="timeline"><canvas id="tl" aria-label="Timeline"></canvas><div class="tl-text" id="tlText"></div></div>
+    </div>
+    <aside class="panel">
+      <div>
+        <h2>Time</h2>
+        <div class="row"><button class="btn" id="pauseBtn">Pause</button><button class="btn" id="realBtn">Real speed</button><button class="btn" id="restartBtn">Restart</button></div>
+        <div class="ctl"><label for="speed">Time warp</label><output id="speedVal">40×</output><input id="speed" type="range" min="0" max="100" value="55" /></div>
+      </div>
+      <div>
+        <h2>Setup</h2>
+        <div class="ctl"><label for="alt">Mirror altitude</label><output id="altVal">625 km</output><input id="alt" type="range" min="400" max="1200" step="5" value="625" /></div>
+        <div class="ctl"><label for="side">Mirror size</label><output id="sideVal">18 m</output><input id="side" type="range" min="5" max="100" step="1" value="18" /></div>
+        <div class="ctl"><label for="emin">Usable if higher than</label><output id="eminVal">30° up</output><input id="emin" type="range" min="10" max="60" step="1" value="30" /></div>
+        <div class="ctl"><label for="lat">City latitude</label><output id="latVal">32.7° N</output><input id="lat" type="range" min="-60" max="60" step="0.1" value="32.7" /></div>
+        <div class="ctl"><label for="nsat">Mirrors per orbit plane</label><output id="nsatVal">30</output><input id="nsat" type="range" min="1" max="80" step="1" value="30" /></div>
+        <div class="ctl"><label for="planes">Orbit planes, 5° apart</label><output id="planesVal">1</output><input id="planes" type="range" min="1" max="6" step="1" value="1" /></div>
+      </div>
+      <div>
+        <h2>Numbers at this setup</h2>
+        <dl class="num">
+          <dt>Orbit period</dt><dd id="n_T">–</dd>
+          <dt>Speed</dt><dd id="n_v">–</dd>
+          <dt>Shadow begins past sunset line</dt><dd id="n_edge" class="hl">–</dd>
+          <dt>Ground under that point: sunset was</dt><dd id="n_edgeH">–</dd>
+          <dt>Sunlit over dark ground, orbit into night</dt><dd id="n_win" class="hl">–</dd>
+          <dt>Then in shadow for</dt><dd id="n_ecl">–</dd>
+          <dt>Mirror's own sunset (disc / with air)</dt><dd id="n_set">–</dd>
+          <dt>High enough over one city, per pass</dt><dd id="n_pass" class="hl">–</dd>
+          <dt>Light spot, overhead</dt><dd id="n_spot">–</dd>
+          <dt>One mirror, overhead</dt><dd id="n_E">–</dd>
+          <dt>Mirrors for 50 W/m², overhead</dt><dd id="n_need">–</dd>
+        </dl>
+        <p class="note">Equinox, circular orbit, flat mirror with 90% reflectivity turning the beam 90°, clear-sky transmission 0.8 at zenith. Full Moon ≈ 0.0027 W/m² on the ground.</p>
+      </div>
+    </aside>
+  </section>
+
+  <article>
+    <section>
+      <h2><small>01</small>Why a mirror can be sunlit above a dark city</h2>
+      <div>
+        <p>Sunlight comes from one side, and Earth casts a shadow straight behind it, as wide as the Earth. On the ground, the Sun sets at the <b>sunset line</b> (the terminator). A mirror <span data-v="hkm"></span> up is higher than the curve of the Earth, so it keeps seeing the Sun for a while after the ground beneath it has gone dark.</p>
+        <p>It stays sunlit until <b>cos θ = R / (R + h) = 6371 / <span data-v="rkm"></span></b>, which gives <b>θ = <span data-v="edgeDeg"></span></b> past the sunset line, measured at Earth's centre. On the ground that is <span data-v="edgeKm"></span> into the night. Earth turns 15° per hour, so the ground under the shadow edge had its sunset about <b><span data-v="edgeH"></span></b> earlier (at the equator at equinox, longer at high latitude).</p>
+        <figure>
+          <svg id="fig1" viewBox="0 0 820 430" role="img" aria-label="Side view of Earth, its shadow and a mirror at the shadow edge"></svg>
+          <figcaption>Drawn to scale: Earth radius 6,371 km, orbit <span data-v="hkm"></span> up. Mirror A sits over the sunset line in full sunshine. Mirror B is exactly at the shadow edge: its last sunlight skims the top of the atmosphere. Mirror C is deeper in the shadow and dark.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>02</small>How fast it goes dark</h2>
+      <div>
+        <p>The mirror moves at <b><span data-v="vkms"></span></b> and circles Earth in <b><span data-v="Tmin"></span></b>. In an orbit that heads into the night (Fletcher's picture, scene 1), it crosses those <span data-v="edgeDeg"></span> in <b><span data-v="toShadow"></span></b>, then spends <span data-v="eclipse"></span> in the shadow. That is the whole sunlit-over-dark-ground window for that pass. A second, equal window comes before sunrise on the other side.</p>
+        <p>The mirror's own sunset is very fast (scene 2). The Sun's disc slips behind Earth's edge in about <b><span data-v="discSet"></span></b>. The reddened, dimming phase, while the incoming sunlight skims the atmosphere, lasts about <b><span data-v="atmoSet"></span></b>. A sunset seen from the ground at the equator takes about two minutes.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>03</small>One mirror lights one city for minutes</h2>
+      <div>
+        <p>Being sunlit is not enough. The mirror must also be reasonably high in the city's sky, otherwise the beam is long, spread out and dimmed by the air. At <span data-v="hkm"></span>, a mirror is more than 30° above a city's horizon for at most <b><span data-v="pass30"></span></b> per pass, and more than 20° up for <span data-v="pass20"></span>. This is the real bottleneck, whatever the orbit.</p>
+        <p>Reflector proposals therefore favour a <b>dawn–dusk sun-synchronous orbit</b> (about 98° inclination, scene 3). Its plane turns with the Sun through the year, so it stays over the day–night line and the mirrors are almost never in shadow (only a short eclipse season around one solstice). Cities turn underneath at dusk and again at dawn.</p>
+        <p>Even there, each mirror passes a city in minutes, so continuous light needs a parade (scene 4). With the defaults (city at 32.7° N, mirrors at least 30° up), one plane of <span data-v="cov1N"></span> mirrors gives the city <b><span data-v="cov1"></span></b> of light in total after sunset, with gaps, before the city turns out of reach. <span data-v="cov4P"></span> planes staggered 5° apart (120 mirrors) stretch that to <b><span data-v="cov4"></span></b>. Use the sliders to try other cases.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>04</small>"Through the atmosphere twice"</h2>
+      <div>
+        <p>In normal operation the light crosses the atmosphere <b>once</b>, on its way down to the city. A mirror over the sunset line receives sunlight that passes hundreds of kilometres above the ground, in vacuum. If the mirror is low in the city's sky, that single downward path is long and slanted, so the light arrives weaker and redder.</p>
+        <p>The light passes through air twice only at the very end: during the last ~2° before the mirror enters the shadow, the incoming rays skim the atmosphere (mirror B in the figure). That lasts about <span data-v="atmoSet"></span>. The beam then turns red and fades, like a sunset seen twice over, and then it is gone. Scene 2 shows it, with the height at which the incoming ray passes the Earth.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>05</small>How bright is it?</h2>
+      <div>
+        <p>A flat mirror cannot focus. Each point of the Sun's 0.53° disc makes its own reflected image, so the beam spreads with distance. From <span data-v="hkm"></span> straight up the spot is <b><span data-v="spot"></span></b> across, and at 45° elevation about <span data-v="spot45"></span>, stretched along the ground.</p>
+        <p>One <span data-v="sideM"></span> × <span data-v="sideM"></span> mirror (<span data-v="area"></span>, 90% reflective, turning the beam by 90°) puts about <b><span data-v="Eover"></span></b> on the ground directly below. That is about <b><span data-v="moonOver"></span> full Moon</b>. At 45° elevation it gives <span data-v="E45"></span>, about <span data-v="moon45"></span> full Moon.</p>
+        <p>A target of 50 W/m² (about 5% of noon sunlight, the figure quoted in the first reply) needs about <b><span data-v="needOver"></span> mirrors</b> all directly overhead and aimed at the same spot, or about <span data-v="need45"></span> at 45° elevation. Because each mirror is in range for only minutes, the fleet in orbit has to be many times larger again.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>06</small>Checking the first reply</h2>
+      <div>
+        <p>The first reply was drafted with Grok and sent on 21 Oct. The geometry was right. Two numbers were too optimistic, and one sentence was easy to misread.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Claim</th><th>Verdict</th><th>What the numbers say</th></tr></thead>
+          <tbody>
+            <tr><td class="claim">Shadow begins about 24° (≈2,700 km) past the day–night line, cos θ = 6371/6996</td><td class="v"><span class="verdict ok">Correct</span></td><td class="fig"><span data-v="edgeDeg"></span>, <span data-v="edgeKm"></span> at 625 km.</td></tr>
+            <tr><td class="claim"><q>…or an hour or two after sunset</q></td><td class="v"><span class="verdict half">Half right</span></td><td class="fig">True on the ground clock: the ground under the shadow edge had sunset ~<span data-v="edgeH"></span> earlier. Not true for one mirror, which crosses that zone in <span data-v="toShadow"></span>. Fletcher read it the second way, and for one mirror he is right.</td></tr>
+            <tr><td class="claim">Mirrors work only around dusk and dawn, never at midnight</td><td class="v"><span class="verdict ok">Correct</span></td><td class="fig">At local midnight a 625 km mirror is deep in the shadow.</td></tr>
+            <tr><td class="claim">The light passes through the atmosphere twice</td><td class="v"><span class="verdict bad">Mostly not</span></td><td class="fig">Once, on the way down, in normal operation. Twice only during the last ~<span data-v="atmoSet"></span> before the mirror's own sunset.</td></tr>
+            <tr><td class="claim">The flat mirror's spot is about 5 km across</td><td class="v"><span class="verdict ok">Correct</span></td><td class="fig"><span data-v="spot"></span> straight down, larger and elongated at lower elevation.</td></tr>
+            <tr><td class="claim">One 18 m mirror gives 5 to 20 times full-Moon light</td><td class="v"><span class="verdict bad">Too high</span></td><td class="fig">About <span data-v="moonOver"></span> full Moon directly overhead, about <span data-v="moon45"></span> at 45° elevation (18 × 18 m, 90% reflective).</td></tr>
+            <tr><td class="claim">50 W/m² needs around 3,000 mirrors</td><td class="v"><span class="verdict bad">Too few</span></td><td class="fig">About <span data-v="needOver"></span> even if all are directly overhead, about <span data-v="need45"></span> at 45°, and many more in orbit so that enough are in range at once.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>07</small>Checking Fletcher's reply</h2>
+      <div>
+        <p>Fletcher's correction is essentially right. His picture assumes an orbit that crosses from day into night. Real reflector constellations use an orbit along the sunset line, which removes the shadow problem but not the speed problem, so his conclusion still holds.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Claim</th><th>Verdict</th><th>What the numbers say</th></tr></thead>
+          <tbody>
+            <tr><td class="claim">Orbital period at 600 km is about 90 minutes</td><td class="v"><span class="verdict half">Close</span></td><td class="fig"><span data-v="T600"></span> at 600 km (<span data-v="Tmin"></span> at 625 km).</td></tr>
+            <tr><td class="claim">A mirror stays illuminated about 5 minutes before entering the shadow</td><td class="v"><span class="verdict ok">Right</span></td><td class="fig"><span data-v="toShadow600"></span> at 600 km, <span data-v="toShadow"></span> at 625 km, for an orbit that heads into the night. In a dawn–dusk orbit the mirror is sunlit nearly always, but any one city still gets it for only ~<span data-v="pass30"></span>.</td></tr>
+            <tr><td class="claim">An hour of light needs a train of mirrors aimed at the same spot</td><td class="v"><span class="verdict ok">Right</span></td><td class="fig">This is the key point. Continuous light needs a new mirror in range every few minutes.</td></tr>
+            <tr><td class="claim">The train would stretch around a good part of Earth's circumference</td><td class="v"><span class="verdict ok">Right</span></td><td class="fig">An hour of back-to-back passes means mirrors spread over ~60 of the <span data-v="Tmin"></span> orbit, about 60% of the ring. For a mid-latitude city, several staggered planes are needed as well.</td></tr>
+            <tr><td class="claim">The first would be back in sunlight before the last went into shadow</td><td class="v"><span class="verdict half">True, not the limit</span></td><td class="fig">True for an orbit through the night (shadow lasts <span data-v="eclipse"></span>). In a dawn–dusk orbit none of them enters the shadow. The limit there is that the city turns out of reach.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>08</small>Bottom line for Rich</h2>
+      <div class="bottom">
+        <h3>You're not missing anything. The shadow is the right question.</h3>
+        <p>Earth's shadow does block these mirrors for most of the night. They work only in the first hour or two after sunset and before sunrise, because a mirror <span data-v="hkm"></span> up still sees the Sun after the ground below has gone dark. Each mirror races past a city in about <span data-v="pass30"></span>, so steady light needs many mirrors following each other, ideally in an orbit that rides the sunset line. The light normally crosses the air only once. It crosses twice only in the last half-minute before a mirror's own sunset.</p>
+      </div>
+    </section>
+  </article>
+
+  <footer>
+    <p>Model: circular orbits at equinox, cylindrical Earth shadow with penumbra, Earth radius 6,371 km, μ = 3.986 × 10¹⁴ m³/s², Sun 0.533° wide, 1,361 W/m² above the air. The dawn–dusk plane uses the J2 sun-synchronous inclination for the chosen altitude. Brightness: flat mirror, 90% reflectivity, zenith transmission 0.8 with plane-parallel air mass, full Moon 2.4 × 10⁻⁶ of sunlight. Atmosphere reddening uses an 8 km scale height. Treat brightness as ±30%, geometry as exact for the stated assumptions.</p>
+    <p>Satellites in the orbit scenes are drawn hugely enlarged. The close-up is to scale: an 18 m mirror at 625 km. Build <span id="build2">v1.32.0</span>.</p>
+  </footer>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const BUILD = "v1.32.0";
+document.getElementById("build").textContent = BUILD;
+document.getElementById("build2").textContent = BUILD;
+
+/* ───────────── constants & helpers ───────────── */
+const D2R = Math.PI / 180;
+const RE = 6371e3, MU = 3.986004418e14, J2 = 1.08263e-3, S0 = 1361;
+const ALPHA = 0.533 * D2R;                 // Sun's angular diameter
+const TAU_Z = 0.8;                          // clear-sky zenith transmission
+const MOON_GROUND = S0 * 2.43e-6 * TAU_Z;   // full Moon high in the sky, W/m²
+const WE = 2 * Math.PI / 86400;             // Earth's turn relative to the Sun
+const OMS = 2 * Math.PI / (365.2422 * 86400);
+const OS = 10 / RE;                         // orbit scene: Earth radius = 10 units
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+const $ = (id) => document.getElementById(id);
+const fmt = (x, d = 0) => x.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }).replace("-", "−");
+const minSec = (s) => s < 90 ? `${fmt(s)} s` : `${fmt(s / 60, 1)} min`;
+const sig = (x) => { const d = x < 0.01 ? 4 : x < 0.1 ? 3 : 2; return fmt(x, d); };
+const round2 = (x) => { const p = Math.pow(10, Math.floor(Math.log10(x)) - 1); return Math.round(x / p) * p; };
+
+/* ───────────── physics ───────────── */
+const P = { h: 625, side: 18, rho: 0.9, emin: 30, lat: 32.7, N: 30, planes: 1, dP: 5, target: 50 };
+
+function derive(p) {
+  const h = p.h * 1e3, r = RE + h, n = Math.sqrt(MU / r ** 3), T = 2 * Math.PI / n, v = Math.sqrt(MU / r);
+  const edge = Math.acos(RE / r);
+  const lam = (e) => Math.acos(RE * Math.cos(e) / r) - e;
+  const slant = (e) => -RE * Math.sin(e) + Math.sqrt((RE * Math.sin(e)) ** 2 + h * h + 2 * RE * h);
+  const L = Math.sqrt(r * r - RE * RE);
+  const A = p.side * p.side;
+  const E = (e, inc = Math.PI / 4) => { const s = slant(e); return S0 * p.rho * A * Math.cos(inc) / (Math.PI * (s * ALPHA / 2) ** 2) * Math.sin(e) * TAU_Z ** (1 / Math.sin(e)); };
+  const em = p.emin * D2R;
+  const inc = Math.acos(-(2 * r ** 3.5 * OMS) / (3 * J2 * RE * RE * Math.sqrt(MU)));
+  return {
+    h, r, n, T, v, edge, L, A, inc,
+    edgeKm: edge * RE / 1e3, edgeH: edge / D2R / 15,
+    toShadow: edge / n, eclipse: (Math.PI - 2 * edge) / n,
+    discSet: ALPHA / n, atmoSet: 100e3 / (L * n),
+    lam: lam(em), pass: 2 * lam(em) / n, pass30: 2 * lam(30 * D2R) / n, pass20: 2 * lam(20 * D2R) / n,
+    spot: h * ALPHA, spot45: slant(Math.PI / 4) * ALPHA,
+    Eover: E(Math.PI / 2), E45: E(Math.PI / 4), Emin: E(em),
+  };
+}
+let D = derive(P);
+
+/* Tangent height of the Sun→mirror ray, and colour after crossing the air */
+function rayHeight(r, sDotR) { // sDotR = sun·r̂ (mirror position unit vector)
+  if (sDotR >= 0) return r - RE;
+  return r * Math.sqrt(1 - sDotR * sDotR) - RE;
+}
+const KEXT = [0.05, 0.11, 0.27];
+function sunTint(ht, L, out) { // out: [r,g,b] transmission incl. geometric loss of the disc
+  const sunR = 0.00465 * L; // Sun's radius projected at the limb, metres
+  const vis = smooth(-sunR, sunR, ht);
+  const am = 70 * Math.exp(-Math.max(ht, 0) / 8000);
+  for (let i = 0; i < 3; i++) out[i] = vis * Math.exp(-KEXT[i] * am);
+  return out;
+}
+
+/* Orbits in a Sun-fixed frame: x → Sun, z → north pole, y → dusk side (equinox) */
+const ssoBasis = { e1: V3(), e2: V3() };
+function makeSSO() {
+  const N = V3(Math.sin(D.inc), 0, Math.cos(D.inc));
+  const S = V3(1, 0, 0);
+  ssoBasis.e1.copy(S).addScaledVector(N, -S.dot(N)).normalize();
+  ssoBasis.e2.crossVectors(N, ssoBasis.e1);
+}
+function ssoPos(u, plane, out) {
+  const c = Math.cos(u), s = Math.sin(u);
+  out.copy(ssoBasis.e1).multiplyScalar(c * D.r).addScaledVector(ssoBasis.e2, s * D.r);
+  const d = plane * P.dP * D2R, x = out.x, y = out.y;   // rotate plane toward the night (dusk side moves to −x)
+  out.x = x * Math.cos(d) - y * Math.sin(d); out.y = x * Math.sin(d) + y * Math.cos(d);
+  return out;
+}
+const inShadow = (p) => p.x < 0 && Math.hypot(p.y, p.z) < RE;
+const LT0 = 17 + 50 / 60;                                   // scenes 3–4 start at 17:50 city time
+const cityLon0 = (LT0 - 12) * 15 * D2R;
+function cityPos(t, out) {
+  const phi = P.lat * D2R, l = cityLon0 + WE * t;
+  return out.set(RE * Math.cos(phi) * Math.cos(l), RE * Math.cos(phi) * Math.sin(l), RE * Math.sin(phi));
+}
+const cityLT = (t) => LT0 + t / 3600;
+
+/* One mirror's contribution at the city */
+const _d = V3(), _up = V3(), _S = V3(1, 0, 0);
+function serve(sat, city) {
+  if (inShadow(sat)) return 0;
+  if (city.x >= 0) return 0;                                 // city still in daylight
+  _d.subVectors(sat, city); const L = _d.length(); _up.copy(city).normalize();
+  const el = Math.asin(_d.dot(_up) / L);
+  if (el < P.emin * D2R) return 0;
+  _d.multiplyScalar(-1 / L);                                 // mirror → city
+  const inc = Math.acos(clamp(_S.dot(_d), -1, 1)) / 2;
+  return S0 * P.rho * D.A * Math.cos(inc) / (Math.PI * (L * ALPHA / 2) ** 2) * Math.sin(el) * TAU_Z ** (1 / Math.sin(el));
+}
+
+/* Phase the parade so a mirror passes the city a few minutes after sunset */
+let u0 = 0;
+function phaseParade() {
+  const c = cityPos(14 * 60, V3()), p = V3(); let best = -1e30, bu = 0;
+  for (let i = 0; i < 3600; i++) { const u = i / 3600 * 2 * Math.PI; ssoPos(u, 0, p); const d = p.dot(c); if (d > best) { best = d; bu = u; } }
+  u0 = bu - D.n * 14 * 60;
+}
+
+/* Evening coverage for the city: 0–4 h from 17:50 */
+const COV_DT = 15, COV_N = 4 * 3600 / COV_DT;
+function coverage(N, planes) {
+  const cnt = new Uint16Array(COV_N), E = new Float32Array(COV_N), c = V3(), s = V3();
+  for (let k = 0; k < COV_N; k++) {
+    const t = k * COV_DT; cityPos(t, c);
+    if (c.x >= 0) continue;
+    for (let p = 0; p < planes; p++) for (let i = 0; i < N; i++) {
+      ssoPos(u0 + 2 * Math.PI * i / N + D.n * t, p, s);
+      const e = serve(s, c); if (e > 0) { cnt[k]++; E[k] += e; }
+    }
+  }
+  let lit = 0, gaps = 0, peak = 0, peakE = 0, last = -1, prev = false, sumE = 0;
+  for (let k = 0; k < COV_N; k++) {
+    const on = cnt[k] > 0;
+    if (on) { lit += COV_DT; last = k; peak = Math.max(peak, cnt[k]); peakE = Math.max(peakE, E[k]); sumE += E[k] * COV_DT; }
+    if (prev && !on) gaps++;
+    prev = on;
+  }
+  const sunsetK = Math.round((18 - LT0) * 3600 / COV_DT);
+  return { cnt, E, lit, gaps: Math.max(0, gaps - (prev ? 0 : 1)), peak, peakE, meanE: lit ? sumE / lit : 0, endMin: last >= 0 ? (last - sunsetK) * COV_DT / 60 : 0 };
+}
+
+/* ───────────── renderer ───────────── */
+const canvas = $("gl");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+function canvasTex(w, h, draw, repeat = true) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso;
+  if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+const TEX = {
+  dot: canvasTex(64, 64, (g) => {
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.3, "rgba(255,255,255,0.75)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  }, false),
+  sun: canvasTex(256, 256, (g) => {
+    const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    gr.addColorStop(0, "rgba(255,255,250,1)"); gr.addColorStop(0.06, "rgba(255,250,235,1)"); gr.addColorStop(0.12, "rgba(255,225,160,0.55)");
+    gr.addColorStop(0.35, "rgba(255,180,90,0.12)"); gr.addColorStop(1, "rgba(255,160,60,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  }, false),
+  gold: canvasTex(128, 128, (g) => {
+    g.fillStyle = "#b8862b"; g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 300; i++) {
+      const x = Math.random() * 128, y = Math.random() * 128, l = 4 + Math.random() * 16, a = Math.random() * Math.PI;
+      g.strokeStyle = Math.random() < 0.5 ? `rgba(255,220,140,${0.15 + Math.random() * 0.25})` : `rgba(70,40,5,${0.15 + Math.random() * 0.25})`;
+      g.lineWidth = 1 + Math.random() * 1.5; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+    }
+  }),
+  cells: canvasTex(128, 128, (g) => {
+    g.fillStyle = "#8a96a4"; g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { g.fillStyle = "#11295a"; g.fillRect(i * 32 + 2, j * 32 + 2, 28, 28); }
+  }),
+};
+
+/* Earth shader (procedural continents, clouds, night lights) */
+const NOISE = `
+float hash(vec3 p){ p = fract(p*0.3183099 + 0.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float noise(vec3 x){ vec3 i = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f);
+  return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x), mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x), mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y), f.z); }
+float fbm(vec3 p, int oct){ float s = 0.0, a = 0.5; for (int i = 0; i < 7; i++){ if (i >= oct) break; s += a*noise(p); p = p*2.03 + vec3(1.7,9.2,3.1); a *= 0.5; } return s; }
+`;
+const earthVS = `varying vec3 vObj; varying vec3 vNw; varying vec3 vPw;
+void main(){ vObj = normalize(position); vNw = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.0); vPw = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`;
+const earthFS = `uniform vec3 sunDir; uniform float time;
+varying vec3 vObj; varying vec3 vNw; varying vec3 vPw;
+${NOISE}
+void main(){
+  vec3 p = vObj;
+  float h = fbm(p*2.1, 7);
+  float lat = abs(p.y);
+  float land = smoothstep(0.515, 0.53, h);
+  float ice = smoothstep(0.80, 0.9, lat + (fbm(p*6.0, 3)-0.5)*0.15);
+  float dry = smoothstep(0.45, 0.62, fbm(p*3.3 + 4.0, 3)) * (1.0 - smoothstep(0.35, 0.6, lat));
+  vec3 ocean = mix(vec3(0.01,0.04,0.11), vec3(0.02,0.12,0.22), smoothstep(0.40, 0.515, h));
+  vec3 green = mix(vec3(0.07,0.14,0.05), vec3(0.16,0.2,0.08), fbm(p*11.0, 3));
+  vec3 col = mix(ocean, mix(green, vec3(0.46,0.37,0.23), dry), land);
+  col = mix(col, vec3(0.86,0.9,0.95), ice);
+  float cl = fbm(p*vec3(3.2,7.0,3.2) + vec3(time*0.004, 0.0, time*0.002), 5);
+  float clouds = smoothstep(0.5, 0.72, cl);
+  vec3 N = normalize(vNw); vec3 L = normalize(sunDir); vec3 V = normalize(cameraPosition - vPw);
+  float ndl = dot(N, L);
+  float day = smoothstep(-0.05, 0.15, ndl);
+  vec3 dayCol = col*(0.08 + 1.1*max(ndl, 0.0));
+  dayCol = mix(dayCol, vec3(0.95)*(0.08 + 1.0*max(ndl, 0.0)), clouds*0.92);
+  vec3 H = normalize(L + V);
+  dayCol += pow(max(dot(N, H), 0.0), 80.0)*(1.0-land)*(1.0-clouds)*step(0.0, ndl)*vec3(1.0,0.9,0.7)*0.8;
+  float pop = smoothstep(0.52, 0.68, fbm(p*7.0 + 2.0, 3));
+  float city = pow(noise(p*380.0), 9.0)*3.0 + pow(noise(p*120.0), 6.0)*0.8;
+  city *= pop*land*(1.0-ice)*(1.0-dry*0.8);
+  vec3 nightCol = vec3(1.0,0.7,0.35)*city*(1.0 - clouds*0.8) + col*0.02;
+  vec3 c = mix(nightCol, dayCol, day);
+  float tw = smoothstep(-0.12, 0.0, ndl)*(1.0 - smoothstep(0.0, 0.1, ndl));
+  c += vec3(1.0,0.4,0.15)*tw*0.05;
+  float fr = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+  c += vec3(0.3,0.55,1.0)*fr*smoothstep(-0.15, 0.4, ndl)*0.8;
+  gl_FragColor = vec4(c, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+const atmoFS = `uniform vec3 sunDir; uniform float t0; varying vec3 vObj; varying vec3 vNw; varying vec3 vPw;
+void main(){
+  vec3 N = normalize(vNw); vec3 V = normalize(cameraPosition - vPw);
+  float g = smoothstep(0.0, t0, -dot(N, V)); g = g*g;
+  float s = dot(N, normalize(sunDir));
+  vec3 col = mix(vec3(1.0,0.45,0.18), vec3(0.32,0.6,1.0), smoothstep(-0.05, 0.35, s));
+  float a = g*smoothstep(-0.3, 0.15, s);
+  gl_FragColor = vec4(col*a*1.3, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+const EARTH_GEO = new THREE.SphereGeometry(1, 160, 120);
+function makeEarth() {
+  const mat = new THREE.ShaderMaterial({ vertexShader: earthVS, fragmentShader: earthFS, uniforms: { sunDir: { value: V3(1, 0, 0) }, time: { value: 0 } } });
+  const earth = new THREE.Mesh(EARTH_GEO, mat); earth.matrixAutoUpdate = false;
+  const amat = new THREE.ShaderMaterial({ vertexShader: earthVS, fragmentShader: atmoFS, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    uniforms: { sunDir: { value: V3(1, 0, 0) }, t0: { value: Math.sqrt(1 - 1 / 1.02 ** 2) } } });
+  const atmo = new THREE.Mesh(EARTH_GEO, amat); atmo.matrixAutoUpdate = false;
+  return { earth, atmo };
+}
+function makeStars(R, n = 3500) {
+  const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), c = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    const u = Math.random() * 2 - 1, t = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+    pos.set([R * s * Math.cos(t), R * s * Math.sin(t), R * u], i * 3);
+    c.setHSL(0.58 + Math.random() * 0.1 - (Math.random() < 0.2 ? 0.5 : 0), 0.4, 0.5 + Math.random() * 0.5).multiplyScalar(Math.random() ** 2 * 0.9 + 0.1);
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const p = new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, vertexColors: true, depthWrite: false }));
+  p.matrixAutoUpdate = false; return p;
+}
+function makeSun(scale) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.sun, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+  s.scale.setScalar(scale); return s;
+}
+
+
+/* ───────────── orbit scene (scenes 1, 3, 4) ───────────── */
+const sceneO = new THREE.Scene(); sceneO.background = new THREE.Color("#020308");
+const camO = new THREE.PerspectiveCamera(38, 1, 0.05, 2e4);
+const ctlO = new OrbitControls(camO, canvas); ctlO.enableDamping = true; ctlO.dampingFactor = 0.08; ctlO.minDistance = 13; ctlO.maxDistance = 200;
+const phys = new THREE.Group(); phys.rotation.x = -Math.PI / 2; sceneO.add(phys); // physics frame: x Sun, y dusk, z north
+const O = makeEarth(); phys.add(O.earth, O.atmo);
+const O_stars = makeStars(9000); sceneO.add(O_stars); O_stars.matrix.identity();
+const O_sun = makeSun(1400); O_sun.position.set(6000, 0, 0); sceneO.add(O_sun);
+const oLight = new THREE.DirectionalLight(0xfff4e6, 2.6); oLight.position.set(100, 0, 0); sceneO.add(oLight);
+sceneO.add(new THREE.AmbientLight(0x8899aa, 0.12));
+const shadowCyl = new THREE.Mesh(new THREE.CylinderGeometry(10.01 / Math.cos(Math.PI / 192), 10.01 / Math.cos(Math.PI / 192), 120, 192, 1, true),
+  new THREE.MeshBasicMaterial({ color: 0x0b2346, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false }));
+shadowCyl.rotation.z = Math.PI / 2; shadowCyl.position.x = -60; phys.add(shadowCyl);
+// sunset line on the ground (x = 0 great circle)
+function circlePts(n, f) { const a = []; for (let i = 0; i <= n; i++) a.push(f(i / n * 2 * Math.PI)); return a; }
+const termLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(circlePts(240, (a) => V3(0, 10.03 * Math.cos(a), 10.03 * Math.sin(a)))),
+  new THREE.LineBasicMaterial({ color: 0xcfd8e3, transparent: true, opacity: 0.4 }));
+phys.add(termLine);
+
+const RING_N = 720;
+function makeRing() {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array((RING_N + 1) * 3), 3));
+  g.setAttribute("color", new THREE.BufferAttribute(new Float32Array((RING_N + 1) * 3), 3));
+  const l = new THREE.Line(g, new THREE.LineBasicMaterial({ vertexColors: true, toneMapped: false })); phys.add(l); return l;
+}
+const ringEq = makeRing();
+const ringsSSO = Array.from({ length: 6 }, makeRing);
+const C_DAY = new THREE.Color("#5e7184"), C_USE = new THREE.Color("#f3b544"), C_SH = new THREE.Color("#25528f");
+
+// Hero mirror in the orbit scene (drawn ~200× too big)
+function makeMiniMirror() {
+  const g = new THREE.Group();
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.12, side: THREE.DoubleSide, emissive: 0x332611 }));
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.dot, color: 0xffd38a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+  glow.scale.setScalar(1.6); g.add(m, glow); g.userData = { m, glow }; g.scale.setScalar(0.38);
+  phys.add(g); return g;
+}
+const hero = makeMiniMirror();
+
+// Parade mirrors as glowing points
+const PMAX = 80 * 6;
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(PMAX * 3), 3));
+pGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(PMAX * 3), 3));
+const pts = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.8, map: TEX.dot, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+pts.frustumCulled = false; phys.add(pts);
+
+// Beams (mirror → ground) and incoming rays (Sun → mirror)
+const BMAX = PMAX + 2;
+function lineSet(color, opacity) {
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(BMAX * 6), 3));
+  const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  l.frustumCulled = false; phys.add(l); return l;
+}
+const beams = lineSet(0xffd27a, 1.0), rays = lineSet(0xfff1d0, 0.55);
+const spotGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.dot, color: 0xffcf73, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+phys.add(spotGlow);
+const cityDot = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), new THREE.MeshBasicMaterial({ color: 0x9fd8ff, toneMapped: false })); phys.add(cityDot);
+// footprint (where the hero mirror is ≥ emin above the horizon)
+const footprint = new THREE.Line(new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(129 * 3), 3)),
+  new THREE.LineBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.6 }));
+phys.add(footprint);
+const edgeMark = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })); phys.add(edgeMark);
+
+/* ───────────── close-up scene (scene 2): to scale ───────────── */
+const sceneC = new THREE.Scene(); sceneC.background = new THREE.Color("#020308");
+const camC = new THREE.PerspectiveCamera(42, 1, 0.1, 6e5);
+const ctlC = new OrbitControls(camC, canvas); ctlC.enableDamping = true; ctlC.dampingFactor = 0.08; ctlC.minDistance = 12; ctlC.maxDistance = 2500; ctlC.enabled = false;
+const world = new THREE.Group(); sceneC.add(world);
+const EARTH_D = 60000;
+const C_E = makeEarth(); world.add(C_E.earth, C_E.atmo);
+const C_stars = makeStars(2.5e5); world.add(C_stars);
+const C_sun = makeSun(22000); world.add(C_sun);
+const cLight = new THREE.DirectionalLight(0xfff4e6, 3); world.add(cLight, cLight.target);
+const cShine = new THREE.HemisphereLight(0x000000, 0x4f79b8, 0.3); sceneC.add(cShine);
+sceneC.add(new THREE.AmbientLight(0x8899aa, 0.1));
+
+const cubeRT = new THREE.WebGLCubeRenderTarget(256, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+const cubeCam = new THREE.CubeCamera(1, 4e5, cubeRT); sceneC.add(cubeCam);
+const sat = new THREE.Group(); sceneC.add(sat);
+const mirrorG = new THREE.Group(); sat.add(mirrorG);
+{
+  const half = 9;
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(18, 18, 1, 1), new THREE.MeshStandardMaterial({ color: 0xe4ebf2, metalness: 0.95, roughness: 0.08, envMap: cubeRT.texture, envMapIntensity: 1.2, emissive: 0x0c1015 }));
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(18, 18), new THREE.MeshStandardMaterial({ color: 0xc9a25a, metalness: 0.5, roughness: 0.45, emissive: 0x2a1f10 }));
+  back.rotation.y = Math.PI; back.position.z = -0.02;
+  mirrorG.add(front, back);
+  const boomMat = new THREE.MeshStandardMaterial({ color: 0x2c3036, metalness: 0.4, roughness: 0.5 });
+  for (const a of [Math.PI / 4, -Math.PI / 4]) {
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 18 * Math.SQRT2, 8), boomMat); b.rotation.z = a; b.position.z = -0.18; mirrorG.add(b);
+  }
+  const seams = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(18, 18, 3, 3)), new THREE.LineBasicMaterial({ color: 0x9aa6b2, transparent: true, opacity: 0.35 }));
+  seams.position.z = 0.01; mirrorG.add(seams);
+  const bus = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.2), new THREE.MeshStandardMaterial({ map: TEX.gold, color: 0xe0b060, metalness: 0.85, roughness: 0.4 }));
+  bus.position.z = -1.0; mirrorG.add(bus);
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.4, 0.06), new THREE.MeshStandardMaterial({ map: TEX.cells, metalness: 0.4, roughness: 0.35 }));
+  panel.position.set(0, 0, -1.7); panel.rotation.x = Math.PI / 2; mirrorG.add(panel);
+  mirrorG.userData = { half, front };
+}
+const glint = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.sun, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+sat.add(glint);
+// Beam: cone from the mirror to the ground spot (to scale)
+const beamMat = new THREE.ShaderMaterial({
+  uniforms: { col: { value: new THREE.Color(1, 0.86, 0.6) }, amp: { value: 1 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  vertexShader: `varying float vY; varying vec3 vN; varying vec3 vV; void main(){ vY = uv.y; vec4 mv = modelViewMatrix*vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }`,
+  fragmentShader: `uniform vec3 col; uniform float amp; varying float vY; varying vec3 vN; varying vec3 vV;
+    void main(){ float edge = pow(1.0 - abs(dot(vN, vV)), 1.5); float a = amp*(0.08 + 0.5*edge)*(0.25 + 0.75*vY); gl_FragColor = vec4(col*a, 1.0); }`,
+});
+const beamCone = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 48, 1, true), beamMat); sceneC.add(beamCone);
+const rayMat = beamMat.clone(); rayMat.uniforms = { col: { value: new THREE.Color(1, 0.95, 0.85) }, amp: { value: 0.3 } };
+const rayCyl = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 1, 40, 1, true), rayMat); sceneC.add(rayCyl);
+const groundSpot = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.dot, color: 0xffd08a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+sceneC.add(groundSpot);
+
+/* ───────────── state, time ───────────── */
+const state = { mode: 1, t: 0, paused: false, speed: 40, labels: true };
+const SPEED_DEFAULT = { 1: 40, 4: 6, 2: 40, 3: 40 };
+let cov1 = null, cov = null; // single mirror (scene 3) & parade (scene 4)
+const speedFromSlider = (v) => Math.max(1, Math.round(Math.pow(10, v / 100 * 3)));
+const sliderFromSpeed = (s) => Math.log10(s) / 3 * 100;
+function setSpeed(s) { state.speed = s; $("speed").value = sliderFromSpeed(s); $("speedVal").textContent = `${fmt(s)}×`; $("realBtn").classList.toggle("on", s === 1); }
+
+function restart() {
+  if (state.mode === 1) state.t = 0;
+  else if (state.mode === 4) state.t = 0;
+  else state.t = 0;
+}
+
+/* ───────────── labels ───────────── */
+const labelEls = {}; let usedLabels = new Set();
+function label(id, pos, html, cls = "") {
+  usedLabels.add(id);
+  let el = labelEls[id];
+  if (!el) { el = document.createElement("div"); $("labels").appendChild(el); labelEls[id] = el; }
+  el.className = `lbl ${cls}`;
+  const cam = state.mode === 4 ? camC : camO;
+  const p = pos.clone().project(cam);
+  const vis = p.z < 1 && p.z > -1 && Math.abs(p.x) < 1.02 && Math.abs(p.y) < 1.02;
+  el.hidden = !vis; if (!vis) return;
+  el.style.left = `${(p.x * 0.5 + 0.5) * canvas.clientWidth}px`; el.style.top = `${(-p.y * 0.5 + 0.5) * canvas.clientHeight}px`;
+  if (el._h !== html) { el.innerHTML = html; el._h = html; }
+}
+function sweepLabels() { for (const [k, el] of Object.entries(labelEls)) if (!usedLabels.has(k)) el.hidden = true; usedLabels = new Set(); }
+const physToWorld = (v) => v.clone().applyMatrix4(phys.matrixWorld);
+
+/* ───────────── per-mode scene setup ───────────── */
+const CAPTIONS = {
+  1: `<b>Fletcher's picture.</b> Sunlight from the left, Earth's shadow to the right. The mirror's orbit turns <b style="color:var(--sun)">gold</b> where it is sunlit above dark ground, and blue where it is in the shadow. That gold stretch lasts about ${"{toShadow}"}.`,
+  4: `<b>To scale: an 18 m mirror at 625 km</b>, seen from behind, looking toward the Sun. The mirror tilts so sunlight lands on the dark ground below. Watch the Sun redden and drop behind Earth as its rays skim the atmosphere. Drag to see the mirror's face.`,
+  2: `<b>Dawn–dusk orbit.</b> The orbit rides the sunset line, so the mirror is always in sunshine. The city (blue) turns into the night under it, and the ring on the ground shows where the mirror is at least ${"{emin}"} up.`,
+  3: `<b>A parade of mirrors.</b> Each mirror is in range for minutes, so the city stays lit only if the next one arrives in time. The bar below counts mirrors shining on the city.`,
+};
+function setMode(m) {
+  state.mode = m;
+  document.querySelectorAll("#modes button").forEach((b) => b.classList.toggle("on", +b.dataset.m === m));
+  ctlO.enabled = m !== 4; ctlC.enabled = m === 4;
+  const orbitScene = m !== 4;
+  syncVisibility();
+  setSpeed(SPEED_DEFAULT[m]); state.t = 0;
+  if (orbitScene) {
+    const far = m === 3 ? 46 : 40;
+    camO.position.set(-0.32 * far, 0.42 * far, -0.85 * far); ctlO.target.set(0, m === 1 ? 0 : 2, 0);
+  } else { camC.position.set(70, 14, 25); ctlC.target.set(-20, -10, 0); }
+  updateCaption();
+  onResize();
+}
+function syncVisibility() {
+  const m = state.mode;
+  ringEq.visible = m === 1; ringsSSO.forEach((r, i) => r.visible = (m === 2 && i === 0) || (m === 3 && i < P.planes));
+  hero.visible = m === 1 || m === 2; pts.visible = m === 3;
+  footprint.visible = m === 2; edgeMark.visible = m === 1; cityDot.visible = m === 2 || m === 3;
+}
+function updateCaption() {
+  $("caption").innerHTML = CAPTIONS[state.mode].replace("{toShadow}", minSec(D.toShadow)).replace("{emin}", `${P.emin}°`);
+}
+
+/* ───────────── rebuild on parameter change ───────────── */
+function rebuild() {
+  D = derive(P); makeSSO(); phaseParade();
+  cov1 = coverage(1, 1); cov = coverage(P.N, P.planes);
+  // rings
+  const a = D.r * OS;
+  { const pos = ringEq.geometry.attributes.position, col = ringEq.geometry.attributes.color, p = V3();
+    for (let i = 0; i <= RING_N; i++) {
+      const u = i / RING_N * 2 * Math.PI; p.set(Math.cos(u) * D.r, Math.sin(u) * D.r, 0);
+      pos.setXYZ(i, p.x * OS, p.y * OS, 0);
+      const c = inShadow(p) ? C_SH : (Math.cos(u) >= 0 ? C_DAY : C_USE); col.setXYZ(i, c.r, c.g, c.b);
+    }
+    pos.needsUpdate = col.needsUpdate = true; ringEq.geometry.computeBoundingSphere(); }
+  ringsSSO.forEach((ring, pl) => {
+    const pos = ring.geometry.attributes.position, col = ring.geometry.attributes.color, p = V3();
+    for (let i = 0; i <= RING_N; i++) {
+      ssoPos(i / RING_N * 2 * Math.PI, pl, p); pos.setXYZ(i, p.x * OS, p.y * OS, p.z * OS);
+      const c = inShadow(p) ? C_SH : C_USE; col.setXYZ(i, c.r * 0.8, c.g * 0.8, c.b * 0.8);
+    }
+    pos.needsUpdate = col.needsUpdate = true; ring.geometry.computeBoundingSphere();
+  });
+  const e = D.edge + Math.PI / 2; edgeMark.position.set(Math.cos(e) * a, Math.sin(e) * a, 0);
+  syncVisibility();
+  fillNumbers(); updateCaption();
+}
+
+function fillNumbers() {
+  $("n_T").textContent = `${fmt(D.T / 60, 1)} min`;
+  $("n_v").textContent = `${fmt(D.v / 1e3, 2)} km/s`;
+  $("n_edge").textContent = `${fmt(D.edge / D2R, 1)}° · ${fmt(D.edgeKm)} km`;
+  $("n_edgeH").textContent = `${fmt(D.edgeH, 1)} h earlier`;
+  $("n_win").textContent = minSec(D.toShadow);
+  $("n_ecl").textContent = minSec(D.eclipse);
+  $("n_set").textContent = `${fmt(D.discSet)} s / ${fmt(D.atmoSet)} s`;
+  $("n_pass").textContent = `${minSec(D.pass)} (> ${P.emin}°)`;
+  $("n_spot").textContent = `${fmt(D.spot / 1e3, 1)} km`;
+  $("n_E").textContent = `${sig(D.Eover)} W/m² · ${fmt(D.Eover / MOON_GROUND, 1)}× Moon`;
+  $("n_need").textContent = fmt(round2(P.target / D.Eover));
+}
+
+/* Article numbers: always the reference case (625 km, 18 m, 32.7° N, 30° up) */
+function fillArticle() {
+  const ref = { ...P, h: 625, side: 18, emin: 30, lat: 32.7 };
+  const R = derive(ref), R600 = derive({ ...ref, h: 600 });
+  const keep = { ...P }; Object.assign(P, ref); D = R; makeSSO(); phaseParade();
+  const c1 = coverage(30, 1), c4 = coverage(30, 4);
+  Object.assign(P, keep); D = derive(P); makeSSO(); phaseParade();
+  const v = {
+    hkm: "625 km", rkm: "6,996", edgeDeg: `${fmt(R.edge / D2R, 1)}°`, edgeKm: `${fmt(Math.round(R.edgeKm / 10) * 10)} km`, edgeH: `${fmt(R.edgeH, 1)} hours`,
+    vkms: `${fmt(R.v / 1e3, 2)} km/s`, Tmin: `${fmt(R.T / 60, 1)} min`, T600: `${fmt(R600.T / 60, 1)} min`,
+    toShadow: `${fmt(R.toShadow / 60, 1)} min`, toShadow600: `${fmt(R600.toShadow / 60, 1)} min`, eclipse: `${fmt(R.eclipse / 60)} min`,
+    discSet: `${fmt(R.discSet)} s`, atmoSet: `${fmt(R.atmoSet)} s`,
+    pass30: `${fmt(R.pass30 / 60, 1)} min`, pass20: `${fmt(R.pass20 / 60, 1)} min`,
+    spot: `${fmt(R.spot / 1e3, 1)} km`, spot45: `${fmt(R.spot45 / 1e3)} km`,
+    sideM: "18 m", area: "324 m²",
+    Eover: `${sig(R.Eover)} W/m²`, E45: `${sig(R.E45)} W/m²`,
+    moonOver: `${fmt(R.Eover / MOON_GROUND, 1)}×`, moon45: `${fmt(R.E45 / MOON_GROUND, 1)}×`,
+    needOver: fmt(round2(50 / R.Eover)), need45: fmt(round2(50 / R.E45)),
+    cov1N: "30", cov1: `about ${fmt(c1.lit / 60)} min`, cov4P: "Four", cov4: `about ${fmt(c4.lit / 60)} min`,
+  };
+  document.querySelectorAll("[data-v]").forEach((el) => { const k = el.dataset.v; if (k in v) el.textContent = v[k]; });
+  drawFigure(R);
+}
+
+/* Side-view figure, to scale */
+function drawFigure(R) {
+  const svg = $("fig1"), cx = 300, cy = 420, Rp = 250, rp = Rp * R.r / RE, th = R.edge;
+  const top = cy - Rp;
+  const pA = [cx, cy - rp], pB = [cx + rp * Math.sin(th), cy - rp * Math.cos(th)];
+  const thC = th + 16 * D2R, pC = [cx + rp * Math.sin(thC), cy - rp * Math.cos(thC)];
+  const arc = (r, a0, a1) => `M ${cx + r * Math.sin(a0)} ${cy - r * Math.cos(a0)} A ${r} ${r} 0 0 1 ${cx + r * Math.sin(a1)} ${cy - r * Math.cos(a1)}`;
+  const rays = [70, 120, 170, 220, 270].map((y) => `<line x1="0" y1="${y}" x2="${cx - Math.sqrt(Math.max(0, Rp * Rp - (cy - y) ** 2)) - 4}" y2="${y}" stroke="#f3b544" stroke-opacity="0.35" stroke-width="1.2" marker-end="url(#ah)"/>`).join("");
+  svg.innerHTML = `
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f3b544" fill-opacity="0.6"/></marker>
+    <linearGradient id="sh" x1="0" x2="1"><stop offset="0" stop-color="#0d2140" stop-opacity="0.9"/><stop offset="1" stop-color="#0d2140" stop-opacity="0.25"/></linearGradient>
+    <radialGradient id="earthG" cx="0.3" cy="0.45" r="0.8"><stop offset="0" stop-color="#2a6aa8"/><stop offset="0.5" stop-color="#173d66"/><stop offset="1" stop-color="#0b1a2c"/></radialGradient>
+    <clipPath id="night"><rect x="${cx}" y="0" width="820" height="430"/></clipPath>
+  </defs>
+  <rect x="${cx}" y="${top}" width="${820 - cx}" height="${430 - top}" fill="url(#sh)"/>
+  ${rays}
+  <circle cx="${cx}" cy="${cy}" r="${Rp + 4}" fill="none" stroke="#5aa0ff" stroke-opacity="0.35" stroke-width="3"/>
+  <circle cx="${cx}" cy="${cy}" r="${Rp}" fill="url(#earthG)"/>
+  <circle cx="${cx}" cy="${cy}" r="${Rp}" fill="#02050a" fill-opacity="0.82" clip-path="url(#night)"/>
+  <path d="${arc(rp, -40 * D2R, 75 * D2R)}" fill="none" stroke="#8a9aab" stroke-dasharray="3 5" stroke-width="1.2"/>
+  <path d="${arc(rp, 0, th)}" fill="none" stroke="#f3b544" stroke-width="3"/>
+  <path d="${arc(rp, th, 75 * D2R)}" fill="none" stroke="#2f6db5" stroke-width="3"/>
+  <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${top - 70}" stroke="#f3b544" stroke-opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="${cx}" y1="${cy}" x2="${pB[0]}" y2="${pB[1]}" stroke="#e3e9ef" stroke-opacity="0.5" stroke-dasharray="4 4"/>
+  <path d="${arc(70, 0, th)}" fill="none" stroke="#e3e9ef" stroke-width="1.5"/>
+  <text x="${cx + 18}" y="${cy - 80}" fill="#e3e9ef" font-family="IBM Plex Mono, monospace" font-size="13">θ = ${fmt(th / D2R, 1)}°</text>
+  <line x1="0" y1="${top}" x2="${pB[0]}" y2="${top}" stroke="#fff1d0" stroke-width="1.6"/>
+  <circle cx="${pA[0]}" cy="${pA[1]}" r="6" fill="#f3b544"/>
+  <circle cx="${pB[0]}" cy="${pB[1]}" r="6" fill="#f3b544" stroke="#fff" stroke-width="1.5"/>
+  <circle cx="${pC[0]}" cy="${pC[1]}" r="6" fill="#26303b" stroke="#62b6e6" stroke-width="1.5"/>
+  <line x1="${pB[0]}" y1="${pB[1] + 6}" x2="${cx + Rp * Math.sin(th) * 0.995}" y2="${cy - Rp * Math.cos(th)}" stroke="#ffd27a" stroke-width="2"/>
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="13" fill="#c6d1db">
+    <text x="16" y="44" fill="#f3b544" font-weight="600">Sunlight →</text>
+    <text x="${cx - 6}" y="${top - 78}" text-anchor="end">sunset line on the ground</text>
+    <text x="${pA[0] - 12}" y="${pA[1] - 10}" text-anchor="end"><tspan font-weight="600" fill="#e3e9ef">A</tspan> sunlit, over the sunset line</text>
+    <text x="${pB[0] + 12}" y="${pB[1] - 12}"><tspan font-weight="600" fill="#e3e9ef">B</tspan> last sunlit point, ${fmt(R.h / 1e3)} km up</text>
+    <text x="${pB[0] + 12}" y="${pB[1] + 6}" fill="#8a9aab" font-size="12">cos θ = R/(R+h) · ground below: sunset ${fmt(R.edgeH, 1)} h ago</text>
+    <text x="${pC[0] + 12}" y="${pC[1] + 4}"><tspan font-weight="600" fill="#e3e9ef">C</tspan> in Earth's shadow: dark</text>
+    <text x="40" y="${top - 8}" fill="#fff1d0" font-size="12">last ray skims the atmosphere (the "twice" moment)</text>
+    <text x="640" y="${top + 60}" fill="#62b6e6">Earth's shadow</text>
+    <text x="${cx - 120}" y="410" fill="#8a9aab" font-size="12">day</text>
+    <text x="${cx + 90}" y="410" fill="#8a9aab" font-size="12">night</text>
+  </g>`;
+}
+
+/* ───────────── frame update ───────────── */
+const tmpA = V3(), tmpB = V3(), tmpC = V3(), city = V3(), satP = V3(), tint = [1, 1, 1];
+const RX = new THREE.Matrix4().makeRotationX(Math.PI / 2), RZ = new THREE.Matrix4(), MS = new THREE.Matrix4(), MT = new THREE.Matrix4(), MF = new THREE.Matrix4();
+let status = { cls: "sun", text: "" };
+
+function placeEarthO(t) {
+  RZ.makeRotationZ(WE * t + cityLon0);
+  O.earth.matrix.copy(RZ).multiply(RX).multiply(MS.makeScale(10, 10, 10)); O.earth.matrixWorldNeedsUpdate = true;
+  O.atmo.matrix.copy(O.earth.matrix).multiply(MS.makeScale(1.02, 1.02, 1.02)); O.atmo.matrixWorldNeedsUpdate = true;
+  const sw = V3(1, 0, 0);
+  O.earth.material.uniforms.sunDir.value.copy(sw); O.atmo.material.uniforms.sunDir.value.copy(sw);
+  O.earth.material.uniforms.time.value = t / 60;
+}
+function setLine(lines, idx, a, b) { const p = lines.geometry.attributes.position; p.setXYZ(idx * 2, a.x, a.y, a.z); p.setXYZ(idx * 2 + 1, b.x, b.y, b.z); }
+function finishLines(lines, n) { lines.geometry.setDrawRange(0, n * 2); lines.geometry.attributes.position.needsUpdate = true; }
+function orientMini(g, satPos, target) { // mirror normal bisects Sun and target
+  const toT = tmpA.subVectors(target, satPos).normalize();
+  const nrm = tmpB.set(1, 0, 0).add(toT).normalize();
+  g.position.copy(satPos).multiplyScalar(OS);
+  g.quaternion.setFromUnitVectors(V3(0, 0, 1), nrm);
+}
+
+function updateOrbitScene() {
+  const t = state.t;
+  placeEarthO(state.mode === 1 ? 0 : t);
+  phys.updateMatrixWorld();
+  let nb = 0, nr = 0;
+  if (state.mode === 1) {
+    const u = 60 * D2R + D.n * t;
+    satP.set(Math.cos(u) * D.r, Math.sin(u) * D.r, 0);
+    const dark = inShadow(satP), groundDark = Math.cos(u) < 0;
+    const nadir = tmpC.copy(satP).setLength(RE);
+    orientMini(hero, satP, nadir);
+    const on = !dark && groundDark;
+    hero.userData.glow.material.opacity = dark ? 0.08 : 1;
+    hero.userData.m.material.emissive.setHex(dark ? 0x000000 : 0x332611);
+    if (on) {
+      setLine(beams, nb++, satP.clone().multiplyScalar(OS), nadir.clone().multiplyScalar(OS * 1.002));
+      setLine(rays, nr++, V3(40, satP.y * OS, 0), satP.clone().multiplyScalar(OS));
+      spotGlow.position.copy(nadir).multiplyScalar(OS * 1.004); spotGlow.scale.setScalar(0.9); spotGlow.visible = true;
+    } else spotGlow.visible = false;
+    if (!dark && !groundDark) setLine(rays, nr++, V3(40, satP.y * OS, 0), satP.clone().multiplyScalar(OS));
+    const theta = (((u - Math.PI / 2) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    if (dark) status = { cls: "dark", text: "In Earth's shadow · mirror dark" };
+    else if (on) status = { cls: "sun", text: `Sunlit over dark ground · ${minSec(Math.max(0, (D.edge - theta) / D.n))} to shadow` };
+    else if (!groundDark && Math.cos(u) > 0) status = { cls: "day", text: "Ground below in daylight" };
+    else status = { cls: "sun", text: "Sunlit over dark ground (before sunrise)" };
+    if (state.labels) {
+      label("o_sat", physToWorld(hero.position), dark ? `Mirror · in shadow` : on ? `Mirror · sunlit, beam on` : `Mirror · sunlit`, dark ? "n" : "");
+      label("o_edge", physToWorld(edgeMark.position), `Shadow begins<small>${fmt(D.edge / D2R, 1)}° past the sunset line</small>`, "n");
+      label("o_term", physToWorld(V3(0, 0, 10.3)), `Sunset line`, "plain");
+      label("o_shadow", physToWorld(V3(-30, 0, 0)), `Earth's shadow`, "plain");
+      label("o_sunL", physToWorld(V3(28, 0, 7)), `Sunlight →`, "plain");
+    }
+  } else {
+    cityPos(t, city);
+    cityDot.position.copy(city).multiplyScalar(OS * 1.003);
+    let total = 0, count = 0;
+    if (state.mode === 2) {
+      ssoPos(u0 + D.n * t, 0, satP);
+      const e = serve(satP, city);
+      orientMini(hero, satP, e > 0 ? city : tmpC.copy(satP).setLength(RE));
+      hero.userData.glow.material.opacity = inShadow(satP) ? 0.08 : 1;
+      if (e > 0) { setLine(beams, nb++, satP.clone().multiplyScalar(OS), city.clone().multiplyScalar(OS * 1.002)); total = e; count = 1; }
+      if (!inShadow(satP)) setLine(rays, nr++, V3(40, satP.y * OS, satP.z * OS), satP.clone().multiplyScalar(OS));
+      // footprint ring
+      const fp = footprint.geometry.attributes.position, zc = tmpA.copy(satP).normalize(), ax = tmpB.set(0, 0, 1).cross(zc).normalize(), ay = V3().crossVectors(zc, ax);
+      for (let i = 0; i <= 128; i++) {
+        const a = i / 128 * 2 * Math.PI, q = V3().copy(zc).multiplyScalar(Math.cos(D.lam)).addScaledVector(ax, Math.sin(D.lam) * Math.cos(a)).addScaledVector(ay, Math.sin(D.lam) * Math.sin(a));
+        fp.setXYZ(i, q.x * 10.02, q.y * 10.02, q.z * 10.02);
+      }
+      fp.needsUpdate = true;
+      if (state.labels) label("o_sat", physToWorld(hero.position), `Mirror · always sunlit`, "");
+    } else {
+      const pos = pGeo.attributes.position, col = pGeo.attributes.color; let k = 0;
+      for (let p = 0; p < P.planes; p++) for (let i = 0; i < P.N; i++) {
+        ssoPos(u0 + 2 * Math.PI * i / P.N + D.n * t, p, satP);
+        const e = serve(satP, city), sh = inShadow(satP);
+        pos.setXYZ(k, satP.x * OS, satP.y * OS, satP.z * OS);
+        if (e > 0) { col.setXYZ(k, 1.6, 1.25, 0.6); setLine(beams, nb++, satP.clone().multiplyScalar(OS), city.clone().multiplyScalar(OS * 1.002)); total += e; count++; }
+        else if (sh) col.setXYZ(k, 0.12, 0.16, 0.24); else col.setXYZ(k, 0.75, 0.62, 0.38);
+        k++;
+      }
+      pGeo.setDrawRange(0, k); pos.needsUpdate = col.needsUpdate = true;
+    }
+    spotGlow.visible = count > 0;
+    if (count) { spotGlow.position.copy(cityDot.position); spotGlow.scale.setScalar(0.6 + 0.35 * Math.sqrt(count)); }
+    const lt = cityLT(t), hh = Math.floor(lt % 24), mm = Math.floor((lt % 1) * 60);
+    const clock = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+    if (city.x >= 0) status = { cls: "day", text: `City ${clock} · still daylight` };
+    else if (count) status = { cls: "sun", text: `City ${clock} · lit by ${count} mirror${count > 1 ? "s" : ""} · ${fmt(total / MOON_GROUND, 1)}× full Moon` };
+    else status = { cls: "dark", text: `City ${clock} · no mirror in range` };
+    if (state.labels) {
+      label("o_city", physToWorld(cityDot.position), `City, ${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"}<small>${clock} local time</small>`, "n");
+      label("o_term", physToWorld(V3(0, 0, 10.3)), `Sunset line`, "plain");
+      label("o_sunL", physToWorld(V3(28, 0, 7)), `Sunlight →`, "plain");
+    }
+  }
+  finishLines(beams, nb); finishLines(rays, nr);
+}
+
+/* Close-up: LVLH frame (x = velocity, y = up, z = v × r) on the equatorial orbit */
+const U_START = 86 * D2R;
+let glintMax = 0;
+function updateClose() {
+  const span = D.edge + 5 * D2R - (U_START - Math.PI / 2);
+  const u = U_START + ((D.n * state.t) % (span));
+  const r = D.r;
+  const rh = V3(Math.cos(u), Math.sin(u), 0), vh = V3(-Math.sin(u), Math.cos(u), 0), zh = V3().crossVectors(vh, rh);
+  const sL = V3(-Math.sin(u), Math.cos(u), 0); // Sun (+x phys) in LVLH: (x·v, x·r, x·z)
+  // Earth and stars: phys → LVLH rows (v, r, z)
+  MF.set(vh.x, vh.y, vh.z, 0, rh.x, rh.y, rh.z, 0, zh.x, zh.y, zh.z, 0, 0, 0, 0, 1);
+  const Rs = EARTH_D * RE / r;
+  RZ.makeRotationZ(cityLon0 + WE * state.t * 0);
+  MT.makeTranslation(0, -EARTH_D, 0).multiply(MF).multiply(RZ).multiply(RX).multiply(MS.makeScale(Rs, Rs, Rs));
+  C_E.earth.matrix.copy(MT); C_E.earth.matrixWorldNeedsUpdate = true;
+  C_E.atmo.matrix.copy(MT).multiply(MS.makeScale(1.02, 1.02, 1.02)); C_E.atmo.matrixWorldNeedsUpdate = true;
+  C_stars.matrix.copy(MF); C_stars.matrixWorldNeedsUpdate = true;
+  C_E.earth.material.uniforms.sunDir.value.copy(sL); C_E.atmo.material.uniforms.sunDir.value.copy(sL);
+  C_E.earth.material.uniforms.time.value = state.t / 60;
+  C_sun.position.copy(sL).multiplyScalar(2.2e5);
+  // sunlight reaching the mirror
+  const sDotR = Math.cos(u), ht = rayHeight(r, sDotR);
+  sunTint(ht, D.L, tint);
+  const lum = (tint[0] + tint[1] + tint[2]) / 3, mx = Math.max(tint[0], tint[1], tint[2], 1e-4);
+  cLight.position.copy(sL).multiplyScalar(500); cLight.target.position.set(0, 0, 0);
+  cLight.color.setRGB(tint[0] / mx, tint[1] / mx, tint[2] / mx); cLight.intensity = 3.2 * mx;
+  C_sun.material.color.setRGB(tint[0] / mx, tint[1] / mx, tint[2] / mx); C_sun.material.opacity = Math.min(1, mx * 1.5);
+  // mirror orientation: normal bisects Sun and nadir
+  const toT = V3(0, -1, 0), nrm = V3().addVectors(sL, toT).normalize();
+  mirrorG.quaternion.setFromUnitVectors(V3(0, 0, 1), nrm);
+  const groundDark = Math.cos(u) < 0;
+  const beamOn = groundDark && mx > 0.001;
+  // beam cone to the ground, to scale
+  const H = EARTH_D - Rs, spotR = (D.h * ALPHA / 2) * (H / D.h), r0 = 9 * Math.SQRT1_2;
+  beamCone.visible = beamOn; groundSpot.visible = beamOn;
+  if (beamOn) {
+    const key = `${H.toFixed(1)}|${spotR.toFixed(2)}`;
+    if (beamCone.userData.key !== key) { beamCone.geometry.dispose(); beamCone.geometry = new THREE.CylinderGeometry(r0, spotR, H, 48, 1, true); beamCone.userData.key = key; }
+    beamCone.position.set(0, -H / 2, 0);
+    beamMat.uniforms.col.value.setRGB(tint[0] / mx, tint[1] / mx, tint[2] / mx); beamMat.uniforms.amp.value = Math.min(0.45, lum * 0.55 + 0.02);
+    groundSpot.position.set(0, -H + 2, 0); groundSpot.scale.setScalar(spotR * 5); groundSpot.material.opacity = Math.min(1, lum * 1.5);
+  }
+  rayCyl.visible = mx > 0.002;
+  if (rayCyl.visible) {
+    const len = 4000; rayCyl.scale.set(1, len, 1);
+    rayCyl.position.copy(sL).multiplyScalar(len / 2 + 2);
+    rayCyl.quaternion.setFromUnitVectors(V3(0, 1, 0), sL);
+    rayMat.uniforms.col.value.setRGB(tint[0] / mx, tint[1] / mx, tint[2] / mx); rayMat.uniforms.amp.value = 0.22 * Math.min(1, mx);
+  }
+  // glint: bright when the camera looks along the reflected beam
+  const refl = toT.clone(); const vdir = camC.position.clone().normalize();
+  const g = Math.pow(Math.max(0, vdir.dot(refl)), 40) * mx;
+  glint.visible = g > 0.01; glint.scale.setScalar(60 * g + 4); glint.material.opacity = Math.min(1, g * 2);
+  cShine.position.set(0, 1, 0);
+  // reflections
+  if ((frame++ % 6) === 0) { sat.visible = false; beamCone.visible = false; rayCyl.visible = false; glint.visible = false; cubeCam.update(renderer, sceneC); sat.visible = true; beamCone.visible = beamOn; rayCyl.visible = mx > 0.002; }
+  // status
+  const theta = u - Math.PI / 2;
+  const ltBelow = 18 + theta / D2R / 15, hh = Math.floor(ltBelow), mm = Math.floor((ltBelow % 1) * 60);
+  const clock = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  if (mx < 0.001) status = { cls: "dark", text: `In Earth's shadow · ground below ${clock}` };
+  else if (!groundDark) status = { cls: "day", text: `Ground below still in daylight` };
+  else if (ht < 100e3) status = { cls: "sun", text: `Sunlight skimming the air ${fmt(ht / 1e3)} km up · ${minSec(Math.max(0, (D.edge - theta) / D.n))} left` };
+  else status = { cls: "sun", text: `Beam on · ground below ${clock} · ${minSec(Math.max(0, (D.edge - theta) / D.n))} to shadow` };
+  if (state.labels) {
+    label("c_m", V3(-9, 9, 0).applyQuaternion(mirrorG.quaternion), `18 m mirror<small>${fmt(D.v / 1e3, 2)} km/s</small>`);
+    if (rayCyl.visible) label("c_in", sL.clone().multiplyScalar(700), `Sunlight in<small>passes ${fmt(Math.max(0, ht) / 1e3)} km above Earth</small>`);
+    if (beamOn) label("c_out", V3(0, -220, 0), `Reflected beam<small>${fmt(D.spot / 1e3, 1)} km spot on the ground</small>`);
+  }
+  closeU = u;
+}
+let frame = 0, closeU = U_START;
+
+/* ───────────── timeline ───────────── */
+const tl = $("tl"), tctx = tl.getContext("2d");
+function fitCanvas(c) { const r = c.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1); const w = Math.round(r.width * d), h = Math.round(r.height * d); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } return d; }
+function drawTimeline() {
+  const d = fitCanvas(tl), W = tl.width, H = tl.height, g = tctx; g.clearRect(0, 0, W, H);
+  g.font = `${10 * d}px IBM Plex Mono, monospace`; g.textBaseline = "top";
+  const bh = 12 * d, by = H - bh - 1 * d;
+  if (state.mode === 1 || state.mode === 4) {
+    // one orbit from noon; colours as the ring
+    const f = (u) => u / (2 * Math.PI) * W, e = D.edge;
+    g.fillStyle = "#5e7184"; g.fillRect(0, by, W, bh);
+    g.fillStyle = "#f3b544"; g.fillRect(f(Math.PI / 2), by, f(e), bh); g.fillRect(f(1.5 * Math.PI - e), by, f(e), bh);
+    g.fillStyle = "#25528f"; g.fillRect(f(Math.PI / 2 + e), by, f(Math.PI - 2 * e), bh);
+    g.fillStyle = "#8a9aab"; g.textAlign = "left"; g.fillText("noon", 0, 0);
+    g.textAlign = "center"; g.fillText("sunset line", f(Math.PI / 2), 0); g.fillText("Earth's shadow", f(Math.PI), 0); g.fillText("sunrise line", f(1.5 * Math.PI), 0);
+    const u = state.mode === 1 ? ((60 * D2R + D.n * state.t) % (2 * Math.PI)) : closeU;
+    g.fillStyle = "#fff"; g.fillRect(f(u) - 1.5 * d, by - 5 * d, 3 * d, bh + 6 * d);
+    $("tlText").innerHTML = `Orbit <b>${fmt(D.T / 60, 1)} min</b> · <span style="color:var(--sun)">sunlit over dark ground</span> <b>${minSec(D.toShadow)}</b> after the sunset line and again before sunrise · shadow <b>${minSec(D.eclipse)}</b>`;
+  } else {
+    const c = state.mode === 2 ? cov1 : cov; if (!c) return;
+    const x = (k) => k / COV_N * W, sunsetK = (18 - LT0) * 3600 / COV_DT;
+    const sky = g.createLinearGradient(0, 0, W, 0);
+    sky.addColorStop(0, "#5e7184"); sky.addColorStop(sunsetK / COV_N, "#3a4c63"); sky.addColorStop(Math.min(1, (sunsetK + 360) / COV_N), "#0e1724"); sky.addColorStop(1, "#0a111b");
+    g.fillStyle = sky; g.fillRect(0, by, W, bh);
+    const peak = Math.max(1, c.peak);
+    g.fillStyle = "#f3b544";
+    for (let k = 0; k < COV_N; k++) if (c.cnt[k]) { const hh = bh * (0.35 + 0.65 * c.cnt[k] / peak); g.fillRect(x(k), by + bh - hh, Math.max(1, W / COV_N + 0.5), hh); }
+    g.fillStyle = "#8a9aab";
+    for (let hr = 18; hr <= 21; hr++) { const k = (hr - LT0) * 3600 / COV_DT; g.textAlign = hr === 18 ? "center" : "center"; g.fillText(hr === 18 ? "sunset 18:00" : `${hr}:00`, x(k), 0); }
+    const k = state.t / COV_DT; g.fillStyle = "#fff"; if (k < COV_N) g.fillRect(x(k) - 1.5 * d, by - 5 * d, 3 * d, bh + 6 * d);
+    const n = state.mode === 2 ? 1 : P.N * P.planes;
+    $("tlText").innerHTML = `City at ${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"} · ${n} mirror${n > 1 ? "s" : ""} in orbit · lit <b>${fmt(c.lit / 60)} min</b> this evening` +
+      (c.lit ? ` · ${c.gaps} gap${c.gaps === 1 ? "" : "s"} · up to <b>${c.peak}</b> at once, <b>${fmt(c.peakE / MOON_GROUND, 1)}×</b> full Moon (${sig(c.peakE)} W/m²)` : "");
+  }
+}
+
+/* ───────────── UI ───────────── */
+document.querySelectorAll("#modes button").forEach((b) => b.addEventListener("click", () => setMode(+b.dataset.m)));
+$("pauseBtn").addEventListener("click", () => { state.paused = !state.paused; $("pauseBtn").textContent = state.paused ? "Play" : "Pause"; });
+$("realBtn").addEventListener("click", () => setSpeed(state.speed === 1 ? SPEED_DEFAULT[state.mode] : 1));
+$("restartBtn").addEventListener("click", () => { state.t = 0; });
+$("speed").addEventListener("input", (e) => setSpeed(speedFromSlider(+e.target.value)));
+let rb = 0; const later = () => { clearTimeout(rb); rb = setTimeout(rebuild, 80); };
+const bind = (id, key, show) => $(id).addEventListener("input", (e) => { P[key] = +e.target.value; $(id + "Val").textContent = show(P[key]); later(); });
+bind("alt", "h", (v) => `${v} km`);
+bind("side", "side", (v) => `${v} m`);
+bind("emin", "emin", (v) => `${v}° up`);
+bind("lat", "lat", (v) => `${fmt(Math.abs(v), 1)}° ${v >= 0 ? "N" : "S"}`);
+bind("nsat", "N", (v) => `${v}`);
+bind("planes", "planes", (v) => `${v}`);
+
+function onResize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  for (const c of [camO, camC]) { c.aspect = w / h; c.updateProjectionMatrix(); }
+}
+new ResizeObserver(onResize).observe($("stage"));
+
+/* ───────────── loop ───────────── */
+let last = performance.now(), hudT = 0;
+function loop(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!state.paused) {
+    state.t += dt * state.speed;
+    if ((state.mode === 2 || state.mode === 3) && state.t > 4 * 3600) state.t = 0;
+  }
+  if (state.mode === 4) { ctlC.update(); updateClose(); renderer.render(sceneC, camC); }
+  else { ctlO.update(); updateOrbitScene(); renderer.render(sceneO, camO); }
+  sweepLabels();
+  hudT += dt;
+  if (hudT > 0.1) { hudT = 0; const p = $("pill"); p.className = `pill ${status.cls}`; p.textContent = status.text; drawTimeline(); }
+  requestAnimationFrame(loop);
+}
+
+/* ───────────── init ───────────── */
+fillArticle();
+rebuild();
+setMode(1);
+onResize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
