@@ -1,0 +1,236 @@
+{
+ "clips": [
+  {
+   "id": "lookup",
+   "t": "0:10.1–0:12.6",
+   "image": "A young female flight engineer in a fitted black technical jacket, headset around her neck, sits at a console in a dark mission control room; her face is lit cyan by screens; she slowly looks up toward a huge wall display of satellite orbits",
+   "motion": "slow push-in on her face as she lifts her eyes to the wall screen, screen light flickers across her face, subtle handheld",
+   "style": "crew"
+  },
+  {
+   "id": "drop_a",
+   "t": "0:37.5–0:39.3",
+   "image": "Wide shot of a sleek mission control room: rows of young engineers (mixed genders and ethnicities, stylish, in their twenties) at curved consoles, a giant wall screen showing Earth with 32 glowing orbit lines",
+   "motion": "fast lateral dolly along the console row, engineers typing, screens pulse to the beat, energetic",
+   "style": "crew"
+  },
+  {
+   "id": "drop_b",
+   "t": "0:41.1–0:43.2",
+   "image": "Close-up of hands on a backlit keyboard and a monitor showing streaming green and cyan numbers and orbital plots, a young male engineer with rolled-up sleeves leaning in",
+   "motion": "rapid rack focus from the fingers to his intense eyes reflected in the monitor, numbers scroll, kinetic",
+   "style": "crew"
+  },
+  {
+   "id": "pre_wide",
+   "t": "1:13.1–1:15.0",
+   "image": "Moody wide shot from the back of a dark mission control room: a young, mixed crew in their twenties (women and men of different ethnicities, casual-technical clothes, one in a hoodie) seen from behind at consoles, warm amber desk lamps, a wall-sized screen with a world map and sine-wave satellite ground tracks",
+   "motion": "slow crane down from ceiling height toward the consoles, calm, atmospheric haze in the screen light",
+   "style": "crew"
+  },
+  {
+   "id": "pre_close",
+   "t": "1:15.0–1:17.0",
+   "image": "Extreme close-up of @maya wearing glasses; reflected in her lenses are two analog clocks drifting apart",
+   "motion": "very slow push-in, she blinks, the reflected numbers tick, shallow focus, quiet",
+   "style": "crew",
+   "refs": [
+    {
+     "file": "assets/clips/src/cast_lookup.jpg",
+     "tag": "maya"
+    }
+   ]
+  },
+  {
+   "id": "pre_board",
+   "t": "1:17.0–1:19.0",
+   "image": "Two young engineers, a man and a woman, at a glass whiteboard covered in handwritten relativity equations and orbit sketches, one of them writing with a marker",
+   "motion": "handheld arc around them as she writes and he points at the equation, they exchange a quick look and a smile",
+   "style": "crew"
+  },
+  {
+   "id": "chorus_cheer",
+   "t": "1:19.0–1:20.7",
+   "image": "A mission control team of young engineers jumps up from their consoles celebrating, high-fives, the wall screen behind them shows a satellite lock on a glowing Earth",
+   "motion": "explosive cheer and high-fives in slow motion, camera pushes through the group toward the wall screen, euphoric",
+   "style": "crew"
+  },
+  {
+   "id": "sat_approach",
+   "t": "0:20.0–0:28.6",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/sat_approach.jpg",
+     "tag": "render"
+    }
+   ],
+   "duration": 10,
+   "image": "Photorealistic photograph of the satellite in @render, same satellite design, same camera angle and composition: a GPS navigation satellite with a gold-foil box body and two long solar wings, drifting in medium Earth orbit",
+   "motion": "slow, steady push-in toward the satellite, sunlight glints travel across the gold foil and the solar cells, stars stay fixed, majestic"
+  },
+  {
+   "id": "sat_beauty",
+   "t": "0:28.6–0:30.4",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/sat_beauty.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic close photograph of the satellite in @render, same design and framing: gold multi-layer insulation, silver radiators, deep-blue solar wings",
+   "motion": "fast orbiting camera move around the satellite, a lens flare sweeps as the Sun passes behind a solar wing, punchy"
+  },
+  {
+   "id": "iss_limb",
+   "t": "0:32.0–0:33.8",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/iss_limb.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic photograph of the International Space Station as in @render, same composition, above the curved limb of Earth with a thin blue atmosphere line and clouds below",
+   "motion": "the station glides forward over the Earth's limb, the terminator line slides across the clouds, camera tracks alongside"
+  },
+  {
+   "id": "gps_helix",
+   "t": "0:35.5–0:37.3",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/gps_helix.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic macro photograph of the Earth-facing antenna panel in @render: twelve white helical L-band antennas in a ring on a dark plate, gold-foil satellite body beside them",
+   "motion": "slow macro slide across the helical antennas with shallow depth of field, rack focus from the near helix to the far ones, Earth glow reflects on the metal"
+  },
+  {
+   "id": "hubble_orbit",
+   "t": "0:39.1–0:40.9",
+   "style": "space",
+   "refs": [
+    {
+     "file": "assets/clips/src/hubble_orbit.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic photograph of the Hubble Space Telescope as in @render, same framing: a long silver-foil cylindrical telescope with its round aperture door hinged open at the front end, two flat rectangular solar array wings on the sides, against the glowing limb of Earth. Not a station module, no docking ports",
+   "motion": "the telescope rotates slowly as the camera arcs around it, sunlight rakes across its silver insulation, serene"
+  },
+  {
+   "id": "crew_lineup",
+   "t": "1:29.6–1:30.8",
+   "style": "crew",
+   "image": "Young mission control crew in their twenties facing camera at their consoles, warm desk lamps and teal screens",
+   "motion": "slow push-in along the line of faces, they look up at the wall screen together"
+  },
+  {
+   "id": "scope_track",
+   "t": "1:07.2–1:09.6",
+   "style": "night",
+   "refs": [
+    {
+     "file": "assets/clips/src/ref_telescope.jpg",
+     "tag": "scope"
+    }
+   ],
+   "image": "Close-up of a precision research telescope (open carbon-fibre truss, large primary mirror, direct-drive mount, like @scope) tracking across the night sky inside an open observatory, a tiny bright satellite visible as a point between the stars",
+   "motion": "the telescope slews smoothly and locks on, camera slowly orbits the truss, reflections glide across the mirror, stars sharp"
+  },
+  {
+   "id": "glass_write",
+   "t": "1:22.4–1:24.0",
+   "style": "crew",
+   "image": "Seen through a tall glass wall from the other side: a young engineer writes a long general-relativity equation with a white marker directly on the glass, the handwriting glowing in the screen light, a vast wall display of satellite orbits behind her, a colleague watching",
+   "motion": "camera slides slowly along the glass as the marker moves, the writing catches reflections of the orbit screens, focus pulls from the ink to her face"
+  },
+  {
+   "id": "glass_wall",
+   "t": "1:48.0–1:49.6",
+   "style": "crew",
+   "image": "Wide shot of a glass wall completely covered in handwritten physics equations, integrals and orbit sketches, a young mixed team silhouetted behind it against a giant glowing Earth display with hundreds of satellite tracks",
+   "motion": "slow dolly through the gap in the glass wall into the room, equations slide past in the foreground, parallax, dramatic"
+  },
+  {
+   "id": "sat_eclipse",
+   "t": "0:00–0:10.1",
+   "style": "space",
+   "duration": 10,
+   "refs": [
+    {
+     "file": "assets/clips/src/sat_beauty.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic photograph of the GPS satellite in @render, same design and angle: gold multi-layer insulation, silver radiators, two long deep-blue solar wings, 12 white helical antennas on the Earth-facing side; it hangs above Earth's terminator, half lit by the Sun, the thin orange-blue atmosphere line glowing on the horizon, night-side city lights below",
+   "motion": "very slow drift as the satellite glides from sunlight into Earth's shadow: the sunlit gold fades, the edge of the solar wings catches a last orange glint, then only Earth-glow and stars remain; calm, majestic, documentary"
+  },
+  {
+   "id": "gps_lost",
+   "t": "2:01.5–2:12",
+   "style": "space",
+   "duration": 10,
+   "refs": [
+    {
+     "file": "assets/clips/src/gps_lost.jpg",
+     "tag": "render"
+    }
+   ],
+   "image": "Photorealistic photograph of the GPS satellite in @render, same design: gold multi-layer insulation, solar wings, alone above the dark night side of Earth, lit only by faint Earth-glow, deep black space, lonely and quiet",
+   "motion": "the camera slowly pulls away as the satellite recedes and dims into the darkness of space, Earth's limb fades, ending almost black; melancholic, slow"
+  },
+  {
+   "id": "city_rush",
+   "t": "0:22.0–0:23.3 / 0:28.0–0:28.6",
+   "style": "city",
+   "image": "Aerial view of a packed megacity scramble crossing at night in the rain, thousands of people rushing in every direction, nearly every person holding a glowing phone, neon signs, wet reflective asphalt",
+   "motion": "fast drone push down into the crowd, people stream across, phone screens sparkle like stars, kinetic and dense"
+  },
+  {
+   "id": "runway_model",
+   "t": "0:23.3–0:24.7 / 0:27.6–0:28.0",
+   "style": "city",
+   "image": "A striking young fashion model in a sleek futuristic outfit strides down a dark catwalk toward camera holding a glowing smartphone up, hundreds of camera flashes firing from the audience, strobing light",
+   "motion": "powerful runway walk straight toward camera in slow motion, flashes pop in rhythm, hair and fabric moving, confident"
+  },
+  {
+   "id": "phone_macro",
+   "t": "0:24.7–0:25.6",
+   "style": "city",
+   "image": "Extreme macro of a thumb on a smartphone screen showing a dark map with a pulsing blue location dot, neon city bokeh behind, rain drops on the glass",
+   "motion": "tight push-in on the pulsing blue dot as the map zooms, light flares across the screen glass"
+  },
+  {
+   "id": "stadium_phones",
+   "t": "0:25.6–0:26.5",
+   "style": "city",
+   "image": "A stadium concert crowd at night, tens of thousands of raised phones glowing like a field of stars, smoke and laser beams overhead",
+   "motion": "crane rising over the crowd as phones sway to the beat, lasers sweep, euphoric energy"
+  },
+  {
+   "id": "scooter_nav",
+   "t": "0:26.5–0:27.3",
+   "style": "city",
+   "image": "Close tracking shot of a young rider on an electric scooter weaving through neon traffic in the rain, a phone on the handlebar showing turn-by-turn navigation",
+   "motion": "high-speed tracking alongside the rider, neon streaks, rain spray, the phone screen glows, aggressive and fast"
+  },
+  {
+   "id": "rooftop_storm",
+   "t": "0:27.3–0:27.6",
+   "style": "city",
+   "image": "Wide night shot from a rooftop over a glittering skyline under a clear starry sky, a few satellites visible as moving points of light",
+   "motion": "fast push toward the skyline, city lights twinkle, stars wheel slightly, building tension"
+  }
+ ],
+ "styles": {
+  "crew": "photorealistic cinematic film still, shot on ARRI Alexa 65, anamorphic 40mm, shallow depth of field, dark modern mission control room lit by wall-sized screens of orbit tracks and a glowing Earth plus warm amber practical desk lamps, teal and amber color grade, subtle film grain, private-spaceflight aesthetic, no logos, no brand names, any on-screen text soft and unreadable",
+  "space": "photorealistic NASA documentary photograph from orbit, shot on 70mm, real spacecraft materials: crinkled gold and silver multi-layer insulation, mirrored radiator tiles, deep blue solar cells with fine silver grid lines, bolts and cabling; hard direct sunlight, pure black space, Earth with real clouds and atmosphere glow; no text, no logos",
+  "night": "photorealistic astrophotography-grade cinematic shot, dark-sky mountain observatory at night, Milky Way overhead, deep blue night with dim red safelights, crisp stars, shot on ARRI Alexa 65 with fast prime lens, no logos, no readable text",
+  "future": "photorealistic near-future space documentary, real engineering detail: truss structures, huge flat radiator panels, solar arrays, cabling, thermal blankets; hard sunlight, black space, Earth with real clouds below; restrained, believable, no logos, no text",
+  "city": "photorealistic cinematic night footage, shot on ARRI Alexa 35 with fast anamorphic lens, neon city light, motion energy, shallow depth of field, teal and hot amber/red color grade, film grain, every phone screen glowing; no logos, no brand names, any text unreadable"
+ }
+}
