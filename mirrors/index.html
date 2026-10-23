@@ -111,7 +111,11 @@
   .fleet-chart { width: 100%; height: 250px; display: block; background: #04060a; border: 1px solid var(--line); border-radius: 10px; }
   .fleet-say { margin: 0; color: var(--body); max-width: 86ch; font-size: 15px; }
   .fleet-say b { color: var(--ink); }
-  .limits h3 { font: 600 17px var(--f-display); margin: 0 0 4px; }
+  .limits h3, .observer h3 { font: 600 19px var(--f-display); margin: 0 0 6px; }
+  .observer p { margin: 0 0 10px; color: var(--body); max-width: 86ch; }
+  .observer p b { color: var(--ink); }
+  .ltbl td.txt { text-align: left; font-family: var(--f-body); color: var(--body); white-space: normal; min-width: 220px; }
+  .ltbl tr.cur td { background: #17140b; }
   .limits p { margin: 0 0 8px; color: var(--muted); font-size: 13px; max-width: 86ch; }
   .ltbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
   .ltbl table { border-collapse: collapse; width: 100%; min-width: 560px; font-variant-numeric: tabular-nums; }
@@ -177,7 +181,7 @@
 <div class="wrap">
   <header class="top">
     <div>
-      <div class="eyebrow"><span>Sunlight-reflecting satellites · geometry check</span><b id="build">v1.35.0</b></div>
+      <div class="eyebrow"><span>Sunlight-reflecting satellites · geometry check</span><b id="build">v1.36.0</b></div>
       <h1>Mirrors After Sunset</h1>
       <p class="lede">Can a mirror in low orbit reflect sunlight onto a city that is already dark? Yes, but only near dusk and dawn, and only for minutes per mirror. Below: the shadow, the speed, the reflection, and the numbers, in 3D.</p>
     </div>
@@ -200,6 +204,7 @@
           <button data-m="4"><b>2</b>Close-up: its sunset</button>
           <button data-m="2"><b>3</b>Riding the sunset line</button>
           <button data-m="3"><b>4</b>A train of mirrors</button>
+          <button data-m="5"><b>5</b>Standing in the city</button>
         </div>
         <span class="pill sun" id="pill">Sunlit</span>
       </div>
@@ -224,19 +229,21 @@
       <div>
         <h2>Train of mirrors</h2>
         <div class="ctl"><label for="fleetN2">Mirrors in orbit</label><output id="fleetNVal2">1</output><input id="fleetN2" type="range" min="0" max="18" step="1" value="0" /></div>
-        <p class="note">Same slider as below the 3D view. Moving it shows scene 4. Latitude and altitude re-run the simulation.</p>
+        <p class="note">Same slider as below the 3D view. Moving it shows scene 5, the view from the ground. Latitude and altitude re-run the simulation.</p>
       </div>
       <div>
         <h2>Numbers at this setup</h2>
         <dl class="num">
+          <dt>One mirror lights <b>your spot</b> for</dt><dd id="n_you1" class="hl">–</dd>
+          <dt id="n_youNt">With 1 mirror in orbit, your spot is lit for</dt><dd id="n_youN" class="hl">–</dd>
           <dt>Orbit period</dt><dd id="n_T">–</dd>
           <dt>Speed</dt><dd id="n_v">–</dd>
           <dt>Shadow begins past sunset line</dt><dd id="n_edge" class="hl">–</dd>
           <dt>Ground under that point: sunset was</dt><dd id="n_edgeH">–</dd>
-          <dt>Sunlit over dark ground, orbit into night</dt><dd id="n_win" class="hl">–</dd>
+          <dt>One mirror in sunshine above dark ground</dt><dd id="n_win" class="hl">–</dd>
           <dt>Then in shadow for</dt><dd id="n_ecl">–</dd>
           <dt>Mirror's own sunset (disc / with air)</dt><dd id="n_set">–</dd>
-          <dt>High enough over one city, per pass</dt><dd id="n_pass" class="hl">–</dd>
+          <dt>Longest a mirror is high in your sky</dt><dd id="n_pass" class="hl">–</dd>
           <dt>Light spot, overhead</dt><dd id="n_spot">–</dd>
           <dt>One mirror, overhead</dt><dd id="n_E">–</dd>
           <dt>Mirrors for 50 W/m², overhead</dt><dd id="n_need">–</dd>
@@ -249,7 +256,12 @@
   <section class="fleet" id="fleet" aria-label="One mirror or a train of mirrors">
     <div>
       <h2><small>One mirror or a whole train</small>How much light does the city actually get?</h2>
-      <p class="fleet-lead">Slide from a single mirror to a fleet. The 3D view above switches to scene 4 and shows the train. The numbers are simulated minute by minute for one city at <span data-v2="lat"></span> with mirrors at <span data-v2="hkm"></span>. A mirror counts only while it is in sunshine and more than 30° up in the city's sky.</p>
+      <p class="fleet-lead">Slide from a single mirror to a fleet. The 3D view above switches to scene 5, where you stand in the city and watch the mirrors cross your sky. The numbers are simulated minute by minute for one city at <span data-v2="lat"></span> with mirrors at <span data-v2="hkm"></span>. A mirror counts only while it is in sunshine and more than 30° up in the city's sky.</p>
+    </div>
+    <div class="observer">
+      <h3>Stand in the city after sunset. What do you see?</h3>
+      <p id="obsSay"></p>
+      <div class="ltbl"><table><thead><tr><th>Mirrors in orbit</th><th>Light on you tonight</th><th>Last light</th><th>Brightest</th><th>What you see</th></tr></thead><tbody id="obsBody"></tbody></table></div>
     </div>
     <div class="fleet-ctl">
       <label for="fleetN">Mirrors in orbit</label>
@@ -337,7 +349,7 @@
 
   <footer>
     <p>Model: circular orbits at equinox, cylindrical Earth shadow with penumbra, Earth radius 6,371 km, μ = 3.986 × 10¹⁴ m³/s², Sun 0.533° wide, 1,361 W/m² above the air. The dawn–dusk plane uses the J2 sun-synchronous inclination for the chosen altitude. Brightness: flat mirror, 90% reflectivity, zenith transmission 0.8 with plane-parallel air mass, full Moon 2.4 × 10⁻⁶ of sunlight. Atmosphere reddening uses an 8 km scale height. Treat brightness as ±30%, geometry as exact for the stated assumptions.</p>
-    <p>Satellites in the orbit scenes are drawn hugely enlarged. The close-up is to scale: an 18 m mirror at 625 km. Build <span id="build2">v1.35.0</span>.</p>
+    <p>Satellites in the orbit scenes are drawn hugely enlarged. The close-up is to scale: an 18 m mirror at 625 km. Build <span id="build2">v1.36.0</span>.</p>
   </footer>
 </div>
 
@@ -353,7 +365,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-const BUILD = "v1.35.0";
+const BUILD = "v1.36.0";
 document.getElementById("build").textContent = BUILD;
 document.getElementById("build2").textContent = BUILD;
 
@@ -757,6 +769,140 @@ const rayCyl = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 1, 40, 1, true), 
 const groundSpot = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.dot, color: 0xffd08a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
 sceneC.add(groundSpot);
 
+/* ───────────── ground scene (scene 5): a person in the city looking up ───────────── */
+// three.js axes here: x = east, y = up, z = south
+const sceneG = new THREE.Scene(); sceneG.background = new THREE.Color("#020308");
+const camG = new THREE.PerspectiveCamera(78, 1, 0.1, 1000);
+const ctlG = new OrbitControls(camG, canvas); ctlG.enableDamping = true; ctlG.dampingFactor = 0.08; ctlG.enabled = false;
+ctlG.minDistance = 3; ctlG.maxDistance = 30; ctlG.maxPolarAngle = Math.PI * 0.62;
+const DOME = 85;
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, uniforms: { sunDir: { value: V3(-1, 0, 0) } },
+  vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader: `uniform vec3 sunDir; varying vec3 vDir;
+    void main(){
+      vec3 d = normalize(vDir); float h = max(d.y, 0.0); float se = sunDir.y;
+      float dep = -asin(clamp(se, -1.0, 1.0));
+      float tw = 1.0 - smoothstep(0.0, 0.32, dep);
+      vec2 a = normalize(d.xz + 1e-5), b = normalize(sunDir.xz + 1e-5); float tow = max(dot(a, b), 0.0);
+      vec3 zen = mix(vec3(0.004,0.006,0.016), vec3(0.04,0.10,0.26), tw);
+      vec3 hor = mix(vec3(0.010,0.014,0.028), mix(vec3(0.22,0.32,0.52), vec3(1.0,0.42,0.14), pow(tow, 3.0)), tw);
+      vec3 c = mix(hor, zen, pow(h, 0.42));
+      c += vec3(1.0,0.5,0.2)*pow(tow, 10.0)*exp(-h*7.0)*tw*0.9;
+      float day = smoothstep(-0.03, 0.06, se);
+      c = mix(c, mix(vec3(0.55,0.72,0.95), vec3(0.18,0.38,0.78), pow(h, 0.5)), day);
+      c += vec3(1.0,0.9,0.7)*pow(max(dot(d, normalize(sunDir)), 0.0), 900.0)*step(0.0, se)*3.0;
+      gl_FragColor = vec4(c, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+});
+sceneG.add(new THREE.Mesh(new THREE.SphereGeometry(DOME + 4, 64, 32), skyMat));
+const gStars = (() => {
+  const n = 1400, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const u = Math.random() * 0.98 + 0.02, t = Math.random() * Math.PI * 2, c = Math.sqrt(1 - u * u); pos.set([DOME * c * Math.cos(t), DOME * u, DOME * c * Math.sin(t)], i * 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  return new THREE.Points(g, new THREE.PointsMaterial({ size: 1.4, sizeAttenuation: false, color: 0xcfd9ff, transparent: true, opacity: 0.8, depthWrite: false }));
+})();
+sceneG.add(gStars);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x10161d, roughness: 0.95 });
+const ground = new THREE.Mesh(new THREE.CircleGeometry(DOME, 72), groundMat); ground.rotation.x = -Math.PI / 2; sceneG.add(ground);
+const gCity = (() => {
+  const n = 2600, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const r = 7 + Math.pow(Math.random(), 0.6) * 75, t = Math.random() * Math.PI * 2; pos.set([r * Math.cos(t), 0.05, r * Math.sin(t)], i * 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  return new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, color: 0xffb35c, transparent: true, opacity: 0.6, depthWrite: false }));
+})();
+sceneG.add(gCity);
+const gHemi = new THREE.HemisphereLight(0x8fb4ff, 0x0b0e12, 0.4); sceneG.add(gHemi);
+const personMat = new THREE.MeshStandardMaterial({ color: 0xb9c4cf, roughness: 0.7, emissive: 0x000000 });
+const person = new THREE.Group();
+{ const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 0.85, 6, 14), personMat); body.position.y = 0.72;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 18, 14), personMat); head.position.set(-0.04, 1.5, 0);
+  const armG = new THREE.CapsuleGeometry(0.075, 0.55, 4, 8);
+  const arm = new THREE.Mesh(armG, personMat); arm.position.set(-0.28, 1.35, -0.18); arm.rotation.set(0.4, 0, 1.9); // pointing up to the west
+  const arm2 = new THREE.Mesh(armG, personMat); arm2.position.set(0.05, 0.85, 0.3); arm2.rotation.x = -0.2;
+  person.add(body, head, arm, arm2); }
+sceneG.add(person);
+const youLight = new THREE.PointLight(0xffd8a0, 0, 12, 1.5); youLight.position.set(-1.5, 3, 0); sceneG.add(youLight);
+const pool = new THREE.Mesh(new THREE.CircleGeometry(2.6, 48), new THREE.MeshBasicMaterial({ map: TEX.dot, color: 0xffd08a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+pool.rotation.x = -Math.PI / 2; pool.position.y = 0.02; sceneG.add(pool);
+const ring30 = new THREE.Line(new THREE.BufferGeometry().setFromPoints(circlePts(180, (a) => V3(DOME * 0.96 * Math.cos(30 * D2R) * Math.cos(a), DOME * 0.96 * Math.sin(30 * D2R), DOME * 0.96 * Math.cos(30 * D2R) * Math.sin(a)))),
+  new THREE.LineBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.35 }));
+sceneG.add(ring30);
+const GMAX = PMAX;
+function gPoints(size, tex) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(GMAX * 3), 3));
+  g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(GMAX * 3), 3));
+  const m = new THREE.PointsMaterial({ size, sizeAttenuation: false, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, map: tex });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; sceneG.add(p); return p;
+}
+const gDim = gPoints(7, TEX.dot), gBright = gPoints(30, TEX.sun);
+const gBeams = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(GMAX * 6), 3)),
+  new THREE.LineBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+gBeams.frustumCulled = false; sceneG.add(gBeams);
+const enuE = V3(), enuN = V3(), enuU = V3(), gTmp = V3(), gDir = V3();
+const toSky = (v, out) => out.set(v.dot(enuE), v.dot(enuU), -v.dot(enuN));
+const HEAD = V3(-0.04, 1.5, 0);
+
+function updateGround() {
+  const t = state.t;
+  cityPos(t, city);
+  enuU.copy(city).normalize(); enuE.set(0, 0, 1).cross(enuU).normalize(); enuN.crossVectors(enuU, enuE);
+  toSky(_S, gDir).normalize(); skyMat.uniforms.sunDir.value.copy(gDir);
+  const dep = -Math.asin(clamp(gDir.y, -1, 1)) / D2R;
+  const dark = smooth(-2, 14, dep);
+  gStars.material.opacity = 0.85 * dark; gCity.material.opacity = 0.75 * dark;
+  gHemi.intensity = 0.06 + 0.9 * (1 - smooth(-4, 10, dep));
+  const FL = fleetLayout(state.fleetN), each = FL.per / FL.draw;
+  const dP = gDim.geometry.attributes.position, dC = gDim.geometry.attributes.color, bP = gBright.geometry.attributes.position, bC = gBright.geometry.attributes.color, lP = gBeams.geometry.attributes.position;
+  let nd = 0, nb = 0, total = 0, count = 0, best = null, shadowHi = null, lowLit = null;
+  for (let p = 0; p < FL.planes; p++) for (let i = 0; i < FL.draw; i++) {
+    ssoPos(u0 + 2 * Math.PI * i / FL.draw + D.n * t, p, satP);
+    gTmp.subVectors(satP, city); toSky(gTmp, gDir); const L = gDir.length(); gDir.multiplyScalar(1 / L);
+    if (gDir.y <= 0.005) continue;                       // below your horizon
+    const el = Math.asin(gDir.y) / D2R, e = serve(satP, city), sh = inShadow(satP);
+    const x = gDir.x * DOME * 0.94, y = gDir.y * DOME * 0.94, z = gDir.z * DOME * 0.94;
+    if (e > 0) {
+      bP.setXYZ(nb, x, y, z); bC.setXYZ(nb, 1.4, 1.2, 0.85);
+      lP.setXYZ(nb * 2, x, y, z); lP.setXYZ(nb * 2 + 1, HEAD.x, HEAD.y, HEAD.z);
+      nb++; total += e * each; count += each;
+      if (!best || el > best.el) best = { el, v: V3(x, y, z) };
+    } else {
+      dP.setXYZ(nd, x, y, z);
+      if (sh) { dC.setXYZ(nd, 0.12, 0.17, 0.26); if (!shadowHi || el > shadowHi.el) shadowHi = { el, v: V3(x, y, z) }; }
+      else { dC.setXYZ(nd, 0.85, 0.66, 0.36); if (!lowLit || el < 30 && el > lowLit.el) lowLit = { el, v: V3(x, y, z) }; }
+      nd++;
+    }
+  }
+  gDim.geometry.setDrawRange(0, nd); gBright.geometry.setDrawRange(0, nb); gBeams.geometry.setDrawRange(0, nb * 2);
+  dP.needsUpdate = dC.needsUpdate = bP.needsUpdate = bC.needsUpdate = lP.needsUpdate = true;
+  // how lit is the person
+  const glow = total > 0 ? clamp(Math.log10(total / 3e-4) / 5, 0.05, 1) : 0;
+  personMat.emissive.setRGB(0.9 * glow, 0.7 * glow, 0.45 * glow);
+  youLight.intensity = 6 * glow; pool.material.opacity = 0.7 * glow;
+  // counters
+  const k = Math.min(COV_N - 1, Math.floor(t / COV_DT)); let sofar = 0;
+  for (let j = 0; j <= k; j++) if (cov.cnt[j] > 0.5) sofar += COV_DT;
+  const lt = cityLT(t), hh = Math.floor(lt % 24), mm = Math.floor((lt % 1) * 60), clock = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  const nn = Math.round(count);
+  if (city.x >= 0) status = { cls: "day", text: `${clock} · the Sun is still up` };
+  else if (nn) status = { cls: "sun", text: `${clock} · ${fmt(nn)} mirror${nn > 1 ? "s" : ""} shining on you · ${fmtW(total)} · ${fmtMoon(total)} full Moon` };
+  else status = { cls: "dark", text: `${clock} · no mirror shining on you` };
+  $("caption").innerHTML = `<b>You, in the city at ${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"}, looking west after sunset.</b> ${fmt(state.fleetN)} mirror${state.fleetN > 1 ? "s" : ""} in orbit. ` +
+    `Light on you so far tonight: <b style="color:var(--sun)">${fmtMin(sofar)}</b> of <b>${fmtMin(cov.lit)}</b> in total. ` +
+    `<span style="color:#ffe2a8">Bright stars</span> are mirrors shining on you, <span style="color:#d9a85c">amber</span> ones are sunlit but too low or aimed elsewhere, <span style="color:#6f86a6">blue</span> ones are in Earth's shadow.`;
+  if (state.labels) {
+    label("g_you", HEAD.clone().add(V3(0, 0.45, 0)), nn ? `You: lit` : `You`, nn ? "" : "n");
+    label("g_w", V3(-DOME * 0.9, 3, 0), "W · sunset", "plain"); label("g_n", V3(0, 3, -DOME * 0.9), "N", "plain"); label("g_s", V3(0, 3, DOME * 0.9), "S", "plain");
+    label("g_30", V3(-DOME * 0.93 * Math.cos(30 * D2R) * Math.cos(28 * D2R), DOME * 0.93 * Math.sin(30 * D2R), -DOME * 0.93 * Math.cos(30 * D2R) * Math.sin(28 * D2R)), "30° up: mirrors above this line can light you", "plain");
+    if (best) label("g_best", best.v, `Mirror shining on you<small>${fmt(best.el)}° up</small>`);
+    if (shadowHi) label("g_sh", shadowHi.v, `In Earth's shadow<small>${fmt(shadowHi.el)}° up, dark</small>`, "n");
+    if (lowLit && !best) label("g_low", lowLit.v, `Sunlit, too low<small>${fmt(lowLit.el)}° up</small>`);
+  }
+}
+
 /* ───────────── state, time ───────────── */
 const state = { mode: 1, t: 0, paused: false, speed: 750, labels: true, fleetN: 1 };
 let cov1 = null, cov = null; // single mirror (scene 3) & parade (scene 4)
@@ -776,7 +922,7 @@ function label(id, pos, html, cls = "") {
   let el = labelEls[id];
   if (!el) { el = document.createElement("div"); $("labels").appendChild(el); labelEls[id] = el; }
   el.className = `lbl ${cls}`;
-  const cam = state.mode === 4 ? camC : camO;
+  const cam = state.mode === 4 ? camC : state.mode === 5 ? camG : camO;
   const p = pos.clone().project(cam);
   const vis = p.z < 1 && p.z > -1 && Math.abs(p.x) < 1.02 && Math.abs(p.y) < 1.02;
   el.hidden = !vis; if (!vis) return;
@@ -791,19 +937,21 @@ const CAPTIONS = {
   1: `<b>One mirror, heading into the night.</b> Sunlight from the left, Earth's shadow to the right. The mirror's orbit turns <b style="color:var(--sun)">gold</b> where it is sunlit above dark ground, and blue where it is in the shadow. That gold stretch lasts about ${"{toShadow}"}.`,
   4: `<b>To scale: an 18 m mirror at 625 km</b>, seen from behind, looking toward the Sun. The mirror tilts so sunlight lands on the dark ground below. Watch the Sun redden and drop behind Earth as its rays skim the atmosphere. Drag to see the mirror's face.`,
   2: `<b>Dawn–dusk orbit.</b> The orbit rides the sunset line, so the mirror is always in sunshine. The city (blue) turns into the night under it, and the ring on the ground shows where the mirror is at least ${"{emin}"} up.`,
+  5: ``,
   3: `<b>A train of mirrors.</b> Each mirror is in range for minutes, so the city stays lit only if the next one arrives in time. Change the number with the slider.`,
 };
 function setMode(m) {
   state.mode = m;
   document.querySelectorAll("#modes button").forEach((b) => b.classList.toggle("on", +b.dataset.m === m));
-  ctlO.enabled = m !== 4; ctlC.enabled = m === 4;
-  const orbitScene = m !== 4;
+  ctlO.enabled = m !== 4 && m !== 5; ctlC.enabled = m === 4; ctlG.enabled = m === 5;
+  const orbitScene = m !== 4 && m !== 5;
   syncVisibility();
   state.t = 0;
   if (orbitScene) {
     const far = m === 3 ? 46 : 40;
     camO.position.set(-0.32 * far, 0.42 * far, -0.85 * far); ctlO.target.set(0, m === 1 ? 0 : 2, 0);
-  } else { camC.position.set(70, 14, 25); ctlC.target.set(-20, -10, 0); }
+  } else if (m === 4) { camC.position.set(70, 14, 25); ctlC.target.set(-20, -10, 0); }
+  else { camG.position.set(7.5, 1.9, 3.6); ctlG.target.set(-6, 7.2, -1); }
   updateCaption();
   onResize();
 }
@@ -1156,7 +1304,7 @@ function setFleet(N, fromUser) {
   const i = fleetIdx(state.fleetN);
   for (const id of ["fleetN", "fleetN2"]) $(id).value = i;
   for (const id of ["fleetNVal", "fleetNVal2"]) $(id).textContent = fmt(state.fleetN);
-  if (fromUser && state.mode !== 3) setMode(3); else { syncVisibility(); updateCaption(); }
+  if (fromUser && state.mode !== 3 && state.mode !== 5) setMode(5); else { syncVisibility(); updateCaption(); }
   renderFleet();
 }
 function fleetTargets() {
@@ -1211,6 +1359,28 @@ function renderFleet() {
     ? `At 49° N in midsummer the Sun sinks only ${fmt(dep, 1)}° below the horizon at midnight, less than the ${fmt(D.edge / D2R, 1)}° a mirror at ${fmt(P.h)} km can see past, so mirrors overhead stay sunlit <b>all night</b>.`
     : `At 49° N in midsummer the Sun sinks ${fmt(dep, 1)}° below the horizon at midnight, more than the ${fmt(D.edge / D2R, 1)}° a mirror at ${fmt(P.h)} km can see past.`)
     + ` Only about ${fmt(100 * T.atOnce, 1)}% of a fleet is over any one city at a time, so the fleet in orbit must be roughly ${fmt(round2(1 / T.atOnce))} times the "at once" number.`;
+  // live answers in the side panel
+  const one = fleetCov(1);
+  $("n_you1").textContent = one.lit ? fmtMin(one.lit) : "no pass tonight";
+  $("n_youNt").innerHTML = `With <b>${fmt(N)}</b> mirror${N > 1 ? "s" : ""} in orbit, your spot is lit for`;
+  $("n_youN").textContent = c.lit ? `${fmtMin(c.lit)} (until ${clockAt(c.endMin)})` : "none";
+  // the observer's answer, in plain words, for this city and altitude
+  const full = MAXP * PER_TRAIN, rows = [1, 10, 30, 120, full, 2000, 20000, 1000000].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+  const see = (n, r) => {
+    if (!r.lit) return "Nothing tonight: no mirror passes high enough.";
+    if (n === 1) return "One bright star drifts across your sky for a few minutes. You are lit only while it is high enough.";
+    if (r.peak < 1.5) return `A new mirror rises every ${fmt(D.T / 60 / Math.min(n, PER_TRAIN), 1)} min. You see one bright star at a time, with dark spells in between.`;
+    if (r.peakE < 0.1) return `Several bright stars at once, handing over to each other. About as bright as ${fmtMoon(r.peakE)} the full Moon.`;
+    if (r.peakE < 10) return "A cluster of dazzling stars in the west. Enough to read by, about street-light level or brighter.";
+    return "A blinding patch of the sky, like a second sunset that lasts the whole evening.";
+  };
+  $("obsBody").innerHTML = rows.map((n) => { const r = fleetCov(n);
+    return `<tr class="${n === N ? "cur" : ""}"><td>${fmt(n)}</td><td>${r.lit ? fmtMin(r.lit) : "–"}</td><td>${r.lit ? `${clockAt(r.endMin)} (+${fmtMin(r.endMin * 60)})` : "–"}</td><td>${r.lit ? `${fmtW(r.peakE)}<small>${fmtMoon(r.peakE)} full Moon</small>` : "–"}</td><td class="txt">${see(n, r)}</td></tr>`; }).join("");
+  const r30 = fleetCov(30), r120 = fleetCov(120), rFull = fleetCov(full);
+  $("obsSay").innerHTML = `From the ground, each mirror looks like a dazzling star that drifts across your sky in a few minutes. You are lit only while a mirror is <b>in sunshine</b> and <b>higher than 30°</b> in your sky. ` +
+    `<b>One mirror</b> gives you one flash of about <b>${fmtMin(one.lit)}</b>. The ${fmt(D.toShadow / 60, 1)} minutes often quoted is how long a mirror stays in sunshine above dark ground; for most of that it is not over you. ` +
+    `<b>With more mirrors the minutes add up</b>, because the next mirror rises as the last one drifts away: 30 mirrors light you for ${fmtMin(r30.lit)}, 120 for ${fmtMin(r120.lit)}, ${fmt(full)} for <b>${fmtMin(rFull.lit)}</b>. ` +
+    `Then it stops growing. About ${fmtH(limH)} after sunset, every mirror high in your sky is itself in Earth's shadow, and the sunlit ones are too low in the west. From there, more mirrors make the light brighter, not longer.`;
   drawFleetChart(c, limH);
   drawTimeline();
 }
@@ -1260,7 +1430,7 @@ new ResizeObserver(() => renderFleet()).observe($("fleetChart"));
 function onResize() {
   const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
   renderer.setSize(w, h, false);
-  for (const c of [camO, camC]) { c.aspect = w / h; c.updateProjectionMatrix(); }
+  for (const c of [camO, camC, camG]) { c.aspect = w / h; c.updateProjectionMatrix(); }
 }
 new ResizeObserver(onResize).observe($("stage"));
 
@@ -1270,9 +1440,10 @@ function loop(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   if (!state.paused) {
     state.t += dt * state.speed;
-    if ((state.mode === 2 || state.mode === 3) && state.t > 4 * 3600) state.t = 0;
+    if ((state.mode === 2 || state.mode === 3 || state.mode === 5) && state.t > 4 * 3600) state.t = 0;
   }
   if (state.mode === 4) { ctlC.update(); updateClose(); renderer.render(sceneC, camC); }
+  else if (state.mode === 5) { ctlG.update(); updateGround(); renderer.render(sceneG, camG); }
   else { ctlO.update(); updateOrbitScene(); renderer.render(sceneO, camO); }
   sweepLabels();
   hudT += dt;
