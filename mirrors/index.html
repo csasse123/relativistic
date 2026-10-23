@@ -89,22 +89,38 @@
   .caption { position: absolute; left: 12px; bottom: 92px; max-width: min(460px, calc(100% - 24px)); font-size: 13.5px; line-height: 1.45; color: var(--body); background: var(--glass); border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; backdrop-filter: blur(8px); pointer-events: none; }
   .caption b { color: var(--ink); }
 
-  .trainblock { margin: 26px 0 4px; }
-  .trainblock h2 { font: 600 32px/1.05 var(--f-display); margin: 0 0 8px; text-wrap: balance; }
-  .trainblock h2 small { display: block; font: 500 11px var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sun); margin-bottom: 6px; }
-  .train-lead { margin: 0 0 12px; color: var(--body); max-width: 78ch; }
-  .train-stage { position: relative; height: min(68vh, 640px); min-height: 480px; background: #020308; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  #trainGl { display: block; width: 100%; height: 100%; touch-action: none; }
-  #trainLabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
-  .train-hud { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-start; pointer-events: none; }
-  .train-hud > * { pointer-events: auto; }
-  .train-controls { position: absolute; left: 12px; right: 12px; bottom: 96px; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; background: var(--glass); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; backdrop-filter: blur(8px); }
-  .train-controls label { font: 500 12px var(--f-mono); color: var(--muted); display: flex; align-items: center; gap: 8px; }
-  .train-controls output { color: var(--sun); }
-  .train-controls input[type="range"] { width: 148px; accent-color: var(--sun); }
-  .train-controls .scale-note { margin-left: auto; font: 400 11.5px var(--f-mono); color: var(--faint); }
-  .train-cap { font-size: 13px; color: var(--muted); margin: 8px 0 0; max-width: 88ch; }
-  .train-cap b { color: var(--ink); font-weight: 600; }
+  .fleet { margin: 22px 0 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 22px 22px 20px; display: grid; gap: 18px; }
+  .fleet > * { min-width: 0; }
+  .fleet h2 { font: 600 30px/1.05 var(--f-display); margin: 0 0 8px; text-wrap: balance; }
+  .fleet h2 small { display: block; font: 500 11px var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sun); margin-bottom: 6px; }
+  .fleet-lead { margin: 0; color: var(--body); max-width: 80ch; }
+  .fleet-ctl { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 16px; align-items: center; }
+  .fleet-ctl label { font: 600 15px var(--f-display); }
+  .fleet-ctl output { font: 600 30px/1 var(--f-display); color: var(--sun); font-variant-numeric: tabular-nums; min-width: 7ch; text-align: right; }
+  .fleet-ctl input[type="range"] { width: 100%; accent-color: var(--sun); height: 26px; }
+  .fleet-ticks { grid-column: 2; display: flex; justify-content: space-between; font: 400 11px var(--f-mono); color: var(--faint); margin-top: -4px; }
+  .presets { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+  .presets button { border: 1px solid var(--line-2); background: var(--panel-2); color: var(--body); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; }
+  .presets button:hover { border-color: var(--sun); color: var(--ink); }
+  .tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .tiles div { background: var(--panel-2); padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .tiles small { font: 500 10.5px var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .tiles b { font: 600 24px/1.1 var(--f-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .tiles span { font-size: 12.5px; color: var(--muted); }
+  .tiles .hot b { color: var(--sun); }
+  .fleet-chart { width: 100%; height: 250px; display: block; background: #04060a; border: 1px solid var(--line); border-radius: 10px; }
+  .fleet-say { margin: 0; color: var(--body); max-width: 86ch; font-size: 15px; }
+  .fleet-say b { color: var(--ink); }
+  .limits h3 { font: 600 17px var(--f-display); margin: 0 0 4px; }
+  .limits p { margin: 0 0 8px; color: var(--muted); font-size: 13px; max-width: 86ch; }
+  .ltbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .ltbl table { border-collapse: collapse; width: 100%; min-width: 560px; font-variant-numeric: tabular-nums; }
+  .ltbl th, .ltbl td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--line); font: 400 13px var(--f-mono); }
+  .ltbl th { font: 500 11px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--panel-2); }
+  .ltbl td:first-child, .ltbl th:first-child { text-align: left; font-family: var(--f-body); color: var(--ink); }
+  .ltbl td small { display: block; color: var(--faint); font-size: 11px; }
+  .ltbl tr:last-child td { border-bottom: 0; }
+  @media (max-width: 1000px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fleet-ctl { grid-template-columns: 1fr auto; } .fleet-ticks { grid-column: 1 / -1; } .fleet-ctl input[type="range"] { grid-column: 1 / -1; } }
 
   aside.panel { border-left: 1px solid var(--line); padding: 16px 16px 20px; overflow-y: auto; height: min(80vh, 780px); min-height: 460px; display: flex; flex-direction: column; gap: 16px; }
   .panel h2 { font: 600 11px/1 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
@@ -148,8 +164,6 @@
     aside.panel { height: auto; min-height: 0; border-left: 0; border-top: 1px solid var(--line); }
     article > section { grid-template-columns: 1fr; gap: 12px; }
     .caption { display: none; }
-    .train-stage { height: 70vh; min-height: 420px; }
-    .train-controls .scale-note { margin-left: 0; }
   }
   @media (max-width: 560px) {
     .wrap { padding-inline: 16px; }
@@ -163,7 +177,7 @@
 <div class="wrap">
   <header class="top">
     <div>
-      <div class="eyebrow"><span>Sunlight-reflecting satellites · geometry check</span><b id="build">v1.34.0</b></div>
+      <div class="eyebrow"><span>Sunlight-reflecting satellites · geometry check</span><b id="build">v1.35.0</b></div>
       <h1>Mirrors After Sunset</h1>
       <p class="lede">Can a mirror in low orbit reflect sunlight onto a city that is already dark? Yes, but only near dusk and dawn, and only for minutes per mirror. Below: the shadow, the speed, the reflection, and the numbers, in 3D.</p>
     </div>
@@ -173,7 +187,7 @@
   <section class="short" aria-label="Short answer">
     <div><span class="k">1 · Yes, at night they are dark</span><h3>Earth's shadow does block them for most of the night</h3><p>At local midnight a mirror <span data-v="hkm"></span> up is deep inside Earth's shadow. These mirrors can only work near dusk and dawn.</p></div>
     <div><span class="k">2 · Height buys a little time</span><h3>The mirror still sees the Sun after the ground goes dark</h3><p>At <span data-v="hkm"></span> the shadow begins <span data-v="edgeDeg"></span> (<span data-v="edgeKm"></span>) past the sunset line. Ground that far into the night had sunset about <span data-v="edgeH"></span> earlier.</p></div>
-    <div><span class="k">3 · But each mirror is fast</span><h3>One mirror serves one city for about <span data-v="pass30"></span></h3><p>At <span data-v="vkms"></span> it is high in a city's sky for only minutes. An hour of light needs a steady parade of mirrors.</p></div>
+    <div><span class="k">3 · But each mirror is fast</span><h3>One mirror serves one city for about <span data-v="pass30"></span></h3><p>At <span data-v="vkms"></span> it is high in a city's sky for only minutes. Light for the whole evening needs a train of hundreds of mirrors, and real brightness needs far more.</p></div>
   </section>
 
   <section class="stagewrap" aria-label="3D animation">
@@ -185,7 +199,7 @@
           <button data-m="1"><b>1</b>One mirror, into the night</button>
           <button data-m="4"><b>2</b>Close-up: its sunset</button>
           <button data-m="2"><b>3</b>Riding the sunset line</button>
-          <button data-m="3"><b>4</b>A parade of mirrors</button>
+          <button data-m="3"><b>4</b>A train of mirrors</button>
         </div>
         <span class="pill sun" id="pill">Sunlit</span>
       </div>
@@ -200,7 +214,17 @@
       <div>
         <h2>Altitude</h2>
         <div class="ctl"><label for="alt">Mirror altitude</label><output id="altVal">625 km</output><input id="alt" type="range" min="400" max="1200" step="5" value="625" /></div>
-        <p class="note">Fixed: 18 m mirror, city at 32.7° N, usable when the mirror is more than 30° up. The parade has 4 orbit planes of 30 mirrors.</p>
+      </div>
+      <div>
+        <h2>City</h2>
+        <div class="ctl"><label for="lat">City latitude</label><output id="latVal">32.7° N</output><input id="lat" type="range" min="-60" max="65" step="0.1" value="32.7" /></div>
+        <div class="row" id="latPresets"><button class="btn" data-lat="0">Equator</button><button class="btn" data-lat="32.7">San Diego 32.7°</button><button class="btn" data-lat="49">49° N</button><button class="btn" data-lat="60">60° N</button></div>
+        <p class="note">Fixed: 18 m mirror, usable when the mirror is more than 30° up, equinox.</p>
+      </div>
+      <div>
+        <h2>Train of mirrors</h2>
+        <div class="ctl"><label for="fleetN2">Mirrors in orbit</label><output id="fleetNVal2">1</output><input id="fleetN2" type="range" min="0" max="18" step="1" value="0" /></div>
+        <p class="note">Same slider as below the 3D view. Moving it shows scene 4. Latitude and altitude re-run the simulation.</p>
       </div>
       <div>
         <h2>Numbers at this setup</h2>
@@ -222,32 +246,33 @@
     </aside>
   </section>
 
-  <section class="trainblock" id="train" aria-label="Train of mirrors">
-    <h2><small>One city, many mirrors</small>Train of mirrors</h2>
-    <p class="train-lead">Directly below the single-orbit view: the same model, for one city. Earth turns, the day–night terminator stays fixed in the sunlight, and the mirrors at 625 km light up as they enter the twilight window and go dark in the shadow. This run is <span id="trainSpan">this model's evening</span>, played in 60–90 seconds. The beam on the city holds while a mirror is in range and hands off to the next.</p>
-    <div class="train-stage" id="trainStage">
-      <canvas id="trainGl"></canvas>
-      <div id="trainLabels"></div>
-      <div class="train-hud">
-        <div class="modes" id="trainPlanes" role="group" aria-label="Orbital planes">
-          <button type="button" data-planes="1" class="on"><b>1</b>One plane</button>
-          <button type="button" data-planes="4"><b>4</b>Four planes</button>
-        </div>
-        <span class="pill sun" id="trainPill">Sunlit</span>
-      </div>
-      <div class="train-controls">
-        <button type="button" class="btn on" id="trainPlay" aria-pressed="true">Pause</button>
-        <label for="trainView">Play this evening in <output id="trainViewVal">75 s</output>
-          <input id="trainView" type="range" min="60" max="90" step="5" value="75" />
-        </label>
-        <span class="scale-note">625 km · satellites enlarged, not to scale</span>
-      </div>
-      <div class="timeline">
-        <canvas id="trainTl" aria-label="Lit and dark minutes for the city"></canvas>
-        <div class="tl-text" id="trainTlText"></div>
-      </div>
+  <section class="fleet" id="fleet" aria-label="One mirror or a train of mirrors">
+    <div>
+      <h2><small>One mirror or a whole train</small>How much light does the city actually get?</h2>
+      <p class="fleet-lead">Slide from a single mirror to a fleet. The 3D view above switches to scene 4 and shows the train. The numbers are simulated minute by minute for one city at <span data-v2="lat"></span> with mirrors at <span data-v2="hkm"></span>. A mirror counts only while it is in sunshine and more than 30° up in the city's sky.</p>
     </div>
-    <p class="train-cap">Same numbers as the rest of this page, from this model, at 625 km. One mirror is sunlit over dark ground for about <span data-v="toShadow"></span> per pass. One orbital plane gives the city <span data-v="cov1"></span> of evening light; four planes <span data-v="cov4"></span>. 50 W/m² needs about <span data-v="needOver"></span> mirrors overhead at the same time, or about <span data-v="need45"></span> at 45°. Brightness adds only for mirrors aimed at the spot together. The bar counts lit and dark minutes with that same model (<span id="trainExact"></span>). Satellites are enlarged, not to scale. <a href="train-of-mirrors.mp4">Short recording</a> of this view.</p>
+    <div class="fleet-ctl">
+      <label for="fleetN">Mirrors in orbit</label>
+      <input id="fleetN" type="range" min="0" max="18" step="1" value="0" aria-describedby="fleetSay" />
+      <output id="fleetNVal">1</output>
+      <div class="fleet-ticks" aria-hidden="true"><span>1</span><span>30</span><span>240</span><span>2,000</span><span>20,000</span><span>200,000</span><span>1,000,000</span></div>
+      <div class="presets" id="presets"></div>
+    </div>
+    <div class="tiles" aria-live="polite">
+      <div class="hot"><small>Light this evening</small><b id="f_time">–</b><span id="f_time2">–</span></div>
+      <div class="hot"><small>Brightest moment</small><b id="f_peak">–</b><span id="f_peak2">–</span></div>
+      <div><small>Average while lit</small><b id="f_mean">–</b><span id="f_mean2">–</span></div>
+      <div><small>Sunlight delivered</small><b id="f_energy">–</b><span id="f_energy2">–</span></div>
+      <div><small>Mirrors on the city at once</small><b id="f_cnt">–</b><span id="f_cnt2">–</span></div>
+    </div>
+    <canvas class="fleet-chart" id="fleetChart" aria-label="Brightness at the city against time after sunset"></canvas>
+    <p class="fleet-say" id="fleetSay"></p>
+    <div class="limits">
+      <h3>The ceiling: unlimited mirrors</h3>
+      <p>Even with any number of mirrors, the evening ends when no sunlit spot at <span data-v2="hkm"></span> is high enough in the city's sky. Lower in the sky the light lasts longer, but each mirror delivers far less, so the fleet needed explodes. Equinox. Each cell: how long after sunset · mirrors that must shine on the city <i>at once</i> for 50 W/m².</p>
+      <div class="ltbl"><table><thead><tr><th>City</th><th>Mirrors almost overhead</th><th>At least 30° up</th><th>At least 10° up</th></tr></thead><tbody id="limitsBody"></tbody></table></div>
+      <p id="summerNote" style="margin-top:8px"></p>
+    </div>
   </section>
 
   <article>
@@ -276,7 +301,13 @@
       <div>
         <p>Being sunlit is not enough. The mirror must also be reasonably high in the city's sky, otherwise the beam is long, spread out and dimmed by the air. At <span data-v="hkm"></span>, a mirror is more than 30° above a city's horizon for at most <b><span data-v="pass30"></span></b> per pass, and more than 20° up for <span data-v="pass20"></span>. This is the real bottleneck, whatever the orbit.</p>
         <p>Reflector proposals therefore favour a <b>dawn–dusk sun-synchronous orbit</b> (about 98° inclination, scene 3). Its plane turns with the Sun through the year, so it stays over the day–night line and the mirrors are almost never in shadow (only a short eclipse season around one solstice). Cities turn underneath at dusk and again at dawn.</p>
-        <p>Even there, each mirror passes a city in minutes, so continuous light needs a parade (scene 4). With the defaults (city at 32.7° N, mirrors at least 30° up), one plane of <span data-v="cov1N"></span> mirrors gives the city <b><span data-v="cov1"></span></b> of light in total after sunset, with gaps, before the city turns out of reach. <span data-v="cov4P"></span> planes staggered 5° apart (120 mirrors) stretch that to <b><span data-v="cov4"></span></b>.</p>
+        <p>Even there, each mirror passes a city in minutes, so continuous light needs a train of mirrors (scene 4, and the slider under the 3D view). For a city at 32.7° N with mirrors at least 30° up:</p>
+        <ul>
+          <li><b>One mirror:</b> a single flash of about <span data-v="f1"></span>.</li>
+          <li><b>One train of 30</b> in one orbit: <span data-v="f30"></span> of light in total, with gaps, before the city turns away from that orbit.</li>
+          <li><b>Four trains (120 mirrors)</b>, orbits 5° apart into the evening: <span data-v="f120"></span>.</li>
+          <li><b>Eight trains (240 mirrors)</b>: light until <span data-v="f240end"></span> after sunset, close to the geometric limit of <span data-v="fLim"></span>. After that, more mirrors add brightness, not time.</li>
+        </ul>
       </div>
     </section>
 
@@ -298,6 +329,7 @@
         <p>A flat mirror cannot focus. Each point of the Sun's 0.53° disc makes its own reflected image, so the beam spreads with distance. From <span data-v="hkm"></span> straight up the spot is <b><span data-v="spot"></span></b> across, and at 45° elevation about <span data-v="spot45"></span>, stretched along the ground.</p>
         <p>One <span data-v="sideM"></span> × <span data-v="sideM"></span> mirror (<span data-v="area"></span>, 90% reflective, turning the beam by 90°) puts about <b><span data-v="Eover"></span></b> on the ground directly below. That is about <b><span data-v="moonOver"></span> full Moon</b>. At 45° elevation it gives <span data-v="E45"></span>, about <span data-v="moon45"></span> full Moon.</p>
         <p>A target of 50 W/m² (about 5% of noon sunlight) needs about <b><span data-v="needOver"></span> mirrors</b> all directly overhead and aimed at the same spot, or about <span data-v="need45"></span> at 45° elevation. Because each mirror is in range for only minutes, the fleet in orbit has to be many times larger again.</p>
+        <p>The simulation puts a number on that. At any moment only about <span data-v="atOnce"></span> of the fleet is within reach of one city. A steady 50 W/m² for the whole evening therefore needs about <b><span data-v="need50"></span> mirrors</b> in orbit. Street-light brightness (about 10 lux) needs about <span data-v="needStreet"></span>.</p>
       </div>
     </section>
 
@@ -305,7 +337,7 @@
 
   <footer>
     <p>Model: circular orbits at equinox, cylindrical Earth shadow with penumbra, Earth radius 6,371 km, μ = 3.986 × 10¹⁴ m³/s², Sun 0.533° wide, 1,361 W/m² above the air. The dawn–dusk plane uses the J2 sun-synchronous inclination for the chosen altitude. Brightness: flat mirror, 90% reflectivity, zenith transmission 0.8 with plane-parallel air mass, full Moon 2.4 × 10⁻⁶ of sunlight. Atmosphere reddening uses an 8 km scale height. Treat brightness as ±30%, geometry as exact for the stated assumptions.</p>
-    <p>Satellites in the orbit scenes are drawn hugely enlarged. The close-up is to scale: an 18 m mirror at 625 km. Build <span id="build2">v1.34.0</span>.</p>
+    <p>Satellites in the orbit scenes are drawn hugely enlarged. The close-up is to scale: an 18 m mirror at 625 km. Build <span id="build2">v1.35.0</span>.</p>
   </footer>
 </div>
 
@@ -321,7 +353,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-const BUILD = "v1.34.0";
+const BUILD = "v1.35.0";
 document.getElementById("build").textContent = BUILD;
 document.getElementById("build2").textContent = BUILD;
 
@@ -341,6 +373,9 @@ const $ = (id) => document.getElementById(id);
 const fmt = (x, d = 0) => x.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }).replace("-", "−");
 const minSec = (s) => s < 90 ? `${fmt(s)} s` : `${fmt(s / 60, 1)} min`;
 const sig = (x) => { const d = x < 0.01 ? 4 : x < 0.1 ? 3 : 2; return fmt(x, d); };
+const fmtMin = (sec) => { const m = sec / 60; return m < 90 ? `${fmt(m, m < 10 ? 1 : 0)} min` : `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")} min`; };
+const fmtMoon = (E) => { const x = E / MOON_GROUND; return x < 10 ? `${fmt(x, 1)}×` : `${fmt(round2(x))}×`; };
+const fmtW = (E) => E >= 1 ? `${fmt(E, E < 10 ? 1 : 0)} W/m²` : `${sig(E)} W/m²`;
 const round2 = (x) => { const p = Math.pow(10, Math.floor(Math.log10(x)) - 1); return Math.round(x / p) * p; };
 
 /* ───────────── physics ───────────── */
@@ -363,7 +398,7 @@ function derive(p) {
     discSet: ALPHA / n, atmoSet: 100e3 / (L * n),
     lam: lam(em), pass: 2 * lam(em) / n, pass30: 2 * lam(30 * D2R) / n, pass20: 2 * lam(20 * D2R) / n,
     spot: h * ALPHA, spot45: slant(Math.PI / 4) * ALPHA,
-    Eover: E(Math.PI / 2), E45: E(Math.PI / 4), Emin: E(em),
+    Eover: E(Math.PI / 2), E45: E(Math.PI / 4), Emin: E(em), E, lam,
   };
 }
 let D = derive(P);
@@ -427,27 +462,60 @@ function phaseParade() {
   u0 = bu - D.n * 14 * 60;
 }
 
-/* Evening coverage for the city: 0–4 h from 17:50 */
-const COV_DT = 15, COV_N = 4 * 3600 / COV_DT;
-function coverage(N, planes) {
-  const cnt = new Uint16Array(COV_N), E = new Float32Array(COV_N), c = V3(), s = V3();
+/* Evening coverage for the city: 0–4 h from 17:50, one orbit plane at a time (cached) */
+const COV_DT = 15, COV_N = 4 * 3600 / COV_DT, SUNSET_K = Math.round((18 - LT0) * 3600 / COV_DT);
+const covCache = new Map();
+function planeCov(p, M) {
+  const key = `${P.h}|${P.lat}|${p}|${M}`;
+  if (covCache.has(key)) return covCache.get(key);
+  const cnt = new Float32Array(COV_N), E = new Float32Array(COV_N), c = V3(), s = V3();
   for (let k = 0; k < COV_N; k++) {
     const t = k * COV_DT; cityPos(t, c);
     if (c.x >= 0) continue;
-    for (let p = 0; p < planes; p++) for (let i = 0; i < N; i++) {
-      ssoPos(u0 + 2 * Math.PI * i / N + D.n * t, p, s);
+    for (let i = 0; i < M; i++) {
+      ssoPos(u0 + 2 * Math.PI * i / M + D.n * t, p, s);
       const e = serve(s, c); if (e > 0) { cnt[k]++; E[k] += e; }
     }
   }
-  let lit = 0, gaps = 0, peak = 0, peakE = 0, last = -1, prev = false, sumE = 0;
+  const r = { cnt, E }; covCache.set(key, r); return r;
+}
+function summarize(cnt, E) {
+  let lit = 0, gaps = 0, peak = 0, peakE = 0, first = -1, last = -1, prev = false, sumE = 0;
   for (let k = 0; k < COV_N; k++) {
-    const on = cnt[k] > 0;
-    if (on) { lit += COV_DT; last = k; peak = Math.max(peak, cnt[k]); peakE = Math.max(peakE, E[k]); sumE += E[k] * COV_DT; }
+    const on = cnt[k] > 0.5;
+    if (on) { lit += COV_DT; if (first < 0) first = k; last = k; peak = Math.max(peak, cnt[k]); peakE = Math.max(peakE, E[k]); sumE += E[k] * COV_DT; }
     if (prev && !on) gaps++;
     prev = on;
   }
-  const sunsetK = Math.round((18 - LT0) * 3600 / COV_DT);
-  return { cnt, E, lit, gaps: Math.max(0, gaps - (prev ? 0 : 1)), peak, peakE, meanE: lit ? sumE / lit : 0, endMin: last >= 0 ? (last - sunsetK) * COV_DT / 60 : 0 };
+  return { cnt, E, lit, gaps: Math.max(0, gaps - (prev ? 0 : 1)), peak, peakE, meanE: lit ? sumE / lit : 0, energyWh: sumE / 3600,
+    startMin: first >= 0 ? (first - SUNSET_K) * COV_DT / 60 : 0, endMin: last >= 0 ? (last + 1 - SUNSET_K) * COV_DT / 60 : 0 };
+}
+// M mirrors in each of `planes` planes, each mirror standing for `scale` real mirrors
+function sumPlanes(planes, M, scale = 1) {
+  const cnt = new Float32Array(COV_N), E = new Float32Array(COV_N);
+  for (let p = 0; p < planes; p++) { const pc = planeCov(p, M); for (let k = 0; k < COV_N; k++) { cnt[k] += pc.cnt[k] * scale; E[k] += pc.E[k] * scale; } }
+  return summarize(cnt, E);
+}
+const coverage = (N, planes) => sumPlanes(planes, N);
+
+/* A fleet of N mirrors: trains of 30 per orbit plane, planes 5° apart from the sunset line out to 35°
+   (beyond that, no plane is both sunlit and high in this city's sky). Above 240 mirrors the planes
+   fill up; light scales with the number of mirrors because the passes overlap completely. */
+const FLEET_STEPS = [1, 2, 5, 10, 30, 60, 120, 240, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000];
+const PER_TRAIN = 30, SIM_MAX = 240, DRAW_MAX = 60, PLANES_CAP = 14;
+let MAXP = 8; // orbit planes worth flying for this city: out to the longest possible evening
+function updateMaxPlanes() { const h = eveningLimitH(P.lat, P.emin); MAXP = clamp(isFinite(h) ? Math.ceil(h * 15 / P.dP) : PLANES_CAP, 1, PLANES_CAP); }
+function fleetLayout(N) {
+  const planes = clamp(Math.ceil(N / PER_TRAIN), 1, MAXP), per = N / planes;
+  const sim = Math.max(1, Math.min(Math.round(per), SIM_MAX)), draw = Math.max(1, Math.min(Math.round(per), DRAW_MAX));
+  return { N, planes, per, sim, draw };
+}
+function fleetCov(N) { const L = fleetLayout(N); return sumPlanes(L.planes, L.sim, L.per / L.sim); }
+const denseN = () => MAXP * SIM_MAX; // every plane so full that passes overlap completely
+/* Longest possible evening for a city (equinox): some sunlit point at this height at least e up in its sky */
+function eveningLimitH(latDeg, eDeg) {
+  const L = eDeg >= 89 ? 0 : D.lam(eDeg * D2R), x = Math.sin(D.edge + L) / Math.cos(latDeg * D2R);
+  return x >= 1 ? Infinity : Math.asin(x) / D2R / 15;
 }
 
 /* ───────────── renderer ───────────── */
@@ -601,7 +669,7 @@ function makeRing() {
   const l = new THREE.Line(g, new THREE.LineBasicMaterial({ vertexColors: true, toneMapped: false })); phys.add(l); return l;
 }
 const ringEq = makeRing();
-const ringsSSO = Array.from({ length: 6 }, makeRing);
+const ringsSSO = Array.from({ length: 14 }, makeRing);
 const C_DAY = new THREE.Color("#5e7184"), C_USE = new THREE.Color("#f3b544"), C_SH = new THREE.Color("#25528f");
 
 // Hero mirror in the orbit scene (drawn ~200× too big)
@@ -615,7 +683,7 @@ function makeMiniMirror() {
 const hero = makeMiniMirror();
 
 // Parade mirrors as glowing points
-const PMAX = 80 * 6;
+const PMAX = 14 * 60;
 const pGeo = new THREE.BufferGeometry();
 pGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(PMAX * 3), 3));
 pGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(PMAX * 3), 3));
@@ -690,7 +758,7 @@ const groundSpot = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.dot, col
 sceneC.add(groundSpot);
 
 /* ───────────── state, time ───────────── */
-const state = { mode: 1, t: 0, paused: false, speed: 750, labels: true };
+const state = { mode: 1, t: 0, paused: false, speed: 750, labels: true, fleetN: 1 };
 let cov1 = null, cov = null; // single mirror (scene 3) & parade (scene 4)
 const WARP = 750;
 function setSpeed(s) { state.speed = s; $("warpBtn").classList.toggle("on", s === WARP); $("realBtn").classList.toggle("on", s === 1); }
@@ -723,7 +791,7 @@ const CAPTIONS = {
   1: `<b>One mirror, heading into the night.</b> Sunlight from the left, Earth's shadow to the right. The mirror's orbit turns <b style="color:var(--sun)">gold</b> where it is sunlit above dark ground, and blue where it is in the shadow. That gold stretch lasts about ${"{toShadow}"}.`,
   4: `<b>To scale: an 18 m mirror at 625 km</b>, seen from behind, looking toward the Sun. The mirror tilts so sunlight lands on the dark ground below. Watch the Sun redden and drop behind Earth as its rays skim the atmosphere. Drag to see the mirror's face.`,
   2: `<b>Dawn–dusk orbit.</b> The orbit rides the sunset line, so the mirror is always in sunshine. The city (blue) turns into the night under it, and the ring on the ground shows where the mirror is at least ${"{emin}"} up.`,
-  3: `<b>A parade of mirrors.</b> Each mirror is in range for minutes, so the city stays lit only if the next one arrives in time. The bar below counts mirrors shining on the city.`,
+  3: `<b>A train of mirrors.</b> Each mirror is in range for minutes, so the city stays lit only if the next one arrives in time. Change the number with the slider.`,
 };
 function setMode(m) {
   state.mode = m;
@@ -741,18 +809,23 @@ function setMode(m) {
 }
 function syncVisibility() {
   const m = state.mode;
-  ringEq.visible = m === 1; ringsSSO.forEach((r, i) => r.visible = (m === 2 && i === 0) || (m === 3 && i < P.planes));
+  ringEq.visible = m === 1; ringsSSO.forEach((r, i) => r.visible = (m === 2 && i === 0) || (m === 3 && i < fleetLayout(state.fleetN).planes));
   hero.visible = m === 1 || m === 2; pts.visible = m === 3;
   footprint.visible = m === 2; edgeMark.visible = m === 1; cityDot.visible = m === 2 || m === 3;
 }
 function updateCaption() {
-  $("caption").innerHTML = CAPTIONS[state.mode].replace("{toShadow}", minSec(D.toShadow)).replace("{emin}", `${P.emin}°`);
+  let cap = CAPTIONS[state.mode].replace("{toShadow}", minSec(D.toShadow)).replace("{emin}", `${P.emin}°`);
+  if (state.mode === 3) {
+    const L = fleetLayout(state.fleetN), each = L.per / L.draw;
+    cap += ` Now: <b>${fmt(state.fleetN)} mirror${state.fleetN > 1 ? "s" : ""}</b> in ${L.planes} orbit${L.planes > 1 ? "s" : ""}${each > 1.5 ? `, each dot ≈ ${fmt(round2(each))} mirrors` : ""}.`;
+  }
+  $("caption").innerHTML = cap;
 }
 
 /* ───────────── rebuild on parameter change ───────────── */
 function rebuild() {
-  D = derive(P); makeSSO(); phaseParade();
-  cov1 = coverage(1, 1); cov = coverage(P.N, P.planes);
+  D = derive(P); makeSSO(); phaseParade(); covCache.clear(); updateMaxPlanes();
+  cov1 = coverage(1, 1); cov = fleetCov(state.fleetN);
   // rings
   const a = D.r * OS;
   { const pos = ringEq.geometry.attributes.position, col = ringEq.geometry.attributes.color, p = V3();
@@ -772,7 +845,9 @@ function rebuild() {
   });
   const e = D.edge + Math.PI / 2; edgeMark.position.set(Math.cos(e) * a, Math.sin(e) * a, 0);
   syncVisibility();
-  fillNumbers(); updateCaption();
+  fillNumbers(); updateCaption(); renderFleet(false);
+  document.querySelectorAll("[data-v2=hkm]").forEach((el) => { el.textContent = `${fmt(P.h)} km`; });
+  document.querySelectorAll("[data-v2=lat]").forEach((el) => { el.textContent = `${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"}`; });
 }
 
 function fillNumbers() {
@@ -790,13 +865,11 @@ function fillNumbers() {
 }
 
 /* Article numbers: always the reference case (625 km, 18 m, 32.7° N, 30° up) */
-let trainRef = null;
 function fillArticle() {
   const ref = { ...P, h: 625, side: 18, emin: 30, lat: 32.7 };
   const R = derive(ref), R600 = derive({ ...ref, h: 600 });
-  const keep = { ...P }; Object.assign(P, ref); D = R; makeSSO(); phaseParade();
-  const c1 = coverage(30, 1), c4 = coverage(30, 4);
-  trainRef = { D: R, u0, e1: ssoBasis.e1.clone(), e2: ssoBasis.e2.clone(), c1, c4 };
+  const keep = { ...P }; Object.assign(P, ref); D = R; makeSSO(); phaseParade(); updateMaxPlanes();
+  const c1 = coverage(30, 1), c4 = coverage(30, 4), f1 = fleetCov(1), f240 = fleetCov(240), FT = fleetTargets();
   Object.assign(P, keep); D = derive(P); makeSSO(); phaseParade();
   const v = {
     hkm: "625 km", rkm: "6,996", edgeDeg: `${fmt(R.edge / D2R, 1)}°`, edgeKm: `${fmt(Math.round(R.edgeKm / 10) * 10)} km`, edgeH: `${fmt(R.edgeH, 1)} hours`,
@@ -810,6 +883,8 @@ function fillArticle() {
     moonOver: `${fmt(R.Eover / MOON_GROUND, 1)}×`, moon45: `${fmt(R.E45 / MOON_GROUND, 1)}×`,
     needOver: fmt(round2(50 / R.Eover)), need45: fmt(round2(50 / R.E45)),
     cov1N: "30", cov1: `about ${fmt(c1.lit / 60)} min`, cov4P: "Four", cov4: `about ${fmt(c4.lit / 60)} min`,
+    f1: fmtMin(f1.lit), f30: fmtMin(c1.lit), f120: fmtMin(c4.lit), f240end: fmtMin(f240.endMin * 60), fLim: fmtH(eveningLimitH(32.7, 30)),
+    need50: fmt(round2(FT.need50)), needStreet: fmt(round2(FT.needStreet)), atOnce: `${fmt(100 * FT.atOnce, 1)}%`,
   };
   document.querySelectorAll("[data-v]").forEach((el) => { const k = el.dataset.v; if (k in v) el.textContent = v[k]; });
   drawFigure(R);
@@ -936,11 +1011,12 @@ function updateOrbitScene() {
       if (state.labels) label("o_sat", physToWorld(hero.position), `Mirror · always sunlit`, "");
     } else {
       const pos = pGeo.attributes.position, col = pGeo.attributes.color; let k = 0;
-      for (let p = 0; p < P.planes; p++) for (let i = 0; i < P.N; i++) {
-        ssoPos(u0 + 2 * Math.PI * i / P.N + D.n * t, p, satP);
+      const FL = fleetLayout(state.fleetN), each = FL.per / FL.draw;
+      for (let p = 0; p < FL.planes; p++) for (let i = 0; i < FL.draw; i++) {
+        ssoPos(u0 + 2 * Math.PI * i / FL.draw + D.n * t, p, satP);
         const e = serve(satP, city), sh = inShadow(satP);
         pos.setXYZ(k, satP.x * OS, satP.y * OS, satP.z * OS);
-        if (e > 0) { col.setXYZ(k, 1.6, 1.25, 0.6); setLine(beams, nb++, satP.clone().multiplyScalar(OS), city.clone().multiplyScalar(OS * 1.002)); total += e; count++; }
+        if (e > 0) { col.setXYZ(k, 1.6, 1.25, 0.6); setLine(beams, nb++, satP.clone().multiplyScalar(OS), city.clone().multiplyScalar(OS * 1.002)); total += e * each; count += each; }
         else if (sh) col.setXYZ(k, 0.12, 0.16, 0.24); else col.setXYZ(k, 0.75, 0.62, 0.38);
         k++;
       }
@@ -951,7 +1027,7 @@ function updateOrbitScene() {
     const lt = cityLT(t), hh = Math.floor(lt % 24), mm = Math.floor((lt % 1) * 60);
     const clock = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
     if (city.x >= 0) status = { cls: "day", text: `City ${clock} · still daylight` };
-    else if (count) status = { cls: "sun", text: `City ${clock} · lit by ${count} mirror${count > 1 ? "s" : ""} · ${fmt(total / MOON_GROUND, 1)}× full Moon` };
+    else if (count) { const nn = Math.round(count); status = { cls: "sun", text: `City ${clock} · lit by ${fmt(nn)} mirror${nn > 1 ? "s" : ""} · ${sig(total)} W/m² · ${fmtMoon(total)} full Moon` }; }
     else status = { cls: "dark", text: `City ${clock} · no mirror in range` };
     if (state.labels) {
       label("o_city", physToWorld(cityDot.position), `City, ${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"}<small>${clock} local time</small>`, "n");
@@ -1065,248 +1141,107 @@ function drawTimeline() {
     g.fillStyle = "#8a9aab";
     for (let hr = 18; hr <= 21; hr++) { const k = (hr - LT0) * 3600 / COV_DT; g.textAlign = hr === 18 ? "center" : "center"; g.fillText(hr === 18 ? "sunset 18:00" : `${hr}:00`, x(k), 0); }
     const k = state.t / COV_DT; g.fillStyle = "#fff"; if (k < COV_N) g.fillRect(x(k) - 1.5 * d, by - 5 * d, 3 * d, bh + 6 * d);
-    const n = state.mode === 2 ? 1 : P.N * P.planes;
-    $("tlText").innerHTML = `City at ${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"} · ${n} mirror${n > 1 ? "s" : ""} in orbit · lit <b>${fmt(c.lit / 60)} min</b> this evening` +
-      (c.lit ? ` · ${c.gaps} gap${c.gaps === 1 ? "" : "s"} · up to <b>${c.peak}</b> at once, <b>${fmt(c.peakE / MOON_GROUND, 1)}×</b> full Moon (${sig(c.peakE)} W/m²)` : "");
+    const n = state.mode === 2 ? 1 : state.fleetN;
+    $("tlText").innerHTML = `City at ${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"} · ${fmt(n)} mirror${n > 1 ? "s" : ""} in orbit · lit <b>${fmtMin(c.lit)}</b> this evening` +
+      (c.lit ? ` · ${clockAt(c.startMin)}–${clockAt(c.endMin)} · brightest <b>${sig(c.peakE)} W/m²</b> (${fmtMoon(c.peakE)} full Moon)` : "");
   }
 }
 
-/* ───────────── train of mirrors (same model, second view) ───────────── */
-const train = {
-  ok: false, planes: 1, playing: true, viewSec: 75, rate: 1, t: 0, span: 3600,
-  holding: false, holdUntil: 0,
-  status: { cls: "sun", text: "Sunlit" },
-};
-const trainLabelEls = {}; let trainUsed = new Set();
-let trainRenderer, trainScene, trainCam, trainCtl, trainPhys, trainEarth;
-let trainIdle, trainActive, trainBeams, trainCity, trainGlow, trainRings;
-const tSat = V3(), tCity = V3();
-const TRX = new THREE.Matrix4().makeRotationX(Math.PI / 2), TRZ = new THREE.Matrix4(), TMS = new THREE.Matrix4();
-
-function trainClock(t) {
-  const total = Math.round((LT0 + t / 3600) * 60);
-  const hh = Math.floor(total / 60) % 24, mm = ((total % 60) + 60) % 60;
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+/* ───────────── train of mirrors: slider, results, chart ───────────── */
+const fmtH = (h) => h === Infinity ? "all night" : `${fmt(h, 1)} h`;
+const clockAt = (minAfterSunset) => { const m = Math.round(18 * 60 + minAfterSunset); return `${Math.floor(m / 60) % 24}:${String(m % 60).padStart(2, "0")}`; };
+const fleetIdx = (N) => { let b = 0; FLEET_STEPS.forEach((v, i) => { if (Math.abs(Math.log(v) - Math.log(N)) < Math.abs(Math.log(FLEET_STEPS[b]) - Math.log(N))) b = i; }); return b; };
+function setFleet(N, fromUser) {
+  state.fleetN = Math.max(1, Math.round(N));
+  const i = fleetIdx(state.fleetN);
+  for (const id of ["fleetN", "fleetN2"]) $(id).value = i;
+  for (const id of ["fleetNVal", "fleetNVal2"]) $(id).textContent = fmt(state.fleetN);
+  if (fromUser && state.mode !== 3) setMode(3); else { syncVisibility(); updateCaption(); }
+  renderFleet();
 }
-function trainLitEnd(cov) {
-  let last = 0;
-  for (let k = 0; k < cov.cnt.length; k++) if (cov.cnt[k]) last = k;
-  return (last + 1) * COV_DT;
+function fleetTargets() {
+  const DN = denseN(), dense = fleetCov(DN);
+  return { dense, need50: DN * 50 / dense.meanE, needStreet: DN * 0.1 / dense.meanE, atOnce: dense.peak / DN };
 }
-function useTrainRef(fn) {
-  const saved = { P: { ...P }, D, u0, e1: ssoBasis.e1.clone(), e2: ssoBasis.e2.clone() };
-  Object.assign(P, { h: 625, side: 18, rho: 0.9, emin: 30, lat: 32.7, N: 30, planes: train.planes, dP: 5, target: 50 });
-  D = trainRef.D; u0 = trainRef.u0;
-  ssoBasis.e1.copy(trainRef.e1); ssoBasis.e2.copy(trainRef.e2);
-  try { return fn(); }
-  finally {
-    Object.assign(P, saved.P); D = saved.D; u0 = saved.u0;
-    ssoBasis.e1.copy(saved.e1); ssoBasis.e2.copy(saved.e2);
+function renderFleet() {
+  const N = state.fleetN, c = fleetCov(N); cov = c;
+  const L = fleetLayout(N), T = fleetTargets(), limH = eveningLimitH(P.lat, P.emin);
+  // tiles
+  $("f_time").textContent = c.lit ? fmtMin(c.lit) : "none";
+  const darkMin = Math.max(0, c.endMin - c.startMin - c.lit / 60);
+  $("f_time2").textContent = c.lit ? `${clockAt(c.startMin)}–${clockAt(c.endMin)}${darkMin >= 0.5 ? ` · ${fmt(darkMin, darkMin < 10 ? 1 : 0)} min dark in between` : " · unbroken"}` : "no mirror passes high enough";
+  $("f_peak").textContent = c.lit ? fmtW(c.peakE) : "–";
+  $("f_peak2").textContent = c.lit ? `${fmtMoon(c.peakE)} full Moon · ≈${c.peakE * 100 < 10 ? fmt(c.peakE * 100, c.peakE * 100 < 1 ? 2 : 1) : fmt(round2(c.peakE * 100))} lux` : "";
+  $("f_mean").textContent = c.lit ? fmtW(c.meanE) : "–";
+  $("f_mean2").textContent = c.lit ? (c.meanE >= 10 ? `${fmt(c.meanE / 10, 1)}% of noon sun` : `1/${fmt(round2(1000 / c.meanE))} of noon sun`) : "";
+  const wh = c.energyWh;
+  $("f_energy").textContent = wh >= 1 ? `${fmt(wh, wh < 10 ? 1 : 0)} Wh/m²` : `${fmt(wh * 1000, wh < 0.01 ? 2 : 1)} mWh/m²`;
+  const sec = wh * 3.6; // 1 Wh/m² = 3.6 s of 1,000 W/m² noon sun
+  $("f_energy2").textContent = `= ${sec >= 60 ? `${fmt(sec / 60, 1)} min` : sec >= 1 ? `${fmt(sec, 1)} s` : `${fmt(sec * 1000, sec < 0.01 ? 2 : 0)} ms`} of noon sunshine`;
+  const at = Math.round(c.peak);
+  $("f_cnt").textContent = fmt(at);
+  $("f_cnt2").textContent = N > 1 ? `${fmt(100 * c.peak / N, c.peak / N < 0.1 ? 1 : 0)}% of the fleet` : "it is the whole fleet";
+  // sentence
+  let t;
+  if (!c.lit) t = `<b>${fmt(N)} mirror${N > 1 ? "s" : ""}</b>: none of them passes high enough over this city this evening.`;
+  else if (N === 1) t = `<b>One mirror</b> gives the city a single pass: <b>${fmtMin(c.lit)}</b> of light at about ${fmtMoon(c.peakE)} full Moon, then nothing. It is in sunshine the whole time, but it is high in this city's sky for only minutes.`;
+  else if (L.planes === 1) t = `<b>One train of ${fmt(N)}</b> in one orbit: a new mirror arrives every ${fmt(D.T / 60 / N, 1)} min, so the light ${darkMin >= 0.5 ? "flickers on and off" : "is unbroken"} and stops ${fmtMin(c.endMin * 60)} after sunset, when the city has turned too far from that orbit.`;
+  else if (L.planes < MAXP) t = `<b>${L.planes} trains</b>, each orbit 5° further into the evening, hand the city on from one to the next: <b>${fmtMin(c.lit)}</b> of light, ending ${fmtMin(c.endMin * 60)} after sunset.`;
+  else t = `<b>The evening is now as long as it can get:</b> light until ${fmtMin(c.endMin * 60)} after sunset${darkMin >= 0.5 ? `, dark for ${fmt(darkMin, 1)} min of that` : ""}. The geometric limit is ${fmtH(limH)}. From here, more mirrors add brightness, not minutes: ten times the mirrors gives ten times the light.`;
+  t += ` A steady <b>50 W/m²</b> (5% of noon sun) for the whole evening would take about <b>${fmt(round2(T.need50))} mirrors</b> in orbit. Street-light level (about 10 lux) would take about ${fmt(round2(T.needStreet))}.`;
+  $("fleetSay").innerHTML = t;
+  // presets
+  const pre = [["One mirror", 1], ["One train · 30", 30], [`Full evening · ${fmt(MAXP * PER_TRAIN)}`, MAXP * PER_TRAIN], [`Street-light level · ${fmt(round2(T.needStreet))}`, round2(T.needStreet)], [`50 W/m² all evening · ${fmt(round2(T.need50))}`, round2(T.need50)]];
+  const box = $("presets");
+  const sig_ = pre.map((x) => x[1]).join();
+  if (box.dataset.sig !== sig_) {
+    box.dataset.sig = sig_; box.innerHTML = "";
+    for (const [name, n] of pre) { const b = document.createElement("button"); b.type = "button"; b.textContent = name; b.addEventListener("click", () => setFleet(n, true)); box.appendChild(b); }
   }
+  // limits table (depends on altitude only)
+  const latName = (v) => `${fmt(Math.abs(v), 1)}° ${v >= 0 ? "N" : "S"}`;
+  const lats = [[0, "Equator"], [32.7, "32.7° N"], [49, "49° N"]].filter(([v]) => Math.abs(v - P.lat) > 0.05);
+  lats.push([P.lat, `${Math.abs(P.lat) < 0.05 ? "Equator" : latName(P.lat)} (this city)`]); lats.sort((a, b) => Math.abs(a[0]) - Math.abs(b[0]));
+  $("limitsBody").innerHTML = lats.map(([lat, name]) => `<tr${lat === P.lat ? ' style="background:#17140b"' : ""}><td>${name}</td>${[90, 30, 10].map((e) => {
+    const H = eveningLimitH(lat, e), n = 50 / D.E(e * D2R);
+    return `<td>${fmtH(H)}<small>${fmt(round2(n))} at once</small></td>`;
+  }).join("")}</tr>`).join("");
+  const dep = 90 - 49 - 23.44;
+  $("summerNote").innerHTML = (dep < D.edge / D2R
+    ? `At 49° N in midsummer the Sun sinks only ${fmt(dep, 1)}° below the horizon at midnight, less than the ${fmt(D.edge / D2R, 1)}° a mirror at ${fmt(P.h)} km can see past, so mirrors overhead stay sunlit <b>all night</b>.`
+    : `At 49° N in midsummer the Sun sinks ${fmt(dep, 1)}° below the horizon at midnight, more than the ${fmt(D.edge / D2R, 1)}° a mirror at ${fmt(P.h)} km can see past.`)
+    + ` Only about ${fmt(100 * T.atOnce, 1)}% of a fleet is over any one city at a time, so the fleet in orbit must be roughly ${fmt(round2(1 / T.atOnce))} times the "at once" number.`;
+  drawFleetChart(c, limH);
+  drawTimeline();
 }
-function trainWorld(v) { return v.clone().applyMatrix4(trainPhys.matrixWorld); }
-function trainLabel(id, pos, html, cls = "") {
-  trainUsed.add(id);
-  let el = trainLabelEls[id];
-  if (!el) { el = document.createElement("div"); $("trainLabels").appendChild(el); trainLabelEls[id] = el; }
-  el.className = `lbl ${cls}`;
-  const p = pos.clone().project(trainCam);
-  const vis = p.z < 1 && p.z > -1 && Math.abs(p.x) < 1.08 && Math.abs(p.y) < 1.08;
-  el.hidden = !vis; if (!vis) return;
-  const cv = $("trainGl");
-  el.style.left = `${(p.x * 0.5 + 0.5) * cv.clientWidth}px`;
-  el.style.top = `${(-p.y * 0.5 + 0.5) * cv.clientHeight}px`;
-  if (el._h !== html) { el.innerHTML = html; el._h = html; }
-}
-function sweepTrainLabels() {
-  for (const [k, el] of Object.entries(trainLabelEls)) if (!trainUsed.has(k)) el.hidden = true;
-  trainUsed = new Set();
-}
-function placeTrainEarth(t) {
-  TRZ.makeRotationZ(WE * t + cityLon0);
-  trainEarth.earth.matrix.copy(TRZ).multiply(TRX).multiply(TMS.makeScale(10, 10, 10));
-  trainEarth.earth.matrixWorldNeedsUpdate = true;
-  trainEarth.atmo.matrix.copy(trainEarth.earth.matrix).multiply(TMS.makeScale(1.02, 1.02, 1.02));
-  trainEarth.atmo.matrixWorldNeedsUpdate = true;
-  const sw = V3(1, 0, 0);
-  trainEarth.earth.material.uniforms.sunDir.value.copy(sw);
-  trainEarth.atmo.material.uniforms.sunDir.value.copy(sw);
-  trainEarth.earth.material.uniforms.time.value = t / 60;
-}
-function trainLineSet(color, opacity) {
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(160 * 6), 3));
-  const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-  l.frustumCulled = false; trainPhys.add(l); return l;
-}
-function trainPoints(size) {
-  const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(120 * 3), 3));
-  g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(120 * 3), 3));
-  const pts = new THREE.Points(g, new THREE.PointsMaterial({ size, map: TEX.dot, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
-  pts.frustumCulled = false; trainPhys.add(pts); return pts;
-}
-function setTrainPlaying(on) {
-  train.playing = on;
-  const b = $("trainPlay");
-  b.textContent = on ? "Pause" : "Play";
-  b.classList.toggle("on", on);
-  b.setAttribute("aria-pressed", on ? "true" : "false");
-}
-function setTrainView(sec) {
-  train.viewSec = sec;
-  train.rate = train.span / sec;
-  $("trainViewVal").textContent = `${sec} s`;
-}
-function setTrainPlanes(n) {
-  train.planes = n;
-  document.querySelectorAll("#trainPlanes button").forEach((b) => b.classList.toggle("on", +b.dataset.planes === n));
-  if (train.ok) drawTrainTimeline();
-}
-function resizeTrain() {
-  if (!train.ok) return;
-  const c = $("trainGl"), w = c.clientWidth, h = c.clientHeight;
-  if (!w || !h) return;
-  trainRenderer.setSize(w, h, false);
-  trainCam.aspect = w / h; trainCam.updateProjectionMatrix();
-}
-function initTrain() {
-  if (!trainRef || !$("trainGl")) return;
-  train.span = Math.max(trainLitEnd(trainRef.c1), trainLitEnd(trainRef.c4));
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  train.playing = !reduce;
-  if (reduce) train.t = 12 * 60;
-  setTrainView(75);
-  setTrainPlaying(train.playing);
-  $("trainSpan").textContent = `${trainClock(0)}–${trainClock(train.span)} (${fmt(train.span / 60)} min), the evening this model lights`;
-  $("trainExact").textContent = `one plane ${fmt(trainRef.c1.lit / 60, 1)} min, four planes ${fmt(trainRef.c4.lit / 60, 1)} min`;
-
-  trainRenderer = new THREE.WebGLRenderer({ canvas: $("trainGl"), antialias: true, powerPreference: "high-performance" });
-  trainRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-  trainRenderer.outputColorSpace = THREE.SRGBColorSpace;
-  trainRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-  trainRenderer.toneMappingExposure = 1.05;
-  trainScene = new THREE.Scene(); trainScene.background = new THREE.Color("#020308");
-  trainCam = new THREE.PerspectiveCamera(38, 1, 0.05, 2e4);
-  trainCtl = new OrbitControls(trainCam, $("trainGl"));
-  trainCtl.enableDamping = true; trainCtl.dampingFactor = 0.08; trainCtl.minDistance = 16; trainCtl.maxDistance = 120;
-  const far = 34;
-  trainCam.position.set(-0.42 * far, 0.46 * far, -0.72 * far); trainCtl.target.set(-1.2, 1.4, 0);
-  trainPhys = new THREE.Group(); trainPhys.rotation.x = -Math.PI / 2; trainScene.add(trainPhys);
-  trainEarth = makeEarth(); trainPhys.add(trainEarth.earth, trainEarth.atmo);
-  const stars = makeStars(9000); trainScene.add(stars); stars.matrix.identity();
-  const sun = makeSun(1100); sun.position.set(6000, 0, 0); trainScene.add(sun);
-  const light = new THREE.DirectionalLight(0xfff4e6, 2.6); light.position.set(100, 0, 0); trainScene.add(light);
-  trainScene.add(new THREE.AmbientLight(0x8899aa, 0.12));
-  const shadow = new THREE.Mesh(new THREE.CylinderGeometry(10.01 / Math.cos(Math.PI / 192), 10.01 / Math.cos(Math.PI / 192), 120, 192, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0x0b2346, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false }));
-  shadow.rotation.z = Math.PI / 2; shadow.position.x = -60; trainPhys.add(shadow);
-  const term = new THREE.Line(new THREE.BufferGeometry().setFromPoints(circlePts(240, (a) => V3(0, 10.03 * Math.cos(a), 10.03 * Math.sin(a)))),
-    new THREE.LineBasicMaterial({ color: 0xcfd8e3, transparent: true, opacity: 0.55 }));
-  trainPhys.add(term);
-  trainRings = Array.from({ length: 4 }, () => {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array((RING_N + 1) * 3), 3));
-    g.setAttribute("color", new THREE.BufferAttribute(new Float32Array((RING_N + 1) * 3), 3));
-    const l = new THREE.Line(g, new THREE.LineBasicMaterial({ vertexColors: true, toneMapped: false }));
-    trainPhys.add(l); return l;
-  });
-  useTrainRef(() => {
-    trainRings.forEach((ring, pl) => {
-      const pos = ring.geometry.attributes.position, col = ring.geometry.attributes.color, p = V3();
-      for (let i = 0; i <= RING_N; i++) {
-        ssoPos(i / RING_N * 2 * Math.PI, pl, p);
-        pos.setXYZ(i, p.x * OS, p.y * OS, p.z * OS);
-        const c = inShadow(p) ? C_SH : C_USE; col.setXYZ(i, c.r * 0.85, c.g * 0.85, c.b * 0.85);
-      }
-      pos.needsUpdate = col.needsUpdate = true; ring.geometry.computeBoundingSphere();
-    });
-  });
-  trainIdle = trainPoints(0.55);
-  trainActive = trainPoints(1.45);
-  trainBeams = trainLineSet(0xffd27a, 1);
-  trainCity = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), new THREE.MeshBasicMaterial({ color: 0x9fd8ff, toneMapped: false }));
-  trainPhys.add(trainCity);
-  trainGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.dot, color: 0xffcf73, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
-  trainPhys.add(trainGlow);
-  train.ok = true;
-  new ResizeObserver(resizeTrain).observe($("trainStage"));
-  resizeTrain();
-  $("trainPlay").addEventListener("click", () => setTrainPlaying(!train.playing));
-  $("trainView").addEventListener("input", (e) => setTrainView(+e.target.value));
-  document.querySelectorAll("#trainPlanes button").forEach((b) => b.addEventListener("click", () => setTrainPlanes(+b.dataset.planes)));
-  window.trainSim = train;
-  drawTrainTimeline();
-}
-function updateTrain() {
-  if (!train.ok) return;
-  useTrainRef(() => {
-    const t = train.t;
-    placeTrainEarth(t);
-    trainPhys.updateMatrixWorld();
-    cityPos(t, tCity);
-    trainCity.position.copy(tCity).multiplyScalar(OS * 1.003);
-    const idleP = trainIdle.geometry.attributes.position, idleC = trainIdle.geometry.attributes.color;
-    const actP = trainActive.geometry.attributes.position, actC = trainActive.geometry.attributes.color;
-    let ki = 0, ka = 0, nb = 0;
-    for (let p = 0; p < train.planes; p++) for (let i = 0; i < 30; i++) {
-      ssoPos(u0 + 2 * Math.PI * i / 30 + D.n * t, p, tSat);
-      const e = serve(tSat, tCity), sh = inShadow(tSat);
-      const x = tSat.x * OS, y = tSat.y * OS, z = tSat.z * OS;
-      if (e > 0) {
-        actP.setXYZ(ka, x, y, z); actC.setXYZ(ka, 1.7, 1.3, 0.55); ka++;
-        setLine(trainBeams, nb++, tSat.clone().multiplyScalar(OS), tCity.clone().multiplyScalar(OS * 1.002));
-      } else {
-        idleP.setXYZ(ki, x, y, z);
-        if (sh) idleC.setXYZ(ki, 0.16, 0.22, 0.34); else idleC.setXYZ(ki, 0.8, 0.66, 0.38);
-        ki++;
-      }
-    }
-    trainIdle.geometry.setDrawRange(0, ki); idleP.needsUpdate = idleC.needsUpdate = true;
-    trainActive.geometry.setDrawRange(0, ka); actP.needsUpdate = actC.needsUpdate = true;
-    finishLines(trainBeams, nb);
-    trainGlow.visible = ka > 0;
-    if (ka) { trainGlow.position.copy(trainCity.position); trainGlow.scale.setScalar(0.75 + 0.38 * Math.sqrt(ka)); }
-    trainRings.forEach((r, i) => { r.visible = i < train.planes; });
-    const clock = trainClock(t), day = tCity.x >= 0;
-    if (day) train.status = { cls: "day", text: `City ${clock} · still daylight` };
-    else if (ka) train.status = { cls: "sun", text: `City ${clock} · beam on · ${ka} mirror${ka > 1 ? "s" : ""}` };
-    else train.status = { cls: "dark", text: `City ${clock} · no mirror in range` };
-    trainLabel("city", trainWorld(trainCity.position), `City, 32.7° N<small>${clock}${ka ? " · beam on" : day ? "" : " · dark"}</small>`, "n");
-    trainLabel("term", trainWorld(V3(0, 0, 10.6)), "Sunset line", "plain");
-    trainLabel("sun", trainWorld(V3(22, 0, 8)), "Sunlight →", "plain");
-    trainLabel("sh", trainWorld(V3(-24, 0, 0)), "Earth's shadow", "plain");
-  });
-}
-function drawTrainTimeline() {
-  if (!train.ok) return;
-  const cov = train.planes === 1 ? trainRef.c1 : trainRef.c4;
-  const c = $("trainTl"); if (!c) return;
-  const d = fitCanvas(c), W = c.width, H = c.height, g = c.getContext("2d");
+function drawFleetChart(c, limH) {
+  const cv = $("fleetChart"), d = fitCanvas(cv), W = cv.width, H = cv.height, g = cv.getContext("2d");
   g.clearRect(0, 0, W, H);
-  g.font = `${10 * d}px IBM Plex Mono, monospace`; g.textBaseline = "top";
-  const bh = 12 * d, by = H - bh - 1 * d, span = train.span;
-  const x = (t) => t / span * W, sunsetT = (18 - LT0) * 3600;
-  g.fillStyle = "#5e7184"; g.fillRect(0, by, Math.max(0, x(Math.min(sunsetT, span))), bh);
-  g.fillStyle = "#0e1724"; g.fillRect(x(Math.min(sunsetT, span)), by, Math.max(0, W - x(Math.min(sunsetT, span))), bh);
-  g.fillStyle = "#f3b544";
-  for (let k = 0; k < cov.cnt.length; k++) if (cov.cnt[k]) {
-    const t0 = k * COV_DT; if (t0 >= span) break;
-    g.fillRect(x(t0), by, Math.max(1.2 * d, x(COV_DT)), bh);
+  const narrow = W / d < 560, l = (narrow ? 50 : 64) * d, r = (narrow ? 92 : 128) * d, tp = 14 * d, bt = 28 * d, X0 = 0, X1 = 180, Y0 = -4, Y1 = 3;
+  const x = (m) => l + (m - X0) / (X1 - X0) * (W - l - r), y = (E) => tp + (Y1 - Math.log10(Math.max(E, 1e-6))) / (Y1 - Y0) * (H - tp - bt);
+  g.font = `${10.5 * d}px IBM Plex Mono, monospace`; g.textBaseline = "middle";
+  for (let e = Y0; e <= Y1; e++) {
+    g.strokeStyle = "#1b2633"; g.lineWidth = 1; g.beginPath(); g.moveTo(l, y(10 ** e)); g.lineTo(W - r, y(10 ** e)); g.stroke();
+    g.fillStyle = "#5b6a7a"; g.textAlign = "right"; g.fillText(e >= 0 ? fmt(10 ** e) : String(10 ** e), l - 6 * d, y(10 ** e));
   }
-  g.fillStyle = "#fff"; g.fillRect(x(Math.min(train.t, span)) - 1.5 * d, by - 5 * d, 3 * d, bh + 8 * d);
-  g.fillStyle = "#8a9aab"; g.textAlign = "left"; g.fillText(trainClock(0), 0, 0);
-  g.textAlign = "center"; g.fillText("sunset", x(sunsetT), 0);
-  g.textAlign = "right"; g.fillText(trainClock(span), W, 0);
-  let lit = 0, dark = 0;
-  const kNow = Math.min(cov.cnt.length, Math.floor(train.t / COV_DT));
-  for (let k = 0; k < kNow; k++) {
-    const t0 = k * COV_DT;
-    if (t0 < sunsetT) continue;
-    if (cov.cnt[k]) lit += COV_DT; else dark += COV_DT;
+  g.save(); g.translate(14 * d, (tp + H - bt) / 2); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.fillStyle = "#8a9aab"; g.fillText("W/m² on the ground", 0, 0); g.restore();
+  g.textBaseline = "top";
+  for (let m = narrow ? 60 : 0; m <= 180; m += narrow ? 60 : 30) { g.fillStyle = "#5b6a7a"; g.textAlign = m === 0 ? "left" : "center"; g.fillText(m === 0 ? (narrow ? "sunset" : "sunset 18:00") : `+${m} min`, x(m), H - bt + 8 * d); }
+  const refs = [[MOON_GROUND, "full Moon", "#9fb3c8"], [0.1, narrow ? "street light" : "street lighting", "#9fb3c8"], [50, narrow ? "50 W/m²" : "50 W/m² goal", "#f3b544"], [1000, "noon Sun", "#ffffff"]];
+  g.textBaseline = "middle"; g.textAlign = "left";
+  for (const [E, name, col] of refs) { g.setLineDash([4 * d, 4 * d]); g.strokeStyle = col; g.globalAlpha = 0.55; g.beginPath(); g.moveTo(l, y(E)); g.lineTo(W - r, y(E)); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; g.fillStyle = col; g.fillText(name, W - r + 6 * d, y(E)); }
+  if (isFinite(limH) && limH * 60 < X1) {
+    const lx = x(limH * 60); g.setLineDash([2 * d, 4 * d]); g.strokeStyle = "#62b6e6"; g.beginPath(); g.moveTo(lx, tp); g.lineTo(lx, H - bt); g.stroke(); g.setLineDash([]);
+    g.fillStyle = "#62b6e6"; g.textAlign = "right"; g.fillText(narrow ? "limit" : "limit, any number of mirrors", lx - 5 * d, tp + 8 * d);
   }
-  const total = cov.lit;
-  $("trainTlText").innerHTML = `${train.planes} plane${train.planes > 1 ? "s" : ""} · lit <b>${fmt(lit / 60, 1)}</b> of <b>${fmt(total / 60, 1)} min</b> · dark <b>${fmt(dark / 60, 1)} min</b>`;
+  // brightness
+  const k0 = SUNSET_K, k1 = Math.min(COV_N, SUNSET_K + X1 * 60 / COV_DT), bw = (W - l - r) / ((X1 - X0) * 60 / COV_DT);
+  g.fillStyle = "rgba(243,181,68,0.45)"; g.strokeStyle = "#f3b544"; g.lineWidth = 1.6 * d;
+  for (let k = k0; k < k1; k++) if (c.E[k] > 0) { const xx = x((k - k0) * COV_DT / 60), yy = y(c.E[k]); g.fillRect(xx, yy, Math.max(1, bw + 0.5), H - bt - yy); }
+  g.beginPath(); let on = false;
+  for (let k = k0; k < k1; k++) { const xx = x((k - k0) * COV_DT / 60); if (c.E[k] > 0) { const yy = y(c.E[k]); on ? g.lineTo(xx, yy) : g.moveTo(xx, yy); on = true; } else on = false; }
+  g.stroke();
+  if (!c.lit) { g.fillStyle = "#8a9aab"; g.textAlign = "center"; g.fillText("no light reaches the city", (l + W - r) / 2, (tp + H - bt) / 2); }
 }
 
 /* ───────────── UI ───────────── */
@@ -1316,6 +1251,11 @@ $("realBtn").addEventListener("click", () => setSpeed(1));
 let rb = 0; const later = () => { clearTimeout(rb); rb = setTimeout(rebuild, 80); };
 const bind = (id, key, show) => $(id).addEventListener("input", (e) => { P[key] = +e.target.value; $(id + "Val").textContent = show(P[key]); later(); });
 bind("alt", "h", (v) => `${v} km`);
+const latText = (v) => `${fmt(Math.abs(v), 1)}° ${v >= 0 ? "N" : "S"}`;
+bind("lat", "lat", latText);
+document.querySelectorAll("#latPresets button").forEach((b) => b.addEventListener("click", () => { P.lat = +b.dataset.lat; $("lat").value = P.lat; $("latVal").textContent = latText(P.lat); rebuild(); }));
+for (const id of ["fleetN", "fleetN2"]) $(id).addEventListener("input", (e) => setFleet(FLEET_STEPS[+e.target.value], true));
+new ResizeObserver(() => renderFleet()).observe($("fleetChart"));
 
 function onResize() {
   const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
@@ -1336,20 +1276,8 @@ function loop(now) {
   else { ctlO.update(); updateOrbitScene(); renderer.render(sceneO, camO); }
   sweepLabels();
   hudT += dt;
-  if (train.ok) {
-    if (train.playing) {
-      if (train.holding) {
-        if (performance.now() >= train.holdUntil) { train.t = 0; train.holding = false; }
-      } else {
-        train.t += dt * train.rate;
-        if (train.t >= train.span) { train.t = train.span; train.holding = true; train.holdUntil = performance.now() + 900; }
-      }
-    }
-    trainCtl.update(); updateTrain(); trainRenderer.render(trainScene, trainCam); sweepTrainLabels();
-  }
   if (hudT > 0.1) {
     hudT = 0; const p = $("pill"); p.className = `pill ${status.cls}`; p.textContent = status.text; drawTimeline();
-    if (train.ok) { const tp = $("trainPill"); tp.className = `pill ${train.status.cls}`; tp.textContent = train.status.text; drawTrainTimeline(); }
   }
   requestAnimationFrame(loop);
 }
@@ -1358,7 +1286,6 @@ function loop(now) {
 fillArticle();
 rebuild();
 setMode(1);
-try { initTrain(); } catch (err) { console.error(err); train.ok = false; }
 onResize();
 requestAnimationFrame(loop);
 </script>
