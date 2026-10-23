@@ -157,6 +157,7 @@ cd relativistic && python3 -m http.server 8765
 
 - **v0.5** — guided tour; adaptive frustum (too zoom-like)  
 - **v0.6** — free look + velocity-fixed boost + full-sphere capture  
+- **v1.33** — `mirrors/` simplified: fixed 750× / real-speed switch, altitude the only control, reply-check sections removed  
 - **v1.32** — `space-dc/` Orbital Heat Budget (space data center thermal cycling) and `mirrors/` Mirrors After Sunset (orbital mirror shadow geometry)  
 
 ## License
