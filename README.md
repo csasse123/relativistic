@@ -157,6 +157,7 @@ cd relativistic && python3 -m http.server 8765
 
 - **v0.5** — guided tour; adaptive frustum (too zoom-like)  
 - **v0.6** — free look + velocity-fixed boost + full-sphere capture  
+- **v1.36** — `mirrors/`: scene 5 'Standing in the city' (a person on the ground, mirrors drawn in their sky, beams and a running 'light on you tonight' counter); plain-language 'what do you see' answer and mirrors → minutes table; live 'your spot is lit for' rows in the side panel  
 - **v1.35** — `mirrors/`: one slider from 1 mirror to 1,000,000 drives the 3D train and a live results panel (minutes lit, W/m², lux, energy, brightness chart, unlimited-mirror ceiling); city latitude is live again and re-runs the simulation; Cursor's separate train view replaced  
 - **v1.33** — `mirrors/` simplified: fixed 750× / real-speed switch, altitude the only control, reply-check sections removed  
 - **v1.32** — `space-dc/` Orbital Heat Budget (space data center thermal cycling) and `mirrors/` Mirrors After Sunset (orbital mirror shadow geometry)  
