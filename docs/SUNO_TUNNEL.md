@@ -32,8 +32,9 @@ male vocals, rap, acoustic guitar
 ```
 [Intro]
 [Spoken Word]
-Attention.
-Look closer.
+Knock knock.
+Who's there?
+Both.
 There's a wall in your phone. A few atoms thick.
 The electrons walk right through.
 
@@ -118,6 +119,7 @@ Fact-checked against the sources listed. Where a number is rounded for the lyric
 
 | Line | Value |
 |---|---|
+| Knock knock. Who's there? Both. | Superposition: like the cat, the electron is on both sides of the wall until you look. Sets up the chorus "it never knocks". |
 | A wall a few atoms thick | The gate insulator separates the control gate from the channel. Intel's 90 and 65 nm chips used 1.2 nm SiO₂, about **5 atomic layers** (EDN, bit-tech). Since 2007 (Intel 45 nm, hafnium high-k/metal gate) the oxide is physically thicker but electrically equivalent to about 1 nm, and roadmaps go to about 0.9 nm. |
 | I go through walls you said I couldn't climb | The electron never has the energy to get over the barrier (classically forbidden) and still ends up on the other side. |
 | Five atoms thick (chorus) | The 1.2 nm SiO₂ gate oxide above: the moment tunneling forced the industry to change materials. Gordon Moore called high-k/metal gate the biggest transistor change in about 40 years. |
