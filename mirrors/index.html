@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Mirrors After Sunset</title>
+<meta name="description" content="Can sunlight-reflecting satellites in low orbit light a city at night? A 3D geometry check of Earth's shadow, orbit speed and mirror constellations." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" />
+<style>
+  :root {
+    color-scheme: dark;
+    --void: #05070b;
+    --panel: #0a0f16;
+    --panel-2: #0f1620;
+    --glass: rgba(7, 11, 17, 0.8);
+    --line: #1b2633;
+    --line-2: #2a3a4c;
+    --ink: #e3e9ef;
+    --body: #c6d1db;
+    --muted: #8a9aab;
+    --faint: #5b6a7a;
+    --sun: #f3b544;
+    --sun-ink: #1a1204;
+    --night: #2f6db5;
+    --cold: #62b6e6;
+    --ok: #5cc793;
+    --half: #e9a93b;
+    --bad: #ee5d5d;
+    --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+    --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { background: var(--void); }
+  body { margin: 0; background: var(--void); color: var(--ink); font: 400 15px/1.6 var(--f-body); }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+  a { color: var(--sun); }
+  .wrap { max-width: 1380px; margin: 0 auto; padding-inline: 20px; }
+
+  /* header */
+  header.top { padding-block: 28px 18px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; align-items: end; }
+  .eyebrow { font: 500 11px/1 var(--f-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  .eyebrow b { color: var(--sun); font-weight: 500; }
+  h1 { font: 700 clamp(34px, 5vw, 58px)/0.98 var(--f-display); letter-spacing: -0.015em; margin: 12px 0 12px; text-wrap: balance; }
+  .lede { margin: 0; color: var(--body); max-width: 60ch; font-size: 16px; }
+  .ask { border-left: 2px solid var(--sun); padding: 4px 0 4px 16px; color: var(--body); font-style: italic; max-width: 58ch; }
+  .ask cite { display: block; font: 500 11px var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; font-style: normal; color: var(--muted); margin-top: 8px; }
+
+  .short { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 22px; }
+  .short div { background: var(--panel); padding: 16px 18px; }
+  .short h3 { margin: 0 0 6px; font: 600 17px/1.2 var(--f-display); text-wrap: balance; }
+  .short p { margin: 0; color: var(--body); font-size: 14px; }
+  .short .k { font: 500 11px var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sun); margin-bottom: 6px; display: block; }
+
+  /* stage */
+  .stagewrap { display: grid; grid-template-columns: minmax(0, 1fr) 330px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
+  .stage { position: relative; height: min(80vh, 780px); min-height: 460px; background: #020308; }
+  canvas#gl { display: block; width: 100%; height: 100%; touch-action: none; }
+  #labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .lbl { position: absolute; transform: translate(10px, -50%); font: 500 11.5px/1.25 var(--f-mono); color: var(--ink); background: rgba(5, 8, 12, 0.74); border-left: 2px solid var(--sun); padding: 3px 7px; white-space: nowrap; border-radius: 0 4px 4px 0; }
+  .lbl::before { content: ""; position: absolute; left: -12px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--sun); }
+  .lbl small { display: block; color: var(--muted); font-weight: 400; }
+  .lbl.n { border-left-color: var(--cold); }
+  .lbl.n::before { background: var(--cold); }
+  .lbl.plain { border-left: 0; background: none; padding: 0; color: var(--muted); }
+  .lbl.plain::before { display: none; }
+
+  .hud-top { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+  .hud-top > * { pointer-events: auto; }
+  .modes { display: flex; flex-wrap: wrap; gap: 2px; background: var(--glass); border: 1px solid var(--line); border-radius: 9px; padding: 4px; backdrop-filter: blur(8px); }
+  .modes button { border: 0; background: transparent; color: var(--muted); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; text-align: left; }
+  .modes button b { font: 500 10.5px var(--f-mono); color: var(--faint); margin-right: 6px; }
+  .modes button.on { background: var(--sun); color: var(--sun-ink); font-weight: 600; }
+  .modes button.on b { color: var(--sun-ink); }
+  .pill { display: inline-flex; align-items: center; gap: 7px; font: 600 11px/1.2 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 7px 11px; border-radius: 999px; max-width: 100%; }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+  .pill.sun { color: var(--sun-ink); background: var(--sun); }
+  .pill.dark { color: #d8eef7; background: #17314a; }
+  .pill.day { color: #0b1520; background: #a8bdd0; }
+
+  .timeline { position: absolute; left: 12px; right: 12px; bottom: 12px; background: var(--glass); border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px 8px; backdrop-filter: blur(8px); }
+  .timeline canvas { width: 100%; height: 34px; display: block; }
+  .tl-text { font: 400 12px var(--f-mono); color: var(--muted); margin-top: 4px; }
+  .tl-text b { color: var(--ink); font-weight: 500; }
+  .caption { position: absolute; left: 12px; bottom: 92px; max-width: min(460px, calc(100% - 24px)); font-size: 13.5px; line-height: 1.45; color: var(--body); background: var(--glass); border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; backdrop-filter: blur(8px); pointer-events: none; }
+  .caption b { color: var(--ink); }
+
+  .fleet { margin: 22px 0 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 22px 22px 20px; display: grid; gap: 18px; }
+  .fleet > * { min-width: 0; }
+  .fleet h2 { font: 600 30px/1.05 var(--f-display); margin: 0 0 8px; text-wrap: balance; }
+  .fleet h2 small { display: block; font: 500 11px var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sun); margin-bottom: 6px; }
+  .fleet-lead { margin: 0; color: var(--body); max-width: 80ch; }
+  .fleet-ctl { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 16px; align-items: center; }
+  .fleet-ctl label { font: 600 15px var(--f-display); }
+  .fleet-ctl output { font: 600 30px/1 var(--f-display); color: var(--sun); font-variant-numeric: tabular-nums; min-width: 7ch; text-align: right; }
+  .fleet-ctl input[type="range"] { width: 100%; accent-color: var(--sun); height: 26px; }
+  .fleet-ticks { grid-column: 2; display: flex; justify-content: space-between; font: 400 11px var(--f-mono); color: var(--faint); margin-top: -4px; }
+  .presets { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+  .presets button { border: 1px solid var(--line-2); background: var(--panel-2); color: var(--body); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; cursor: pointer; }
+  .presets button:hover { border-color: var(--sun); color: var(--ink); }
+  .tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .tiles div { background: var(--panel-2); padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .tiles small { font: 500 10.5px var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .tiles b { font: 600 24px/1.1 var(--f-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+  .tiles span { font-size: 12.5px; color: var(--muted); }
+  .tiles .hot b { color: var(--sun); }
+  .fleet-chart { width: 100%; height: 250px; display: block; background: #04060a; border: 1px solid var(--line); border-radius: 10px; }
+  .fleet-say { margin: 0; color: var(--body); max-width: 86ch; font-size: 15px; }
+  .fleet-say b { color: var(--ink); }
+  .limits h3, .observer h3 { font: 600 19px var(--f-display); margin: 0 0 6px; }
+  .observer p { margin: 0 0 10px; color: var(--body); max-width: 86ch; }
+  .observer p b { color: var(--ink); }
+  .ltbl td.txt { text-align: left; font-family: var(--f-body); color: var(--body); white-space: normal; min-width: 220px; }
+  .ltbl tr.cur td { background: #17140b; }
+  .limits p { margin: 0 0 8px; color: var(--muted); font-size: 13px; max-width: 86ch; }
+  .ltbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .ltbl table { border-collapse: collapse; width: 100%; min-width: 560px; font-variant-numeric: tabular-nums; }
+  .ltbl th, .ltbl td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--line); font: 400 13px var(--f-mono); }
+  .ltbl th { font: 500 11px var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--panel-2); }
+  .ltbl td:first-child, .ltbl th:first-child { text-align: left; font-family: var(--f-body); color: var(--ink); }
+  .ltbl td small { display: block; color: var(--faint); font-size: 11px; }
+  .ltbl tr:last-child td { border-bottom: 0; }
+  @media (max-width: 1000px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fleet-ctl { grid-template-columns: 1fr auto; } .fleet-ticks { grid-column: 1 / -1; } .fleet-ctl input[type="range"] { grid-column: 1 / -1; } }
+
+  aside.panel { border-left: 1px solid var(--line); padding: 16px 16px 20px; overflow-y: auto; height: min(80vh, 780px); min-height: 460px; display: flex; flex-direction: column; gap: 16px; }
+  .panel h2 { font: 600 11px/1 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  .ctl { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 10px; margin-bottom: 9px; }
+  .ctl label { font-size: 13px; }
+  .ctl output { font: 500 12px var(--f-mono); color: var(--sun); }
+  .ctl input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--sun); margin: 2px 0 0; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn { border: 1px solid var(--line-2); background: var(--panel-2); border-radius: 6px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; }
+  .btn:hover { border-color: var(--muted); }
+  .btn.on { background: var(--ink); color: var(--void); border-color: var(--ink); font-weight: 600; }
+  dl.num { display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0; font-variant-numeric: tabular-nums; }
+  dl.num dt, dl.num dd { margin: 0; padding: 5px 0; border-top: 1px solid var(--line); }
+  dl.num dt { color: var(--muted); font-size: 12.5px; padding-right: 8px; }
+  dl.num dd { font: 500 12.5px var(--f-mono); text-align: right; white-space: nowrap; }
+  dl.num dd.hl { color: var(--sun); }
+  .note { font-size: 11.5px; color: var(--faint); margin: 6px 0 0; }
+
+  /* article */
+  article { padding-block: 40px 30px; }
+  article > section > * { min-width: 0; }
+  article > section { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; padding-block: 26px; border-top: 1px solid var(--line); }
+  article h2 { font: 600 24px/1.1 var(--f-display); margin: 0; text-wrap: balance; }
+  article h2 small { display: block; font: 500 11px var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  article p { margin: 0 0 12px; color: var(--body); max-width: 70ch; }
+  article p b, article li b { color: var(--ink); }
+  article ul { margin: 0 0 12px; padding-left: 20px; color: var(--body); max-width: 70ch; }
+  article li { margin-bottom: 6px; }
+  .num-inline { font: 500 0.93em var(--f-mono); color: var(--ink); white-space: nowrap; }
+  figure { margin: 6px 0 16px; }
+  figure svg, figure img { width: 100%; height: auto; max-width: 820px; display: block; background: #04060a; border: 1px solid var(--line); border-radius: 10px; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; max-width: 70ch; }
+  footer { color: var(--faint); font-size: 12.5px; padding-block: 10px 40px; }
+  footer p { max-width: 90ch; margin: 0 0 8px; }
+
+  @media (max-width: 1000px) {
+    header.top { grid-template-columns: 1fr; }
+    .short { grid-template-columns: 1fr; }
+    .stagewrap { grid-template-columns: 1fr; }
+    .stage { height: 64vh; min-height: 420px; }
+    aside.panel { height: auto; min-height: 0; border-left: 0; border-top: 1px solid var(--line); }
+    article > section { grid-template-columns: 1fr; gap: 12px; }
+    .caption { display: none; }
+  }
+  @media (max-width: 560px) {
+    .wrap { padding-inline: 16px; }
+    .modes button { padding: 5px 7px; font-size: 12px; }
+    .modes button b { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow"><span>Sunlight-reflecting satellites · geometry check</span><b id="build">v1.36.0</b></div>
+      <h1>Mirrors After Sunset</h1>
+      <p class="lede">Can a mirror in low orbit reflect sunlight onto a city that is already dark? Yes, but only near dusk and dawn, and only for minutes per mirror. Below: the shadow, the speed, the reflection, and the numbers, in 3D.</p>
+    </div>
+    <blockquote class="ask">Won't the earth block the satellites in earth's shadow? How does the sunlight get bounced then? There was a remark about passing through the earth's atmosphere twice. What am I missing?<cite>Rich · 21 Oct</cite></blockquote>
+  </header>
+
+  <section class="short" aria-label="Short answer">
+    <div><span class="k">1 · Yes, at night they are dark</span><h3>Earth's shadow does block them for most of the night</h3><p>At local midnight a mirror <span data-v="hkm"></span> up is deep inside Earth's shadow. These mirrors can only work near dusk and dawn.</p></div>
+    <div><span class="k">2 · Height buys a little time</span><h3>The mirror still sees the Sun after the ground goes dark</h3><p>At <span data-v="hkm"></span> the shadow begins <span data-v="edgeDeg"></span> (<span data-v="edgeKm"></span>) past the sunset line. Ground that far into the night had sunset about <span data-v="edgeH"></span> earlier.</p></div>
+    <div><span class="k">3 · But each mirror is fast</span><h3>One mirror serves one city for about <span data-v="pass30"></span></h3><p>At <span data-v="vkms"></span> it is high in a city's sky for only minutes. Light for the whole evening needs a train of hundreds of mirrors, and real brightness needs far more.</p></div>
+  </section>
+
+  <section class="stagewrap" aria-label="3D animation">
+    <div class="stage" id="stage">
+      <canvas id="gl"></canvas>
+      <div id="labels"></div>
+      <div class="hud-top">
+        <div class="modes" id="modes">
+          <button data-m="1"><b>1</b>One mirror, into the night</button>
+          <button data-m="4"><b>2</b>Close-up: its sunset</button>
+          <button data-m="2"><b>3</b>Riding the sunset line</button>
+          <button data-m="3"><b>4</b>A train of mirrors</button>
+          <button data-m="5"><b>5</b>Standing in the city</button>
+        </div>
+        <span class="pill sun" id="pill">Sunlit</span>
+      </div>
+      <div class="caption" id="caption"></div>
+      <div class="timeline"><canvas id="tl" aria-label="Timeline"></canvas><div class="tl-text" id="tlText"></div></div>
+    </div>
+    <aside class="panel">
+      <div>
+        <h2>Time</h2>
+        <div class="row" role="group" aria-label="Playback speed"><button class="btn on" id="warpBtn">750× faster</button><button class="btn" id="realBtn">Real speed</button></div>
+      </div>
+      <div>
+        <h2>Altitude</h2>
+        <div class="ctl"><label for="alt">Mirror altitude</label><output id="altVal">625 km</output><input id="alt" type="range" min="400" max="1200" step="5" value="625" /></div>
+      </div>
+      <div>
+        <h2>City</h2>
+        <div class="ctl"><label for="lat">City latitude</label><output id="latVal">32.7° N</output><input id="lat" type="range" min="-60" max="65" step="0.1" value="32.7" /></div>
+        <div class="row" id="latPresets"><button class="btn" data-lat="0">Equator</button><button class="btn" data-lat="32.7">San Diego 32.7°</button><button class="btn" data-lat="49">49° N</button><button class="btn" data-lat="60">60° N</button></div>
+        <p class="note">Fixed: 18 m mirror, usable when the mirror is more than 30° up, equinox.</p>
+      </div>
+      <div>
+        <h2>Train of mirrors</h2>
+        <div class="ctl"><label for="fleetN2">Mirrors in orbit</label><output id="fleetNVal2">1</output><input id="fleetN2" type="range" min="0" max="18" step="1" value="0" /></div>
+        <p class="note">Same slider as below the 3D view. Moving it shows scene 5, the view from the ground. Latitude and altitude re-run the simulation.</p>
+      </div>
+      <div>
+        <h2>Numbers at this setup</h2>
+        <dl class="num">
+          <dt>One mirror lights <b>your spot</b> for</dt><dd id="n_you1" class="hl">–</dd>
+          <dt id="n_youNt">With 1 mirror in orbit, your spot is lit for</dt><dd id="n_youN" class="hl">–</dd>
+          <dt>Orbit period</dt><dd id="n_T">–</dd>
+          <dt>Speed</dt><dd id="n_v">–</dd>
+          <dt>Shadow begins past sunset line</dt><dd id="n_edge" class="hl">–</dd>
+          <dt>Ground under that point: sunset was</dt><dd id="n_edgeH">–</dd>
+          <dt>One mirror in sunshine above dark ground</dt><dd id="n_win" class="hl">–</dd>
+          <dt>Then in shadow for</dt><dd id="n_ecl">–</dd>
+          <dt>Mirror's own sunset (disc / with air)</dt><dd id="n_set">–</dd>
+          <dt>Longest a mirror is high in your sky</dt><dd id="n_pass" class="hl">–</dd>
+          <dt>Light spot, overhead</dt><dd id="n_spot">–</dd>
+          <dt>One mirror, overhead</dt><dd id="n_E">–</dd>
+          <dt>Mirrors for 50 W/m², overhead</dt><dd id="n_need">–</dd>
+        </dl>
+        <p class="note">Equinox, circular orbit, flat mirror with 90% reflectivity turning the beam 90°, clear-sky transmission 0.8 at zenith. Full Moon ≈ 0.0027 W/m² on the ground.</p>
+      </div>
+    </aside>
+  </section>
+
+  <section class="fleet" id="fleet" aria-label="One mirror or a train of mirrors">
+    <div>
+      <h2><small>One mirror or a whole train</small>How much light does the city actually get?</h2>
+      <p class="fleet-lead">Slide from a single mirror to a fleet. The 3D view above switches to scene 5, where you stand in the city and watch the mirrors cross your sky. The numbers are simulated minute by minute for one city at <span data-v2="lat"></span> with mirrors at <span data-v2="hkm"></span>. A mirror counts only while it is in sunshine and more than 30° up in the city's sky.</p>
+    </div>
+    <div class="observer">
+      <h3>Stand in the city after sunset. What do you see?</h3>
+      <p id="obsSay"></p>
+      <div class="ltbl"><table><thead><tr><th>Mirrors in orbit</th><th>Light on you tonight</th><th>Last light</th><th>Brightest</th><th>What you see</th></tr></thead><tbody id="obsBody"></tbody></table></div>
+    </div>
+    <div class="fleet-ctl">
+      <label for="fleetN">Mirrors in orbit</label>
+      <input id="fleetN" type="range" min="0" max="18" step="1" value="0" aria-describedby="fleetSay" />
+      <output id="fleetNVal">1</output>
+      <div class="fleet-ticks" aria-hidden="true"><span>1</span><span>30</span><span>240</span><span>2,000</span><span>20,000</span><span>200,000</span><span>1,000,000</span></div>
+      <div class="presets" id="presets"></div>
+    </div>
+    <div class="tiles" aria-live="polite">
+      <div class="hot"><small>Light this evening</small><b id="f_time">–</b><span id="f_time2">–</span></div>
+      <div class="hot"><small>Brightest moment</small><b id="f_peak">–</b><span id="f_peak2">–</span></div>
+      <div><small>Average while lit</small><b id="f_mean">–</b><span id="f_mean2">–</span></div>
+      <div><small>Sunlight delivered</small><b id="f_energy">–</b><span id="f_energy2">–</span></div>
+      <div><small>Mirrors on the city at once</small><b id="f_cnt">–</b><span id="f_cnt2">–</span></div>
+    </div>
+    <canvas class="fleet-chart" id="fleetChart" aria-label="Brightness at the city against time after sunset"></canvas>
+    <p class="fleet-say" id="fleetSay"></p>
+    <div class="limits">
+      <h3>The ceiling: unlimited mirrors</h3>
+      <p>Even with any number of mirrors, the evening ends when no sunlit spot at <span data-v2="hkm"></span> is high enough in the city's sky. Lower in the sky the light lasts longer, but each mirror delivers far less, so the fleet needed explodes. Equinox. Each cell: how long after sunset · mirrors that must shine on the city <i>at once</i> for 50 W/m².</p>
+      <div class="ltbl"><table><thead><tr><th>City</th><th>Mirrors almost overhead</th><th>At least 30° up</th><th>At least 10° up</th></tr></thead><tbody id="limitsBody"></tbody></table></div>
+      <p id="summerNote" style="margin-top:8px"></p>
+    </div>
+  </section>
+
+  <article>
+    <section>
+      <h2><small>01</small>Why a mirror can be sunlit above a dark city</h2>
+      <div>
+        <p>Sunlight comes from one side, and Earth casts a shadow straight behind it, as wide as the Earth. On the ground, the Sun sets at the <b>sunset line</b> (the terminator). A mirror <span data-v="hkm"></span> up is higher than the curve of the Earth, so it keeps seeing the Sun for a while after the ground beneath it has gone dark.</p>
+        <p>It stays sunlit until <b>cos θ = R / (R + h) = 6371 / <span data-v="rkm"></span></b>, which gives <b>θ = <span data-v="edgeDeg"></span></b> past the sunset line, measured at Earth's centre. On the ground that is <span data-v="edgeKm"></span> into the night. Earth turns 15° per hour, so the ground under the shadow edge had its sunset about <b><span data-v="edgeH"></span></b> earlier (at the equator at equinox, longer at high latitude).</p>
+        <figure>
+          <svg id="fig1" viewBox="0 0 820 430" role="img" aria-label="Side view of Earth, its shadow and a mirror at the shadow edge"></svg>
+          <figcaption>Drawn to scale: Earth radius 6,371 km, orbit <span data-v="hkm"></span> up. Mirror A sits over the sunset line in full sunshine. Mirror B is exactly at the shadow edge: its last sunlight grazes the Earth's surface, through the thickest air. The incoming light first starts skimming the top of the atmosphere about 2° earlier. Mirror C is deeper in the shadow and dark.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>02</small>How fast it goes dark</h2>
+      <div>
+        <p>The mirror moves at <b><span data-v="vkms"></span></b> and circles Earth in <b><span data-v="Tmin"></span></b>. In an orbit that heads into the night (scene 1), it crosses those <span data-v="edgeDeg"></span> in <b><span data-v="toShadow"></span></b>, then spends <span data-v="eclipse"></span> in the shadow. That is the whole sunlit-over-dark-ground window for that pass. A second, equal window comes before sunrise on the other side.</p>
+        <p>The mirror's own sunset is very fast (scene 2). The Sun's disc slips behind Earth's edge in about <b><span data-v="discSet"></span></b>. The reddened, dimming phase, while the incoming sunlight skims the atmosphere, lasts about <b><span data-v="atmoSet"></span></b>. A sunset seen from the ground at the equator takes about two minutes.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>03</small>One mirror lights one city for minutes</h2>
+      <div>
+        <p>Being sunlit is not enough. The mirror must also be reasonably high in the city's sky, otherwise the beam is long, spread out and dimmed by the air. At <span data-v="hkm"></span>, a mirror is more than 30° above a city's horizon for at most <b><span data-v="pass30"></span></b> per pass, and more than 20° up for <span data-v="pass20"></span>. This is the real bottleneck, whatever the orbit.</p>
+        <p>Reflector proposals therefore favour a <b>dawn–dusk sun-synchronous orbit</b> (about 98° inclination, scene 3). Its plane turns with the Sun through the year, so it stays over the day–night line and the mirrors are almost never in shadow (only a short eclipse season around one solstice). Cities turn underneath at dusk and again at dawn.</p>
+        <p>Even there, each mirror passes a city in minutes, so continuous light needs a train of mirrors (scene 4, and the slider under the 3D view). For a city at 32.7° N with mirrors at least 30° up:</p>
+        <ul>
+          <li><b>One mirror:</b> a single flash of about <span data-v="f1"></span>.</li>
+          <li><b>One train of 30</b> in one orbit: <span data-v="f30"></span> of light in total, with gaps, before the city turns away from that orbit.</li>
+          <li><b>Four trains (120 mirrors)</b>, orbits 5° apart into the evening: <span data-v="f120"></span>.</li>
+          <li><b>Eight trains (240 mirrors)</b>: light until <span data-v="f240end"></span> after sunset, close to the geometric limit of <span data-v="fLim"></span>. After that, more mirrors add brightness, not time.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>04</small>"Through the atmosphere twice"</h2>
+      <div>
+        <p>In normal operation the light crosses the atmosphere <b>once</b>, on its way down to the city. A mirror over the sunset line receives sunlight that passes hundreds of kilometres above the ground, in vacuum. If the mirror is low in the city's sky, that single downward path is long and slanted, so the light arrives weaker and redder.</p>
+        <p>The light passes through air twice only at the very end: during the last ~2° before the mirror enters the shadow, the incoming rays skim the atmosphere (just before mirror B in the figure). That lasts about <span data-v="atmoSet"></span>. The beam then turns red and fades, like a sunset seen twice over, and then it is gone. Scene 2 shows it, with the height at which the incoming ray passes the Earth.</p>
+        <figure>
+          <img src="atmosphere_twice.png" width="1980" height="990" alt="Side-by-side view of a normal pass, where sunlight reaches the mirror through empty space and crosses the air once on the way to the city, and the last 30 seconds, where the incoming sunlight skims Earth's edge, crosses the air twice, and arrives reddened and dimmed.">
+          <figcaption>For most of a pass, sunlight reaches the mirror through empty space and crosses the air only once, on its way down to the city; in the last ~30 seconds before the mirror enters Earth's shadow, the incoming sunlight has to skim through the atmosphere along Earth's edge first, so it crosses the air twice and arrives reddened and dimmed.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <h2><small>05</small>How bright is it?</h2>
+      <div>
+        <p>A flat mirror cannot focus. Each point of the Sun's 0.53° disc makes its own reflected image, so the beam spreads with distance. From <span data-v="hkm"></span> straight up the spot is <b><span data-v="spot"></span></b> across, and at 45° elevation about <span data-v="spot45"></span>, stretched along the ground.</p>
+        <p>One <span data-v="sideM"></span> × <span data-v="sideM"></span> mirror (<span data-v="area"></span>, 90% reflective, turning the beam by 90°) puts about <b><span data-v="Eover"></span></b> on the ground directly below. That is about <b><span data-v="moonOver"></span> full Moon</b>. At 45° elevation it gives <span data-v="E45"></span>, about <span data-v="moon45"></span> full Moon.</p>
+        <p>A target of 50 W/m² (about 5% of noon sunlight) needs about <b><span data-v="needOver"></span> mirrors</b> all directly overhead and aimed at the same spot, or about <span data-v="need45"></span> at 45° elevation. Because each mirror is in range for only minutes, the fleet in orbit has to be many times larger again.</p>
+        <p>The simulation puts a number on that. At any moment only about <span data-v="atOnce"></span> of the fleet is within reach of one city. A steady 50 W/m² for the whole evening therefore needs about <b><span data-v="need50"></span> mirrors</b> in orbit. Street-light brightness (about 10 lux) needs about <span data-v="needStreet"></span>.</p>
+      </div>
+    </section>
+
+  </article>
+
+  <footer>
+    <p>Model: circular orbits at equinox, cylindrical Earth shadow with penumbra, Earth radius 6,371 km, μ = 3.986 × 10¹⁴ m³/s², Sun 0.533° wide, 1,361 W/m² above the air. The dawn–dusk plane uses the J2 sun-synchronous inclination for the chosen altitude. Brightness: flat mirror, 90% reflectivity, zenith transmission 0.8 with plane-parallel air mass, full Moon 2.4 × 10⁻⁶ of sunlight. Atmosphere reddening uses an 8 km scale height. Treat brightness as ±30%, geometry as exact for the stated assumptions.</p>
+    <p>Satellites in the orbit scenes are drawn hugely enlarged. The close-up is to scale: an 18 m mirror at 625 km. Build <span id="build2">v1.36.0</span>.</p>
+  </footer>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const BUILD = "v1.36.0";
+document.getElementById("build").textContent = BUILD;
+document.getElementById("build2").textContent = BUILD;
+
+/* ───────────── constants & helpers ───────────── */
+const D2R = Math.PI / 180;
+const RE = 6371e3, MU = 3.986004418e14, J2 = 1.08263e-3, S0 = 1361;
+const ALPHA = 0.533 * D2R;                 // Sun's angular diameter
+const TAU_Z = 0.8;                          // clear-sky zenith transmission
+const MOON_GROUND = S0 * 2.43e-6 * TAU_Z;   // full Moon high in the sky, W/m²
+const WE = 2 * Math.PI / 86400;             // Earth's turn relative to the Sun
+const OMS = 2 * Math.PI / (365.2422 * 86400);
+const OS = 10 / RE;                         // orbit scene: Earth radius = 10 units
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+const $ = (id) => document.getElementById(id);
+const fmt = (x, d = 0) => x.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }).replace("-", "−");
+const minSec = (s) => s < 90 ? `${fmt(s)} s` : `${fmt(s / 60, 1)} min`;
+const sig = (x) => { const d = x < 0.01 ? 4 : x < 0.1 ? 3 : 2; return fmt(x, d); };
+const fmtMin = (sec) => { const m = sec / 60; return m < 90 ? `${fmt(m, m < 10 ? 1 : 0)} min` : `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")} min`; };
+const fmtMoon = (E) => { const x = E / MOON_GROUND; return x < 10 ? `${fmt(x, 1)}×` : `${fmt(round2(x))}×`; };
+const fmtW = (E) => E >= 1 ? `${fmt(E, E < 10 ? 1 : 0)} W/m²` : `${sig(E)} W/m²`;
+const round2 = (x) => { const p = Math.pow(10, Math.floor(Math.log10(x)) - 1); return Math.round(x / p) * p; };
+
+/* ───────────── physics ───────────── */
+const P = { h: 625, side: 18, rho: 0.9, emin: 30, lat: 32.7, N: 30, planes: 4, dP: 5, target: 50 };
+
+function derive(p) {
+  const h = p.h * 1e3, r = RE + h, n = Math.sqrt(MU / r ** 3), T = 2 * Math.PI / n, v = Math.sqrt(MU / r);
+  const edge = Math.acos(RE / r);
+  const lam = (e) => Math.acos(RE * Math.cos(e) / r) - e;
+  const slant = (e) => -RE * Math.sin(e) + Math.sqrt((RE * Math.sin(e)) ** 2 + h * h + 2 * RE * h);
+  const L = Math.sqrt(r * r - RE * RE);
+  const A = p.side * p.side;
+  const E = (e, inc = Math.PI / 4) => { const s = slant(e); return S0 * p.rho * A * Math.cos(inc) / (Math.PI * (s * ALPHA / 2) ** 2) * Math.sin(e) * TAU_Z ** (1 / Math.sin(e)); };
+  const em = p.emin * D2R;
+  const inc = Math.acos(-(2 * r ** 3.5 * OMS) / (3 * J2 * RE * RE * Math.sqrt(MU)));
+  return {
+    h, r, n, T, v, edge, L, A, inc,
+    edgeKm: edge * RE / 1e3, edgeH: edge / D2R / 15,
+    toShadow: edge / n, eclipse: (Math.PI - 2 * edge) / n,
+    discSet: ALPHA / n, atmoSet: 100e3 / (L * n),
+    lam: lam(em), pass: 2 * lam(em) / n, pass30: 2 * lam(30 * D2R) / n, pass20: 2 * lam(20 * D2R) / n,
+    spot: h * ALPHA, spot45: slant(Math.PI / 4) * ALPHA,
+    Eover: E(Math.PI / 2), E45: E(Math.PI / 4), Emin: E(em), E, lam,
+  };
+}
+let D = derive(P);
+
+/* Tangent height of the Sun→mirror ray, and colour after crossing the air */
+function rayHeight(r, sDotR) { // sDotR = sun·r̂ (mirror position unit vector)
+  if (sDotR >= 0) return r - RE;
+  return r * Math.sqrt(1 - sDotR * sDotR) - RE;
+}
+const KEXT = [0.05, 0.11, 0.27];
+function sunTint(ht, L, out) { // out: [r,g,b] transmission incl. geometric loss of the disc
+  const sunR = 0.00465 * L; // Sun's radius projected at the limb, metres
+  const vis = smooth(-sunR, sunR, ht);
+  const am = 70 * Math.exp(-Math.max(ht, 0) / 8000);
+  for (let i = 0; i < 3; i++) out[i] = vis * Math.exp(-KEXT[i] * am);
+  return out;
+}
+
+/* Orbits in a Sun-fixed frame: x → Sun, z → north pole, y → dusk side (equinox) */
+const ssoBasis = { e1: V3(), e2: V3() };
+function makeSSO() {
+  const N = V3(Math.sin(D.inc), 0, Math.cos(D.inc));
+  const S = V3(1, 0, 0);
+  ssoBasis.e1.copy(S).addScaledVector(N, -S.dot(N)).normalize();
+  ssoBasis.e2.crossVectors(N, ssoBasis.e1);
+}
+function ssoPos(u, plane, out) {
+  const c = Math.cos(u), s = Math.sin(u);
+  out.copy(ssoBasis.e1).multiplyScalar(c * D.r).addScaledVector(ssoBasis.e2, s * D.r);
+  const d = plane * P.dP * D2R, x = out.x, y = out.y;   // rotate plane toward the night (dusk side moves to −x)
+  out.x = x * Math.cos(d) - y * Math.sin(d); out.y = x * Math.sin(d) + y * Math.cos(d);
+  return out;
+}
+const inShadow = (p) => p.x < 0 && Math.hypot(p.y, p.z) < RE;
+const LT0 = 17 + 50 / 60;                                   // scenes 3–4 start at 17:50 city time
+const cityLon0 = (LT0 - 12) * 15 * D2R;
+function cityPos(t, out) {
+  const phi = P.lat * D2R, l = cityLon0 + WE * t;
+  return out.set(RE * Math.cos(phi) * Math.cos(l), RE * Math.cos(phi) * Math.sin(l), RE * Math.sin(phi));
+}
+const cityLT = (t) => LT0 + t / 3600;
+
+/* One mirror's contribution at the city */
+const _d = V3(), _up = V3(), _S = V3(1, 0, 0);
+function serve(sat, city) {
+  if (inShadow(sat)) return 0;
+  if (city.x >= 0) return 0;                                 // city still in daylight
+  _d.subVectors(sat, city); const L = _d.length(); _up.copy(city).normalize();
+  const el = Math.asin(_d.dot(_up) / L);
+  if (el < P.emin * D2R) return 0;
+  _d.multiplyScalar(-1 / L);                                 // mirror → city
+  const inc = Math.acos(clamp(_S.dot(_d), -1, 1)) / 2;
+  return S0 * P.rho * D.A * Math.cos(inc) / (Math.PI * (L * ALPHA / 2) ** 2) * Math.sin(el) * TAU_Z ** (1 / Math.sin(el));
+}
+
+/* Phase the parade so a mirror passes the city a few minutes after sunset */
+let u0 = 0;
+function phaseParade() {
+  const c = cityPos(14 * 60, V3()), p = V3(); let best = -1e30, bu = 0;
+  for (let i = 0; i < 3600; i++) { const u = i / 3600 * 2 * Math.PI; ssoPos(u, 0, p); const d = p.dot(c); if (d > best) { best = d; bu = u; } }
+  u0 = bu - D.n * 14 * 60;
+}
+
+/* Evening coverage for the city: 0–4 h from 17:50, one orbit plane at a time (cached) */
+const COV_DT = 15, COV_N = 4 * 3600 / COV_DT, SUNSET_K = Math.round((18 - LT0) * 3600 / COV_DT);
+const covCache = new Map();
+function planeCov(p, M) {
+  const key = `${P.h}|${P.lat}|${p}|${M}`;
+  if (covCache.has(key)) return covCache.get(key);
+  const cnt = new Float32Array(COV_N), E = new Float32Array(COV_N), c = V3(), s = V3();
+  for (let k = 0; k < COV_N; k++) {
+    const t = k * COV_DT; cityPos(t, c);
+    if (c.x >= 0) continue;
+    for (let i = 0; i < M; i++) {
+      ssoPos(u0 + 2 * Math.PI * i / M + D.n * t, p, s);
+      const e = serve(s, c); if (e > 0) { cnt[k]++; E[k] += e; }
+    }
+  }
+  const r = { cnt, E }; covCache.set(key, r); return r;
+}
+function summarize(cnt, E) {
+  let lit = 0, gaps = 0, peak = 0, peakE = 0, first = -1, last = -1, prev = false, sumE = 0;
+  for (let k = 0; k < COV_N; k++) {
+    const on = cnt[k] > 0.5;
+    if (on) { lit += COV_DT; if (first < 0) first = k; last = k; peak = Math.max(peak, cnt[k]); peakE = Math.max(peakE, E[k]); sumE += E[k] * COV_DT; }
+    if (prev && !on) gaps++;
+    prev = on;
+  }
+  return { cnt, E, lit, gaps: Math.max(0, gaps - (prev ? 0 : 1)), peak, peakE, meanE: lit ? sumE / lit : 0, energyWh: sumE / 3600,
+    startMin: first >= 0 ? (first - SUNSET_K) * COV_DT / 60 : 0, endMin: last >= 0 ? (last + 1 - SUNSET_K) * COV_DT / 60 : 0 };
+}
+// M mirrors in each of `planes` planes, each mirror standing for `scale` real mirrors
+function sumPlanes(planes, M, scale = 1) {
+  const cnt = new Float32Array(COV_N), E = new Float32Array(COV_N);
+  for (let p = 0; p < planes; p++) { const pc = planeCov(p, M); for (let k = 0; k < COV_N; k++) { cnt[k] += pc.cnt[k] * scale; E[k] += pc.E[k] * scale; } }
+  return summarize(cnt, E);
+}
+const coverage = (N, planes) => sumPlanes(planes, N);
+
+/* A fleet of N mirrors: trains of 30 per orbit plane, planes 5° apart from the sunset line out to 35°
+   (beyond that, no plane is both sunlit and high in this city's sky). Above 240 mirrors the planes
+   fill up; light scales with the number of mirrors because the passes overlap completely. */
+const FLEET_STEPS = [1, 2, 5, 10, 30, 60, 120, 240, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000];
+const PER_TRAIN = 30, SIM_MAX = 240, DRAW_MAX = 60, PLANES_CAP = 14;
+let MAXP = 8; // orbit planes worth flying for this city: out to the longest possible evening
+function updateMaxPlanes() { const h = eveningLimitH(P.lat, P.emin); MAXP = clamp(isFinite(h) ? Math.ceil(h * 15 / P.dP) : PLANES_CAP, 1, PLANES_CAP); }
+function fleetLayout(N) {
+  const planes = clamp(Math.ceil(N / PER_TRAIN), 1, MAXP), per = N / planes;
+  const sim = Math.max(1, Math.min(Math.round(per), SIM_MAX)), draw = Math.max(1, Math.min(Math.round(per), DRAW_MAX));
+  return { N, planes, per, sim, draw };
+}
+function fleetCov(N) { const L = fleetLayout(N); return sumPlanes(L.planes, L.sim, L.per / L.sim); }
+const denseN = () => MAXP * SIM_MAX; // every plane so full that passes overlap completely
+/* Longest possible evening for a city (equinox): some sunlit point at this height at least e up in its sky */
+function eveningLimitH(latDeg, eDeg) {
+  const L = eDeg >= 89 ? 0 : D.lam(eDeg * D2R), x = Math.sin(D.edge + L) / Math.cos(latDeg * D2R);
+  return x >= 1 ? Infinity : Math.asin(x) / D2R / 15;
+}
+
+/* ───────────── renderer ───────────── */
+const canvas = $("gl");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+function canvasTex(w, h, draw, repeat = true) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso;
+  if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+const TEX = {
+  dot: canvasTex(64, 64, (g) => {
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.3, "rgba(255,255,255,0.75)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  }, false),
+  sun: canvasTex(256, 256, (g) => {
+    const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    gr.addColorStop(0, "rgba(255,255,250,1)"); gr.addColorStop(0.06, "rgba(255,250,235,1)"); gr.addColorStop(0.12, "rgba(255,225,160,0.55)");
+    gr.addColorStop(0.35, "rgba(255,180,90,0.12)"); gr.addColorStop(1, "rgba(255,160,60,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  }, false),
+  gold: canvasTex(128, 128, (g) => {
+    g.fillStyle = "#b8862b"; g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 300; i++) {
+      const x = Math.random() * 128, y = Math.random() * 128, l = 4 + Math.random() * 16, a = Math.random() * Math.PI;
+      g.strokeStyle = Math.random() < 0.5 ? `rgba(255,220,140,${0.15 + Math.random() * 0.25})` : `rgba(70,40,5,${0.15 + Math.random() * 0.25})`;
+      g.lineWidth = 1 + Math.random() * 1.5; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+    }
+  }),
+  cells: canvasTex(128, 128, (g) => {
+    g.fillStyle = "#8a96a4"; g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { g.fillStyle = "#11295a"; g.fillRect(i * 32 + 2, j * 32 + 2, 28, 28); }
+  }),
+};
+
+/* Earth shader (procedural continents, clouds, night lights) */
+const NOISE = `
+float hash(vec3 p){ p = fract(p*0.3183099 + 0.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float noise(vec3 x){ vec3 i = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f);
+  return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x), mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x), mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y), f.z); }
+float fbm(vec3 p, int oct){ float s = 0.0, a = 0.5; for (int i = 0; i < 7; i++){ if (i >= oct) break; s += a*noise(p); p = p*2.03 + vec3(1.7,9.2,3.1); a *= 0.5; } return s; }
+`;
+const earthVS = `varying vec3 vObj; varying vec3 vNw; varying vec3 vPw;
+void main(){ vObj = normalize(position); vNw = normalize(mat3(modelMatrix)*normal); vec4 w = modelMatrix*vec4(position,1.0); vPw = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`;
+const earthFS = `uniform vec3 sunDir; uniform float time;
+varying vec3 vObj; varying vec3 vNw; varying vec3 vPw;
+${NOISE}
+void main(){
+  vec3 p = vObj;
+  float h = fbm(p*2.1, 7);
+  float lat = abs(p.y);
+  float land = smoothstep(0.515, 0.53, h);
+  float ice = smoothstep(0.80, 0.9, lat + (fbm(p*6.0, 3)-0.5)*0.15);
+  float dry = smoothstep(0.45, 0.62, fbm(p*3.3 + 4.0, 3)) * (1.0 - smoothstep(0.35, 0.6, lat));
+  vec3 ocean = mix(vec3(0.01,0.04,0.11), vec3(0.02,0.12,0.22), smoothstep(0.40, 0.515, h));
+  vec3 green = mix(vec3(0.07,0.14,0.05), vec3(0.16,0.2,0.08), fbm(p*11.0, 3));
+  vec3 col = mix(ocean, mix(green, vec3(0.46,0.37,0.23), dry), land);
+  col = mix(col, vec3(0.86,0.9,0.95), ice);
+  float cl = fbm(p*vec3(3.2,7.0,3.2) + vec3(time*0.004, 0.0, time*0.002), 5);
+  float clouds = smoothstep(0.5, 0.72, cl);
+  vec3 N = normalize(vNw); vec3 L = normalize(sunDir); vec3 V = normalize(cameraPosition - vPw);
+  float ndl = dot(N, L);
+  float day = smoothstep(-0.05, 0.15, ndl);
+  vec3 dayCol = col*(0.08 + 1.1*max(ndl, 0.0));
+  dayCol = mix(dayCol, vec3(0.95)*(0.08 + 1.0*max(ndl, 0.0)), clouds*0.92);
+  vec3 H = normalize(L + V);
+  dayCol += pow(max(dot(N, H), 0.0), 80.0)*(1.0-land)*(1.0-clouds)*step(0.0, ndl)*vec3(1.0,0.9,0.7)*0.8;
+  float pop = smoothstep(0.52, 0.68, fbm(p*7.0 + 2.0, 3));
+  float city = pow(noise(p*380.0), 9.0)*3.0 + pow(noise(p*120.0), 6.0)*0.8;
+  city *= pop*land*(1.0-ice)*(1.0-dry*0.8);
+  vec3 nightCol = vec3(1.0,0.7,0.35)*city*(1.0 - clouds*0.8) + col*0.02;
+  vec3 c = mix(nightCol, dayCol, day);
+  float tw = smoothstep(-0.12, 0.0, ndl)*(1.0 - smoothstep(0.0, 0.1, ndl));
+  c += vec3(1.0,0.4,0.15)*tw*0.05;
+  float fr = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+  c += vec3(0.3,0.55,1.0)*fr*smoothstep(-0.15, 0.4, ndl)*0.8;
+  gl_FragColor = vec4(c, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+const atmoFS = `uniform vec3 sunDir; uniform float t0; varying vec3 vObj; varying vec3 vNw; varying vec3 vPw;
+void main(){
+  vec3 N = normalize(vNw); vec3 V = normalize(cameraPosition - vPw);
+  float g = smoothstep(0.0, t0, -dot(N, V)); g = g*g;
+  float s = dot(N, normalize(sunDir));
+  vec3 col = mix(vec3(1.0,0.45,0.18), vec3(0.32,0.6,1.0), smoothstep(-0.05, 0.35, s));
+  float a = g*smoothstep(-0.3, 0.15, s);
+  gl_FragColor = vec4(col*a*1.3, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+const EARTH_GEO = new THREE.SphereGeometry(1, 160, 120);
+function makeEarth() {
+  const mat = new THREE.ShaderMaterial({ vertexShader: earthVS, fragmentShader: earthFS, uniforms: { sunDir: { value: V3(1, 0, 0) }, time: { value: 0 } } });
+  const earth = new THREE.Mesh(EARTH_GEO, mat); earth.matrixAutoUpdate = false;
+  const amat = new THREE.ShaderMaterial({ vertexShader: earthVS, fragmentShader: atmoFS, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    uniforms: { sunDir: { value: V3(1, 0, 0) }, t0: { value: Math.sqrt(1 - 1 / 1.02 ** 2) } } });
+  const atmo = new THREE.Mesh(EARTH_GEO, amat); atmo.matrixAutoUpdate = false;
+  return { earth, atmo };
+}
+function makeStars(R, n = 3500) {
+  const pos = new Float32Array(n * 3), col = new Float32Array(n * 3), c = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    const u = Math.random() * 2 - 1, t = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+    pos.set([R * s * Math.cos(t), R * s * Math.sin(t), R * u], i * 3);
+    c.setHSL(0.58 + Math.random() * 0.1 - (Math.random() < 0.2 ? 0.5 : 0), 0.4, 0.5 + Math.random() * 0.5).multiplyScalar(Math.random() ** 2 * 0.9 + 0.1);
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const p = new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, vertexColors: true, depthWrite: false }));
+  p.matrixAutoUpdate = false; return p;
+}
+function makeSun(scale) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.sun, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+  s.scale.setScalar(scale); return s;
+}
+
+
+/* ───────────── orbit scene (scenes 1, 3, 4) ───────────── */
+const sceneO = new THREE.Scene(); sceneO.background = new THREE.Color("#020308");
+const camO = new THREE.PerspectiveCamera(38, 1, 0.05, 2e4);
+const ctlO = new OrbitControls(camO, canvas); ctlO.enableDamping = true; ctlO.dampingFactor = 0.08; ctlO.minDistance = 13; ctlO.maxDistance = 200;
+const phys = new THREE.Group(); phys.rotation.x = -Math.PI / 2; sceneO.add(phys); // physics frame: x Sun, y dusk, z north
+const O = makeEarth(); phys.add(O.earth, O.atmo);
+const O_stars = makeStars(9000); sceneO.add(O_stars); O_stars.matrix.identity();
+const O_sun = makeSun(1400); O_sun.position.set(6000, 0, 0); sceneO.add(O_sun);
+const oLight = new THREE.DirectionalLight(0xfff4e6, 2.6); oLight.position.set(100, 0, 0); sceneO.add(oLight);
+sceneO.add(new THREE.AmbientLight(0x8899aa, 0.12));
+const shadowCyl = new THREE.Mesh(new THREE.CylinderGeometry(10.01 / Math.cos(Math.PI / 192), 10.01 / Math.cos(Math.PI / 192), 120, 192, 1, true),
+  new THREE.MeshBasicMaterial({ color: 0x0b2346, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false }));
+shadowCyl.rotation.z = Math.PI / 2; shadowCyl.position.x = -60; phys.add(shadowCyl);
+// sunset line on the ground (x = 0 great circle)
+function circlePts(n, f) { const a = []; for (let i = 0; i <= n; i++) a.push(f(i / n * 2 * Math.PI)); return a; }
+const termLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(circlePts(240, (a) => V3(0, 10.03 * Math.cos(a), 10.03 * Math.sin(a)))),
+  new THREE.LineBasicMaterial({ color: 0xcfd8e3, transparent: true, opacity: 0.4 }));
+phys.add(termLine);
+
+const RING_N = 720;
+function makeRing() {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array((RING_N + 1) * 3), 3));
+  g.setAttribute("color", new THREE.BufferAttribute(new Float32Array((RING_N + 1) * 3), 3));
+  const l = new THREE.Line(g, new THREE.LineBasicMaterial({ vertexColors: true, toneMapped: false })); phys.add(l); return l;
+}
+const ringEq = makeRing();
+const ringsSSO = Array.from({ length: 14 }, makeRing);
+const C_DAY = new THREE.Color("#5e7184"), C_USE = new THREE.Color("#f3b544"), C_SH = new THREE.Color("#25528f");
+
+// Hero mirror in the orbit scene (drawn ~200× too big)
+function makeMiniMirror() {
+  const g = new THREE.Group();
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.12, side: THREE.DoubleSide, emissive: 0x332611 }));
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.dot, color: 0xffd38a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+  glow.scale.setScalar(1.6); g.add(m, glow); g.userData = { m, glow }; g.scale.setScalar(0.38);
+  phys.add(g); return g;
+}
+const hero = makeMiniMirror();
+
+// Parade mirrors as glowing points
+const PMAX = 14 * 60;
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(PMAX * 3), 3));
+pGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(PMAX * 3), 3));
+const pts = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.8, map: TEX.dot, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+pts.frustumCulled = false; phys.add(pts);
+
+// Beams (mirror → ground) and incoming rays (Sun → mirror)
+const BMAX = PMAX + 2;
+function lineSet(color, opacity) {
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(BMAX * 6), 3));
+  const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  l.frustumCulled = false; phys.add(l); return l;
+}
+const beams = lineSet(0xffd27a, 1.0), rays = lineSet(0xfff1d0, 0.55);
+const spotGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.dot, color: 0xffcf73, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+phys.add(spotGlow);
+const cityDot = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), new THREE.MeshBasicMaterial({ color: 0x9fd8ff, toneMapped: false })); phys.add(cityDot);
+// footprint (where the hero mirror is ≥ emin above the horizon)
+const footprint = new THREE.Line(new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(129 * 3), 3)),
+  new THREE.LineBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.6 }));
+phys.add(footprint);
+const edgeMark = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })); phys.add(edgeMark);
+
+/* ───────────── close-up scene (scene 2): to scale ───────────── */
+const sceneC = new THREE.Scene(); sceneC.background = new THREE.Color("#020308");
+const camC = new THREE.PerspectiveCamera(42, 1, 0.1, 6e5);
+const ctlC = new OrbitControls(camC, canvas); ctlC.enableDamping = true; ctlC.dampingFactor = 0.08; ctlC.minDistance = 12; ctlC.maxDistance = 2500; ctlC.enabled = false;
+const world = new THREE.Group(); sceneC.add(world);
+const EARTH_D = 60000;
+const C_E = makeEarth(); world.add(C_E.earth, C_E.atmo);
+const C_stars = makeStars(2.5e5); world.add(C_stars);
+const C_sun = makeSun(22000); world.add(C_sun);
+const cLight = new THREE.DirectionalLight(0xfff4e6, 3); world.add(cLight, cLight.target);
+const cShine = new THREE.HemisphereLight(0x000000, 0x4f79b8, 0.3); sceneC.add(cShine);
+sceneC.add(new THREE.AmbientLight(0x8899aa, 0.1));
+
+const cubeRT = new THREE.WebGLCubeRenderTarget(256, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
+const cubeCam = new THREE.CubeCamera(1, 4e5, cubeRT); sceneC.add(cubeCam);
+const sat = new THREE.Group(); sceneC.add(sat);
+const mirrorG = new THREE.Group(); sat.add(mirrorG);
+{
+  const half = 9;
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(18, 18, 1, 1), new THREE.MeshStandardMaterial({ color: 0xe4ebf2, metalness: 0.95, roughness: 0.08, envMap: cubeRT.texture, envMapIntensity: 1.2, emissive: 0x0c1015 }));
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(18, 18), new THREE.MeshStandardMaterial({ color: 0xc9a25a, metalness: 0.5, roughness: 0.45, emissive: 0x2a1f10 }));
+  back.rotation.y = Math.PI; back.position.z = -0.02;
+  mirrorG.add(front, back);
+  const boomMat = new THREE.MeshStandardMaterial({ color: 0x2c3036, metalness: 0.4, roughness: 0.5 });
+  for (const a of [Math.PI / 4, -Math.PI / 4]) {
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 18 * Math.SQRT2, 8), boomMat); b.rotation.z = a; b.position.z = -0.18; mirrorG.add(b);
+  }
+  const seams = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(18, 18, 3, 3)), new THREE.LineBasicMaterial({ color: 0x9aa6b2, transparent: true, opacity: 0.35 }));
+  seams.position.z = 0.01; mirrorG.add(seams);
+  const bus = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.6, 1.2), new THREE.MeshStandardMaterial({ map: TEX.gold, color: 0xe0b060, metalness: 0.85, roughness: 0.4 }));
+  bus.position.z = -1.0; mirrorG.add(bus);
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.4, 0.06), new THREE.MeshStandardMaterial({ map: TEX.cells, metalness: 0.4, roughness: 0.35 }));
+  panel.position.set(0, 0, -1.7); panel.rotation.x = Math.PI / 2; mirrorG.add(panel);
+  mirrorG.userData = { half, front };
+}
+const glint = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.sun, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+sat.add(glint);
+// Beam: cone from the mirror to the ground spot (to scale)
+const beamMat = new THREE.ShaderMaterial({
+  uniforms: { col: { value: new THREE.Color(1, 0.86, 0.6) }, amp: { value: 1 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  vertexShader: `varying float vY; varying vec3 vN; varying vec3 vV; void main(){ vY = uv.y; vec4 mv = modelViewMatrix*vec4(position,1.0); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }`,
+  fragmentShader: `uniform vec3 col; uniform float amp; varying float vY; varying vec3 vN; varying vec3 vV;
+    void main(){ float edge = pow(1.0 - abs(dot(vN, vV)), 1.5); float a = amp*(0.08 + 0.5*edge)*(0.25 + 0.75*vY); gl_FragColor = vec4(col*a, 1.0); }`,
+});
+const beamCone = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 48, 1, true), beamMat); sceneC.add(beamCone);
+const rayMat = beamMat.clone(); rayMat.uniforms = { col: { value: new THREE.Color(1, 0.95, 0.85) }, amp: { value: 0.3 } };
+const rayCyl = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 1, 40, 1, true), rayMat); sceneC.add(rayCyl);
+const groundSpot = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.dot, color: 0xffd08a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false }));
+sceneC.add(groundSpot);
+
+/* ───────────── ground scene (scene 5): a person in the city looking up ───────────── */
+// three.js axes here: x = east, y = up, z = south
+const sceneG = new THREE.Scene(); sceneG.background = new THREE.Color("#020308");
+const camG = new THREE.PerspectiveCamera(78, 1, 0.1, 1000);
+const ctlG = new OrbitControls(camG, canvas); ctlG.enableDamping = true; ctlG.dampingFactor = 0.08; ctlG.enabled = false;
+ctlG.minDistance = 3; ctlG.maxDistance = 30; ctlG.maxPolarAngle = Math.PI * 0.62;
+const DOME = 85;
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, uniforms: { sunDir: { value: V3(-1, 0, 0) } },
+  vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader: `uniform vec3 sunDir; varying vec3 vDir;
+    void main(){
+      vec3 d = normalize(vDir); float h = max(d.y, 0.0); float se = sunDir.y;
+      float dep = -asin(clamp(se, -1.0, 1.0));
+      float tw = 1.0 - smoothstep(0.0, 0.32, dep);
+      vec2 a = normalize(d.xz + 1e-5), b = normalize(sunDir.xz + 1e-5); float tow = max(dot(a, b), 0.0);
+      vec3 zen = mix(vec3(0.004,0.006,0.016), vec3(0.04,0.10,0.26), tw);
+      vec3 hor = mix(vec3(0.010,0.014,0.028), mix(vec3(0.22,0.32,0.52), vec3(1.0,0.42,0.14), pow(tow, 3.0)), tw);
+      vec3 c = mix(hor, zen, pow(h, 0.42));
+      c += vec3(1.0,0.5,0.2)*pow(tow, 10.0)*exp(-h*7.0)*tw*0.9;
+      float day = smoothstep(-0.03, 0.06, se);
+      c = mix(c, mix(vec3(0.55,0.72,0.95), vec3(0.18,0.38,0.78), pow(h, 0.5)), day);
+      c += vec3(1.0,0.9,0.7)*pow(max(dot(d, normalize(sunDir)), 0.0), 900.0)*step(0.0, se)*3.0;
+      gl_FragColor = vec4(c, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+});
+sceneG.add(new THREE.Mesh(new THREE.SphereGeometry(DOME + 4, 64, 32), skyMat));
+const gStars = (() => {
+  const n = 1400, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const u = Math.random() * 0.98 + 0.02, t = Math.random() * Math.PI * 2, c = Math.sqrt(1 - u * u); pos.set([DOME * c * Math.cos(t), DOME * u, DOME * c * Math.sin(t)], i * 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  return new THREE.Points(g, new THREE.PointsMaterial({ size: 1.4, sizeAttenuation: false, color: 0xcfd9ff, transparent: true, opacity: 0.8, depthWrite: false }));
+})();
+sceneG.add(gStars);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x10161d, roughness: 0.95 });
+const ground = new THREE.Mesh(new THREE.CircleGeometry(DOME, 72), groundMat); ground.rotation.x = -Math.PI / 2; sceneG.add(ground);
+const gCity = (() => {
+  const n = 2600, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const r = 7 + Math.pow(Math.random(), 0.6) * 75, t = Math.random() * Math.PI * 2; pos.set([r * Math.cos(t), 0.05, r * Math.sin(t)], i * 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  return new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, sizeAttenuation: false, color: 0xffb35c, transparent: true, opacity: 0.6, depthWrite: false }));
+})();
+sceneG.add(gCity);
+const gHemi = new THREE.HemisphereLight(0x8fb4ff, 0x0b0e12, 0.4); sceneG.add(gHemi);
+const personMat = new THREE.MeshStandardMaterial({ color: 0xb9c4cf, roughness: 0.7, emissive: 0x000000 });
+const person = new THREE.Group();
+{ const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 0.85, 6, 14), personMat); body.position.y = 0.72;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 18, 14), personMat); head.position.set(-0.04, 1.5, 0);
+  const armG = new THREE.CapsuleGeometry(0.075, 0.55, 4, 8);
+  const arm = new THREE.Mesh(armG, personMat); arm.position.set(-0.28, 1.35, -0.18); arm.rotation.set(0.4, 0, 1.9); // pointing up to the west
+  const arm2 = new THREE.Mesh(armG, personMat); arm2.position.set(0.05, 0.85, 0.3); arm2.rotation.x = -0.2;
+  person.add(body, head, arm, arm2); }
+sceneG.add(person);
+const youLight = new THREE.PointLight(0xffd8a0, 0, 12, 1.5); youLight.position.set(-1.5, 3, 0); sceneG.add(youLight);
+const pool = new THREE.Mesh(new THREE.CircleGeometry(2.6, 48), new THREE.MeshBasicMaterial({ map: TEX.dot, color: 0xffd08a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+pool.rotation.x = -Math.PI / 2; pool.position.y = 0.02; sceneG.add(pool);
+const ring30 = new THREE.Line(new THREE.BufferGeometry().setFromPoints(circlePts(180, (a) => V3(DOME * 0.96 * Math.cos(30 * D2R) * Math.cos(a), DOME * 0.96 * Math.sin(30 * D2R), DOME * 0.96 * Math.cos(30 * D2R) * Math.sin(a)))),
+  new THREE.LineBasicMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.35 }));
+sceneG.add(ring30);
+const GMAX = PMAX;
+function gPoints(size, tex) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(GMAX * 3), 3));
+  g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(GMAX * 3), 3));
+  const m = new THREE.PointsMaterial({ size, sizeAttenuation: false, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, map: tex });
+  const p = new THREE.Points(g, m); p.frustumCulled = false; sceneG.add(p); return p;
+}
+const gDim = gPoints(7, TEX.dot), gBright = gPoints(30, TEX.sun);
+const gBeams = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(GMAX * 6), 3)),
+  new THREE.LineBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+gBeams.frustumCulled = false; sceneG.add(gBeams);
+const enuE = V3(), enuN = V3(), enuU = V3(), gTmp = V3(), gDir = V3();
+const toSky = (v, out) => out.set(v.dot(enuE), v.dot(enuU), -v.dot(enuN));
+const HEAD = V3(-0.04, 1.5, 0);
+
+function updateGround() {
+  const t = state.t;
+  cityPos(t, city);
+  enuU.copy(city).normalize(); enuE.set(0, 0, 1).cross(enuU).normalize(); enuN.crossVectors(enuU, enuE);
+  toSky(_S, gDir).normalize(); skyMat.uniforms.sunDir.value.copy(gDir);
+  const dep = -Math.asin(clamp(gDir.y, -1, 1)) / D2R;
+  const dark = smooth(-2, 14, dep);
+  gStars.material.opacity = 0.85 * dark; gCity.material.opacity = 0.75 * dark;
+  gHemi.intensity = 0.06 + 0.9 * (1 - smooth(-4, 10, dep));
+  const FL = fleetLayout(state.fleetN), each = FL.per / FL.draw;
+  const dP = gDim.geometry.attributes.position, dC = gDim.geometry.attributes.color, bP = gBright.geometry.attributes.position, bC = gBright.geometry.attributes.color, lP = gBeams.geometry.attributes.position;
+  let nd = 0, nb = 0, total = 0, count = 0, best = null, shadowHi = null, lowLit = null;
+  for (let p = 0; p < FL.planes; p++) for (let i = 0; i < FL.draw; i++) {
+    ssoPos(u0 + 2 * Math.PI * i / FL.draw + D.n * t, p, satP);
+    gTmp.subVectors(satP, city); toSky(gTmp, gDir); const L = gDir.length(); gDir.multiplyScalar(1 / L);
+    if (gDir.y <= 0.005) continue;                       // below your horizon
+    const el = Math.asin(gDir.y) / D2R, e = serve(satP, city), sh = inShadow(satP);
+    const x = gDir.x * DOME * 0.94, y = gDir.y * DOME * 0.94, z = gDir.z * DOME * 0.94;
+    if (e > 0) {
+      bP.setXYZ(nb, x, y, z); bC.setXYZ(nb, 1.4, 1.2, 0.85);
+      lP.setXYZ(nb * 2, x, y, z); lP.setXYZ(nb * 2 + 1, HEAD.x, HEAD.y, HEAD.z);
+      nb++; total += e * each; count += each;
+      if (!best || el > best.el) best = { el, v: V3(x, y, z) };
+    } else {
+      dP.setXYZ(nd, x, y, z);
+      if (sh) { dC.setXYZ(nd, 0.12, 0.17, 0.26); if (!shadowHi || el > shadowHi.el) shadowHi = { el, v: V3(x, y, z) }; }
+      else { dC.setXYZ(nd, 0.85, 0.66, 0.36); if (!lowLit || el < 30 && el > lowLit.el) lowLit = { el, v: V3(x, y, z) }; }
+      nd++;
+    }
+  }
+  gDim.geometry.setDrawRange(0, nd); gBright.geometry.setDrawRange(0, nb); gBeams.geometry.setDrawRange(0, nb * 2);
+  dP.needsUpdate = dC.needsUpdate = bP.needsUpdate = bC.needsUpdate = lP.needsUpdate = true;
+  // how lit is the person
+  const glow = total > 0 ? clamp(Math.log10(total / 3e-4) / 5, 0.05, 1) : 0;
+  personMat.emissive.setRGB(0.9 * glow, 0.7 * glow, 0.45 * glow);
+  youLight.intensity = 6 * glow; pool.material.opacity = 0.7 * glow;
+  // counters
+  const k = Math.min(COV_N - 1, Math.floor(t / COV_DT)); let sofar = 0;
+  for (let j = 0; j <= k; j++) if (cov.cnt[j] > 0.5) sofar += COV_DT;
+  const lt = cityLT(t), hh = Math.floor(lt % 24), mm = Math.floor((lt % 1) * 60), clock = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  const nn = Math.round(count);
+  if (city.x >= 0) status = { cls: "day", text: `${clock} · the Sun is still up` };
+  else if (nn) status = { cls: "sun", text: `${clock} · ${fmt(nn)} mirror${nn > 1 ? "s" : ""} shining on you · ${fmtW(total)} · ${fmtMoon(total)} full Moon` };
+  else status = { cls: "dark", text: `${clock} · no mirror shining on you` };
+  $("caption").innerHTML = `<b>You, in the city at ${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"}, looking west after sunset.</b> ${fmt(state.fleetN)} mirror${state.fleetN > 1 ? "s" : ""} in orbit. ` +
+    `Light on you so far tonight: <b style="color:var(--sun)">${fmtMin(sofar)}</b> of <b>${fmtMin(cov.lit)}</b> in total. ` +
+    `<span style="color:#ffe2a8">Bright stars</span> are mirrors shining on you, <span style="color:#d9a85c">amber</span> ones are sunlit but too low or aimed elsewhere, <span style="color:#6f86a6">blue</span> ones are in Earth's shadow.`;
+  if (state.labels) {
+    label("g_you", HEAD.clone().add(V3(0, 0.45, 0)), nn ? `You: lit` : `You`, nn ? "" : "n");
+    label("g_w", V3(-DOME * 0.9, 3, 0), "W · sunset", "plain"); label("g_n", V3(0, 3, -DOME * 0.9), "N", "plain"); label("g_s", V3(0, 3, DOME * 0.9), "S", "plain");
+    label("g_30", V3(-DOME * 0.93 * Math.cos(30 * D2R) * Math.cos(28 * D2R), DOME * 0.93 * Math.sin(30 * D2R), -DOME * 0.93 * Math.cos(30 * D2R) * Math.sin(28 * D2R)), "30° up: mirrors above this line can light you", "plain");
+    if (best) label("g_best", best.v, `Mirror shining on you<small>${fmt(best.el)}° up</small>`);
+    if (shadowHi) label("g_sh", shadowHi.v, `In Earth's shadow<small>${fmt(shadowHi.el)}° up, dark</small>`, "n");
+    if (lowLit && !best) label("g_low", lowLit.v, `Sunlit, too low<small>${fmt(lowLit.el)}° up</small>`);
+  }
+}
+
+/* ───────────── state, time ───────────── */
+const state = { mode: 1, t: 0, paused: false, speed: 750, labels: true, fleetN: 1 };
+let cov1 = null, cov = null; // single mirror (scene 3) & parade (scene 4)
+const WARP = 750;
+function setSpeed(s) { state.speed = s; $("warpBtn").classList.toggle("on", s === WARP); $("realBtn").classList.toggle("on", s === 1); }
+
+function restart() {
+  if (state.mode === 1) state.t = 0;
+  else if (state.mode === 4) state.t = 0;
+  else state.t = 0;
+}
+
+/* ───────────── labels ───────────── */
+const labelEls = {}; let usedLabels = new Set();
+function label(id, pos, html, cls = "") {
+  usedLabels.add(id);
+  let el = labelEls[id];
+  if (!el) { el = document.createElement("div"); $("labels").appendChild(el); labelEls[id] = el; }
+  el.className = `lbl ${cls}`;
+  const cam = state.mode === 4 ? camC : state.mode === 5 ? camG : camO;
+  const p = pos.clone().project(cam);
+  const vis = p.z < 1 && p.z > -1 && Math.abs(p.x) < 1.02 && Math.abs(p.y) < 1.02;
+  el.hidden = !vis; if (!vis) return;
+  el.style.left = `${(p.x * 0.5 + 0.5) * canvas.clientWidth}px`; el.style.top = `${(-p.y * 0.5 + 0.5) * canvas.clientHeight}px`;
+  if (el._h !== html) { el.innerHTML = html; el._h = html; }
+}
+function sweepLabels() { for (const [k, el] of Object.entries(labelEls)) if (!usedLabels.has(k)) el.hidden = true; usedLabels = new Set(); }
+const physToWorld = (v) => v.clone().applyMatrix4(phys.matrixWorld);
+
+/* ───────────── per-mode scene setup ───────────── */
+const CAPTIONS = {
+  1: `<b>One mirror, heading into the night.</b> Sunlight from the left, Earth's shadow to the right. The mirror's orbit turns <b style="color:var(--sun)">gold</b> where it is sunlit above dark ground, and blue where it is in the shadow. That gold stretch lasts about ${"{toShadow}"}.`,
+  4: `<b>To scale: an 18 m mirror at 625 km</b>, seen from behind, looking toward the Sun. The mirror tilts so sunlight lands on the dark ground below. Watch the Sun redden and drop behind Earth as its rays skim the atmosphere. Drag to see the mirror's face.`,
+  2: `<b>Dawn–dusk orbit.</b> The orbit rides the sunset line, so the mirror is always in sunshine. The city (blue) turns into the night under it, and the ring on the ground shows where the mirror is at least ${"{emin}"} up.`,
+  5: ``,
+  3: `<b>A train of mirrors.</b> Each mirror is in range for minutes, so the city stays lit only if the next one arrives in time. Change the number with the slider.`,
+};
+function setMode(m) {
+  state.mode = m;
+  document.querySelectorAll("#modes button").forEach((b) => b.classList.toggle("on", +b.dataset.m === m));
+  ctlO.enabled = m !== 4 && m !== 5; ctlC.enabled = m === 4; ctlG.enabled = m === 5;
+  const orbitScene = m !== 4 && m !== 5;
+  syncVisibility();
+  state.t = 0;
+  if (orbitScene) {
+    const far = m === 3 ? 46 : 40;
+    camO.position.set(-0.32 * far, 0.42 * far, -0.85 * far); ctlO.target.set(0, m === 1 ? 0 : 2, 0);
+  } else if (m === 4) { camC.position.set(70, 14, 25); ctlC.target.set(-20, -10, 0); }
+  else { camG.position.set(7.5, 1.9, 3.6); ctlG.target.set(-6, 7.2, -1); }
+  updateCaption();
+  onResize();
+}
+function syncVisibility() {
+  const m = state.mode;
+  ringEq.visible = m === 1; ringsSSO.forEach((r, i) => r.visible = (m === 2 && i === 0) || (m === 3 && i < fleetLayout(state.fleetN).planes));
+  hero.visible = m === 1 || m === 2; pts.visible = m === 3;
+  footprint.visible = m === 2; edgeMark.visible = m === 1; cityDot.visible = m === 2 || m === 3;
+}
+function updateCaption() {
+  let cap = CAPTIONS[state.mode].replace("{toShadow}", minSec(D.toShadow)).replace("{emin}", `${P.emin}°`);
+  if (state.mode === 3) {
+    const L = fleetLayout(state.fleetN), each = L.per / L.draw;
+    cap += ` Now: <b>${fmt(state.fleetN)} mirror${state.fleetN > 1 ? "s" : ""}</b> in ${L.planes} orbit${L.planes > 1 ? "s" : ""}${each > 1.5 ? `, each dot ≈ ${fmt(round2(each))} mirrors` : ""}.`;
+  }
+  $("caption").innerHTML = cap;
+}
+
+/* ───────────── rebuild on parameter change ───────────── */
+function rebuild() {
+  D = derive(P); makeSSO(); phaseParade(); covCache.clear(); updateMaxPlanes();
+  cov1 = coverage(1, 1); cov = fleetCov(state.fleetN);
+  // rings
+  const a = D.r * OS;
+  { const pos = ringEq.geometry.attributes.position, col = ringEq.geometry.attributes.color, p = V3();
+    for (let i = 0; i <= RING_N; i++) {
+      const u = i / RING_N * 2 * Math.PI; p.set(Math.cos(u) * D.r, Math.sin(u) * D.r, 0);
+      pos.setXYZ(i, p.x * OS, p.y * OS, 0);
+      const c = inShadow(p) ? C_SH : (Math.cos(u) >= 0 ? C_DAY : C_USE); col.setXYZ(i, c.r, c.g, c.b);
+    }
+    pos.needsUpdate = col.needsUpdate = true; ringEq.geometry.computeBoundingSphere(); }
+  ringsSSO.forEach((ring, pl) => {
+    const pos = ring.geometry.attributes.position, col = ring.geometry.attributes.color, p = V3();
+    for (let i = 0; i <= RING_N; i++) {
+      ssoPos(i / RING_N * 2 * Math.PI, pl, p); pos.setXYZ(i, p.x * OS, p.y * OS, p.z * OS);
+      const c = inShadow(p) ? C_SH : C_USE; col.setXYZ(i, c.r * 0.8, c.g * 0.8, c.b * 0.8);
+    }
+    pos.needsUpdate = col.needsUpdate = true; ring.geometry.computeBoundingSphere();
+  });
+  const e = D.edge + Math.PI / 2; edgeMark.position.set(Math.cos(e) * a, Math.sin(e) * a, 0);
+  syncVisibility();
+  fillNumbers(); updateCaption(); renderFleet(false);
+  document.querySelectorAll("[data-v2=hkm]").forEach((el) => { el.textContent = `${fmt(P.h)} km`; });
+  document.querySelectorAll("[data-v2=lat]").forEach((el) => { el.textContent = `${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"}`; });
+}
+
+function fillNumbers() {
+  $("n_T").textContent = `${fmt(D.T / 60, 1)} min`;
+  $("n_v").textContent = `${fmt(D.v / 1e3, 2)} km/s`;
+  $("n_edge").textContent = `${fmt(D.edge / D2R, 1)}° · ${fmt(D.edgeKm)} km`;
+  $("n_edgeH").textContent = `${fmt(D.edgeH, 1)} h earlier`;
+  $("n_win").textContent = minSec(D.toShadow);
+  $("n_ecl").textContent = minSec(D.eclipse);
+  $("n_set").textContent = `${fmt(D.discSet)} s / ${fmt(D.atmoSet)} s`;
+  $("n_pass").textContent = `${minSec(D.pass)} (> ${P.emin}°)`;
+  $("n_spot").textContent = `${fmt(D.spot / 1e3, 1)} km`;
+  $("n_E").textContent = `${sig(D.Eover)} W/m² · ${fmt(D.Eover / MOON_GROUND, 1)}× Moon`;
+  $("n_need").textContent = fmt(round2(P.target / D.Eover));
+}
+
+/* Article numbers: always the reference case (625 km, 18 m, 32.7° N, 30° up) */
+function fillArticle() {
+  const ref = { ...P, h: 625, side: 18, emin: 30, lat: 32.7 };
+  const R = derive(ref), R600 = derive({ ...ref, h: 600 });
+  const keep = { ...P }; Object.assign(P, ref); D = R; makeSSO(); phaseParade(); updateMaxPlanes();
+  const c1 = coverage(30, 1), c4 = coverage(30, 4), f1 = fleetCov(1), f240 = fleetCov(240), FT = fleetTargets();
+  Object.assign(P, keep); D = derive(P); makeSSO(); phaseParade();
+  const v = {
+    hkm: "625 km", rkm: "6,996", edgeDeg: `${fmt(R.edge / D2R, 1)}°`, edgeKm: `${fmt(Math.round(R.edgeKm / 10) * 10)} km`, edgeH: `${fmt(R.edgeH, 1)} hours`,
+    vkms: `${fmt(R.v / 1e3, 2)} km/s`, Tmin: `${fmt(R.T / 60, 1)} min`, T600: `${fmt(R600.T / 60, 1)} min`,
+    toShadow: `${fmt(R.toShadow / 60, 1)} min`, toShadow600: `${fmt(R600.toShadow / 60, 1)} min`, eclipse: `${fmt(R.eclipse / 60)} min`,
+    discSet: `${fmt(R.discSet)} s`, atmoSet: `${fmt(R.atmoSet)} s`,
+    pass30: `${fmt(R.pass30 / 60, 1)} min`, pass20: `${fmt(R.pass20 / 60, 1)} min`,
+    spot: `${fmt(R.spot / 1e3, 1)} km`, spot45: `${fmt(R.spot45 / 1e3)} km`,
+    sideM: "18 m", area: "324 m²",
+    Eover: `${sig(R.Eover)} W/m²`, E45: `${sig(R.E45)} W/m²`,
+    moonOver: `${fmt(R.Eover / MOON_GROUND, 1)}×`, moon45: `${fmt(R.E45 / MOON_GROUND, 1)}×`,
+    needOver: fmt(round2(50 / R.Eover)), need45: fmt(round2(50 / R.E45)),
+    cov1N: "30", cov1: `about ${fmt(c1.lit / 60)} min`, cov4P: "Four", cov4: `about ${fmt(c4.lit / 60)} min`,
+    f1: fmtMin(f1.lit), f30: fmtMin(c1.lit), f120: fmtMin(c4.lit), f240end: fmtMin(f240.endMin * 60), fLim: fmtH(eveningLimitH(32.7, 30)),
+    need50: fmt(round2(FT.need50)), needStreet: fmt(round2(FT.needStreet)), atOnce: `${fmt(100 * FT.atOnce, 1)}%`,
+  };
+  document.querySelectorAll("[data-v]").forEach((el) => { const k = el.dataset.v; if (k in v) el.textContent = v[k]; });
+  drawFigure(R);
+}
+
+/* Side-view figure, to scale */
+function drawFigure(R) {
+  const svg = $("fig1"), cx = 300, cy = 420, Rp = 250, rp = Rp * R.r / RE, th = R.edge;
+  const top = cy - Rp;
+  const pA = [cx, cy - rp], pB = [cx + rp * Math.sin(th), cy - rp * Math.cos(th)];
+  const thC = th + 16 * D2R, pC = [cx + rp * Math.sin(thC), cy - rp * Math.cos(thC)];
+  const arc = (r, a0, a1) => `M ${cx + r * Math.sin(a0)} ${cy - r * Math.cos(a0)} A ${r} ${r} 0 0 1 ${cx + r * Math.sin(a1)} ${cy - r * Math.cos(a1)}`;
+  const rays = [70, 120, 170, 220, 270].map((y) => `<line x1="0" y1="${y}" x2="${cx - Math.sqrt(Math.max(0, Rp * Rp - (cy - y) ** 2)) - 4}" y2="${y}" stroke="#f3b544" stroke-opacity="0.35" stroke-width="1.2" marker-end="url(#ah)"/>`).join("");
+  svg.innerHTML = `
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f3b544" fill-opacity="0.6"/></marker>
+    <linearGradient id="sh" x1="0" x2="1"><stop offset="0" stop-color="#0d2140" stop-opacity="0.9"/><stop offset="1" stop-color="#0d2140" stop-opacity="0.25"/></linearGradient>
+    <radialGradient id="earthG" cx="0.3" cy="0.45" r="0.8"><stop offset="0" stop-color="#2a6aa8"/><stop offset="0.5" stop-color="#173d66"/><stop offset="1" stop-color="#0b1a2c"/></radialGradient>
+    <clipPath id="night"><rect x="${cx}" y="0" width="820" height="430"/></clipPath>
+  </defs>
+  <rect x="${cx}" y="${top}" width="${820 - cx}" height="${430 - top}" fill="url(#sh)"/>
+  ${rays}
+  <circle cx="${cx}" cy="${cy}" r="${Rp + 4}" fill="none" stroke="#5aa0ff" stroke-opacity="0.35" stroke-width="3"/>
+  <circle cx="${cx}" cy="${cy}" r="${Rp}" fill="url(#earthG)"/>
+  <circle cx="${cx}" cy="${cy}" r="${Rp}" fill="#02050a" fill-opacity="0.82" clip-path="url(#night)"/>
+  <path d="${arc(rp, -40 * D2R, 75 * D2R)}" fill="none" stroke="#8a9aab" stroke-dasharray="3 5" stroke-width="1.2"/>
+  <path d="${arc(rp, 0, th)}" fill="none" stroke="#f3b544" stroke-width="3"/>
+  <path d="${arc(rp, th, 75 * D2R)}" fill="none" stroke="#2f6db5" stroke-width="3"/>
+  <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${top - 70}" stroke="#f3b544" stroke-opacity="0.6" stroke-dasharray="4 4"/>
+  <line x1="${cx}" y1="${cy}" x2="${pB[0]}" y2="${pB[1]}" stroke="#e3e9ef" stroke-opacity="0.5" stroke-dasharray="4 4"/>
+  <path d="${arc(70, 0, th)}" fill="none" stroke="#e3e9ef" stroke-width="1.5"/>
+  <text x="${cx + 18}" y="${cy - 80}" fill="#e3e9ef" font-family="IBM Plex Mono, monospace" font-size="13">θ = ${fmt(th / D2R, 1)}°</text>
+  <line x1="0" y1="${top}" x2="${pB[0]}" y2="${top}" stroke="#fff1d0" stroke-width="1.6"/>
+  <circle cx="${pA[0]}" cy="${pA[1]}" r="6" fill="#f3b544"/>
+  <circle cx="${pB[0]}" cy="${pB[1]}" r="6" fill="#f3b544" stroke="#fff" stroke-width="1.5"/>
+  <circle cx="${pC[0]}" cy="${pC[1]}" r="6" fill="#26303b" stroke="#62b6e6" stroke-width="1.5"/>
+  <line x1="${pB[0]}" y1="${pB[1] + 6}" x2="${cx + Rp * Math.sin(th) * 0.995}" y2="${cy - Rp * Math.cos(th)}" stroke="#ffd27a" stroke-width="2"/>
+  <g font-family="IBM Plex Sans, system-ui, sans-serif" font-size="13" fill="#c6d1db">
+    <text x="16" y="44" fill="#f3b544" font-weight="600">Sunlight →</text>
+    <text x="${cx - 6}" y="${top - 78}" text-anchor="end">sunset line on the ground</text>
+    <text x="${pA[0] - 12}" y="${pA[1] - 10}" text-anchor="end"><tspan font-weight="600" fill="#e3e9ef">A</tspan> sunlit, over the sunset line</text>
+    <text x="${pB[0] + 12}" y="${pB[1] - 12}"><tspan font-weight="600" fill="#e3e9ef">B</tspan> last sunlit point, ${fmt(R.h / 1e3)} km up</text>
+    <text x="${pB[0] + 12}" y="${pB[1] + 6}" fill="#8a9aab" font-size="12">cos θ = R/(R+h) · ground below: sunset ${fmt(R.edgeH, 1)} h ago</text>
+    <text x="${pC[0] + 12}" y="${pC[1] + 4}"><tspan font-weight="600" fill="#e3e9ef">C</tspan> in Earth's shadow: dark</text>
+    <text x="40" y="${top - 8}" fill="#fff1d0" font-size="12">last ray grazes the Earth's surface (thickest air)</text>
+    <text x="640" y="${top + 60}" fill="#62b6e6">Earth's shadow</text>
+    <text x="${cx - 120}" y="410" fill="#8a9aab" font-size="12">day</text>
+    <text x="${cx + 90}" y="410" fill="#8a9aab" font-size="12">night</text>
+  </g>`;
+}
+
+/* ───────────── frame update ───────────── */
+const tmpA = V3(), tmpB = V3(), tmpC = V3(), city = V3(), satP = V3(), tint = [1, 1, 1];
+const RX = new THREE.Matrix4().makeRotationX(Math.PI / 2), RZ = new THREE.Matrix4(), MS = new THREE.Matrix4(), MT = new THREE.Matrix4(), MF = new THREE.Matrix4();
+let status = { cls: "sun", text: "" };
+
+function placeEarthO(t) {
+  RZ.makeRotationZ(WE * t + cityLon0);
+  O.earth.matrix.copy(RZ).multiply(RX).multiply(MS.makeScale(10, 10, 10)); O.earth.matrixWorldNeedsUpdate = true;
+  O.atmo.matrix.copy(O.earth.matrix).multiply(MS.makeScale(1.02, 1.02, 1.02)); O.atmo.matrixWorldNeedsUpdate = true;
+  const sw = V3(1, 0, 0);
+  O.earth.material.uniforms.sunDir.value.copy(sw); O.atmo.material.uniforms.sunDir.value.copy(sw);
+  O.earth.material.uniforms.time.value = t / 60;
+}
+function setLine(lines, idx, a, b) { const p = lines.geometry.attributes.position; p.setXYZ(idx * 2, a.x, a.y, a.z); p.setXYZ(idx * 2 + 1, b.x, b.y, b.z); }
+function finishLines(lines, n) { lines.geometry.setDrawRange(0, n * 2); lines.geometry.attributes.position.needsUpdate = true; }
+function orientMini(g, satPos, target) { // mirror normal bisects Sun and target
+  const toT = tmpA.subVectors(target, satPos).normalize();
+  const nrm = tmpB.set(1, 0, 0).add(toT).normalize();
+  g.position.copy(satPos).multiplyScalar(OS);
+  g.quaternion.setFromUnitVectors(V3(0, 0, 1), nrm);
+}
+
+function updateOrbitScene() {
+  const t = state.t;
+  placeEarthO(state.mode === 1 ? 0 : t);
+  phys.updateMatrixWorld();
+  let nb = 0, nr = 0;
+  if (state.mode === 1) {
+    const u = 60 * D2R + D.n * t;
+    satP.set(Math.cos(u) * D.r, Math.sin(u) * D.r, 0);
+    const dark = inShadow(satP), groundDark = Math.cos(u) < 0;
+    const nadir = tmpC.copy(satP).setLength(RE);
+    orientMini(hero, satP, nadir);
+    const on = !dark && groundDark;
+    hero.userData.glow.material.opacity = dark ? 0.08 : 1;
+    hero.userData.m.material.emissive.setHex(dark ? 0x000000 : 0x332611);
+    if (on) {
+      setLine(beams, nb++, satP.clone().multiplyScalar(OS), nadir.clone().multiplyScalar(OS * 1.002));
+      setLine(rays, nr++, V3(40, satP.y * OS, 0), satP.clone().multiplyScalar(OS));
+      spotGlow.position.copy(nadir).multiplyScalar(OS * 1.004); spotGlow.scale.setScalar(0.9); spotGlow.visible = true;
+    } else spotGlow.visible = false;
+    if (!dark && !groundDark) setLine(rays, nr++, V3(40, satP.y * OS, 0), satP.clone().multiplyScalar(OS));
+    const theta = (((u - Math.PI / 2) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    if (dark) status = { cls: "dark", text: "In Earth's shadow · mirror dark" };
+    else if (on) status = { cls: "sun", text: `Sunlit over dark ground · ${minSec(Math.max(0, (D.edge - theta) / D.n))} to shadow` };
+    else if (!groundDark && Math.cos(u) > 0) status = { cls: "day", text: "Ground below in daylight" };
+    else status = { cls: "sun", text: "Sunlit over dark ground (before sunrise)" };
+    if (state.labels) {
+      label("o_sat", physToWorld(hero.position), dark ? `Mirror · in shadow` : on ? `Mirror · sunlit, beam on` : `Mirror · sunlit`, dark ? "n" : "");
+      label("o_edge", physToWorld(edgeMark.position), `Shadow begins<small>${fmt(D.edge / D2R, 1)}° past the sunset line</small>`, "n");
+      label("o_term", physToWorld(V3(0, 0, 10.3)), `Sunset line`, "plain");
+      label("o_shadow", physToWorld(V3(-30, 0, 0)), `Earth's shadow`, "plain");
+      label("o_sunL", physToWorld(V3(28, 0, 7)), `Sunlight →`, "plain");
+    }
+  } else {
+    cityPos(t, city);
+    cityDot.position.copy(city).multiplyScalar(OS * 1.003);
+    let total = 0, count = 0;
+    if (state.mode === 2) {
+      ssoPos(u0 + D.n * t, 0, satP);
+      const e = serve(satP, city);
+      orientMini(hero, satP, e > 0 ? city : tmpC.copy(satP).setLength(RE));
+      hero.userData.glow.material.opacity = inShadow(satP) ? 0.08 : 1;
+      if (e > 0) { setLine(beams, nb++, satP.clone().multiplyScalar(OS), city.clone().multiplyScalar(OS * 1.002)); total = e; count = 1; }
+      if (!inShadow(satP)) setLine(rays, nr++, V3(40, satP.y * OS, satP.z * OS), satP.clone().multiplyScalar(OS));
+      // footprint ring
+      const fp = footprint.geometry.attributes.position, zc = tmpA.copy(satP).normalize(), ax = tmpB.set(0, 0, 1).cross(zc).normalize(), ay = V3().crossVectors(zc, ax);
+      for (let i = 0; i <= 128; i++) {
+        const a = i / 128 * 2 * Math.PI, q = V3().copy(zc).multiplyScalar(Math.cos(D.lam)).addScaledVector(ax, Math.sin(D.lam) * Math.cos(a)).addScaledVector(ay, Math.sin(D.lam) * Math.sin(a));
+        fp.setXYZ(i, q.x * 10.02, q.y * 10.02, q.z * 10.02);
+      }
+      fp.needsUpdate = true;
+      if (state.labels) label("o_sat", physToWorld(hero.position), `Mirror · always sunlit`, "");
+    } else {
+      const pos = pGeo.attributes.position, col = pGeo.attributes.color; let k = 0;
+      const FL = fleetLayout(state.fleetN), each = FL.per / FL.draw;
+      for (let p = 0; p < FL.planes; p++) for (let i = 0; i < FL.draw; i++) {
+        ssoPos(u0 + 2 * Math.PI * i / FL.draw + D.n * t, p, satP);
+        const e = serve(satP, city), sh = inShadow(satP);
+        pos.setXYZ(k, satP.x * OS, satP.y * OS, satP.z * OS);
+        if (e > 0) { col.setXYZ(k, 1.6, 1.25, 0.6); setLine(beams, nb++, satP.clone().multiplyScalar(OS), city.clone().multiplyScalar(OS * 1.002)); total += e * each; count += each; }
+        else if (sh) col.setXYZ(k, 0.12, 0.16, 0.24); else col.setXYZ(k, 0.75, 0.62, 0.38);
+        k++;
+      }
+      pGeo.setDrawRange(0, k); pos.needsUpdate = col.needsUpdate = true;
+    }
+    spotGlow.visible = count > 0;
+    if (count) { spotGlow.position.copy(cityDot.position); spotGlow.scale.setScalar(0.6 + 0.35 * Math.sqrt(count)); }
+    const lt = cityLT(t), hh = Math.floor(lt % 24), mm = Math.floor((lt % 1) * 60);
+    const clock = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+    if (city.x >= 0) status = { cls: "day", text: `City ${clock} · still daylight` };
+    else if (count) { const nn = Math.round(count); status = { cls: "sun", text: `City ${clock} · lit by ${fmt(nn)} mirror${nn > 1 ? "s" : ""} · ${sig(total)} W/m² · ${fmtMoon(total)} full Moon` }; }
+    else status = { cls: "dark", text: `City ${clock} · no mirror in range` };
+    if (state.labels) {
+      label("o_city", physToWorld(cityDot.position), `City, ${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"}<small>${clock} local time</small>`, "n");
+      label("o_term", physToWorld(V3(0, 0, 10.3)), `Sunset line`, "plain");
+      label("o_sunL", physToWorld(V3(28, 0, 7)), `Sunlight →`, "plain");
+    }
+  }
+  finishLines(beams, nb); finishLines(rays, nr);
+}
+
+/* Close-up: LVLH frame (x = velocity, y = up, z = v × r) on the equatorial orbit */
+const U_START = 86 * D2R;
+let glintMax = 0;
+function updateClose() {
+  const span = D.edge + 5 * D2R - (U_START - Math.PI / 2);
+  const u = U_START + ((D.n * state.t) % (span));
+  const r = D.r;
+  const rh = V3(Math.cos(u), Math.sin(u), 0), vh = V3(-Math.sin(u), Math.cos(u), 0), zh = V3().crossVectors(vh, rh);
+  const sL = V3(-Math.sin(u), Math.cos(u), 0); // Sun (+x phys) in LVLH: (x·v, x·r, x·z)
+  // Earth and stars: phys → LVLH rows (v, r, z)
+  MF.set(vh.x, vh.y, vh.z, 0, rh.x, rh.y, rh.z, 0, zh.x, zh.y, zh.z, 0, 0, 0, 0, 1);
+  const Rs = EARTH_D * RE / r;
+  RZ.makeRotationZ(cityLon0 + WE * state.t * 0);
+  MT.makeTranslation(0, -EARTH_D, 0).multiply(MF).multiply(RZ).multiply(RX).multiply(MS.makeScale(Rs, Rs, Rs));
+  C_E.earth.matrix.copy(MT); C_E.earth.matrixWorldNeedsUpdate = true;
+  C_E.atmo.matrix.copy(MT).multiply(MS.makeScale(1.02, 1.02, 1.02)); C_E.atmo.matrixWorldNeedsUpdate = true;
+  C_stars.matrix.copy(MF); C_stars.matrixWorldNeedsUpdate = true;
+  C_E.earth.material.uniforms.sunDir.value.copy(sL); C_E.atmo.material.uniforms.sunDir.value.copy(sL);
+  C_E.earth.material.uniforms.time.value = state.t / 60;
+  C_sun.position.copy(sL).multiplyScalar(2.2e5);
+  // sunlight reaching the mirror
+  const sDotR = Math.cos(u), ht = rayHeight(r, sDotR);
+  sunTint(ht, D.L, tint);
+  const lum = (tint[0] + tint[1] + tint[2]) / 3, mx = Math.max(tint[0], tint[1], tint[2], 1e-4);
+  cLight.position.copy(sL).multiplyScalar(500); cLight.target.position.set(0, 0, 0);
+  cLight.color.setRGB(tint[0] / mx, tint[1] / mx, tint[2] / mx); cLight.intensity = 3.2 * mx;
+  C_sun.material.color.setRGB(tint[0] / mx, tint[1] / mx, tint[2] / mx); C_sun.material.opacity = Math.min(1, mx * 1.5);
+  // mirror orientation: normal bisects Sun and nadir
+  const toT = V3(0, -1, 0), nrm = V3().addVectors(sL, toT).normalize();
+  mirrorG.quaternion.setFromUnitVectors(V3(0, 0, 1), nrm);
+  const groundDark = Math.cos(u) < 0;
+  const beamOn = groundDark && mx > 0.001;
+  // beam cone to the ground, to scale
+  const H = EARTH_D - Rs, spotR = (D.h * ALPHA / 2) * (H / D.h), r0 = 9 * Math.SQRT1_2;
+  beamCone.visible = beamOn; groundSpot.visible = beamOn;
+  if (beamOn) {
+    const key = `${H.toFixed(1)}|${spotR.toFixed(2)}`;
+    if (beamCone.userData.key !== key) { beamCone.geometry.dispose(); beamCone.geometry = new THREE.CylinderGeometry(r0, spotR, H, 48, 1, true); beamCone.userData.key = key; }
+    beamCone.position.set(0, -H / 2, 0);
+    beamMat.uniforms.col.value.setRGB(tint[0] / mx, tint[1] / mx, tint[2] / mx); beamMat.uniforms.amp.value = Math.min(0.45, lum * 0.55 + 0.02);
+    groundSpot.position.set(0, -H + 2, 0); groundSpot.scale.setScalar(spotR * 5); groundSpot.material.opacity = Math.min(1, lum * 1.5);
+  }
+  rayCyl.visible = mx > 0.002;
+  if (rayCyl.visible) {
+    const len = 4000; rayCyl.scale.set(1, len, 1);
+    rayCyl.position.copy(sL).multiplyScalar(len / 2 + 2);
+    rayCyl.quaternion.setFromUnitVectors(V3(0, 1, 0), sL);
+    rayMat.uniforms.col.value.setRGB(tint[0] / mx, tint[1] / mx, tint[2] / mx); rayMat.uniforms.amp.value = 0.22 * Math.min(1, mx);
+  }
+  // glint: bright when the camera looks along the reflected beam
+  const refl = toT.clone(); const vdir = camC.position.clone().normalize();
+  const g = Math.pow(Math.max(0, vdir.dot(refl)), 40) * mx;
+  glint.visible = g > 0.01; glint.scale.setScalar(60 * g + 4); glint.material.opacity = Math.min(1, g * 2);
+  cShine.position.set(0, 1, 0);
+  // reflections
+  if ((frame++ % 6) === 0) { sat.visible = false; beamCone.visible = false; rayCyl.visible = false; glint.visible = false; cubeCam.update(renderer, sceneC); sat.visible = true; beamCone.visible = beamOn; rayCyl.visible = mx > 0.002; }
+  // status
+  const theta = u - Math.PI / 2;
+  const ltBelow = 18 + theta / D2R / 15, hh = Math.floor(ltBelow), mm = Math.floor((ltBelow % 1) * 60);
+  const clock = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  if (mx < 0.001) status = { cls: "dark", text: `In Earth's shadow · ground below ${clock}` };
+  else if (!groundDark) status = { cls: "day", text: `Ground below still in daylight` };
+  else if (ht < 100e3) status = { cls: "sun", text: `Sunlight skimming the air ${fmt(ht / 1e3)} km up · ${minSec(Math.max(0, (D.edge - theta) / D.n))} left` };
+  else status = { cls: "sun", text: `Beam on · ground below ${clock} · ${minSec(Math.max(0, (D.edge - theta) / D.n))} to shadow` };
+  if (state.labels) {
+    label("c_m", V3(-9, 9, 0).applyQuaternion(mirrorG.quaternion), `18 m mirror<small>${fmt(D.v / 1e3, 2)} km/s</small>`);
+    if (rayCyl.visible) label("c_in", sL.clone().multiplyScalar(700), `Sunlight in<small>passes ${fmt(Math.max(0, ht) / 1e3)} km above Earth</small>`);
+    if (beamOn) label("c_out", V3(0, -220, 0), `Reflected beam<small>${fmt(D.spot / 1e3, 1)} km spot on the ground</small>`);
+  }
+  closeU = u;
+}
+let frame = 0, closeU = U_START;
+
+/* ───────────── timeline ───────────── */
+const tl = $("tl"), tctx = tl.getContext("2d");
+function fitCanvas(c) { const r = c.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1); const w = Math.round(r.width * d), h = Math.round(r.height * d); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } return d; }
+function drawTimeline() {
+  const d = fitCanvas(tl), W = tl.width, H = tl.height, g = tctx; g.clearRect(0, 0, W, H);
+  g.font = `${10 * d}px IBM Plex Mono, monospace`; g.textBaseline = "top";
+  const bh = 12 * d, by = H - bh - 1 * d;
+  if (state.mode === 1 || state.mode === 4) {
+    // one orbit from noon; colours as the ring
+    const f = (u) => u / (2 * Math.PI) * W, e = D.edge;
+    g.fillStyle = "#5e7184"; g.fillRect(0, by, W, bh);
+    g.fillStyle = "#f3b544"; g.fillRect(f(Math.PI / 2), by, f(e), bh); g.fillRect(f(1.5 * Math.PI - e), by, f(e), bh);
+    g.fillStyle = "#25528f"; g.fillRect(f(Math.PI / 2 + e), by, f(Math.PI - 2 * e), bh);
+    g.fillStyle = "#8a9aab"; g.textAlign = "left"; g.fillText("noon", 0, 0);
+    g.textAlign = "center"; g.fillText("sunset line", f(Math.PI / 2), 0); g.fillText("Earth's shadow", f(Math.PI), 0); g.fillText("sunrise line", f(1.5 * Math.PI), 0);
+    const u = state.mode === 1 ? ((60 * D2R + D.n * state.t) % (2 * Math.PI)) : closeU;
+    g.fillStyle = "#fff"; g.fillRect(f(u) - 1.5 * d, by - 5 * d, 3 * d, bh + 6 * d);
+    $("tlText").innerHTML = `Orbit <b>${fmt(D.T / 60, 1)} min</b> · <span style="color:var(--sun)">sunlit over dark ground</span> <b>${minSec(D.toShadow)}</b> after the sunset line and again before sunrise · shadow <b>${minSec(D.eclipse)}</b>`;
+  } else {
+    const c = state.mode === 2 ? cov1 : cov; if (!c) return;
+    const x = (k) => k / COV_N * W, sunsetK = (18 - LT0) * 3600 / COV_DT;
+    const sky = g.createLinearGradient(0, 0, W, 0);
+    sky.addColorStop(0, "#5e7184"); sky.addColorStop(sunsetK / COV_N, "#3a4c63"); sky.addColorStop(Math.min(1, (sunsetK + 360) / COV_N), "#0e1724"); sky.addColorStop(1, "#0a111b");
+    g.fillStyle = sky; g.fillRect(0, by, W, bh);
+    const peak = Math.max(1, c.peak);
+    g.fillStyle = "#f3b544";
+    for (let k = 0; k < COV_N; k++) if (c.cnt[k]) { const hh = bh * (0.35 + 0.65 * c.cnt[k] / peak); g.fillRect(x(k), by + bh - hh, Math.max(1, W / COV_N + 0.5), hh); }
+    g.fillStyle = "#8a9aab";
+    for (let hr = 18; hr <= 21; hr++) { const k = (hr - LT0) * 3600 / COV_DT; g.textAlign = hr === 18 ? "center" : "center"; g.fillText(hr === 18 ? "sunset 18:00" : `${hr}:00`, x(k), 0); }
+    const k = state.t / COV_DT; g.fillStyle = "#fff"; if (k < COV_N) g.fillRect(x(k) - 1.5 * d, by - 5 * d, 3 * d, bh + 6 * d);
+    const n = state.mode === 2 ? 1 : state.fleetN;
+    $("tlText").innerHTML = `City at ${fmt(Math.abs(P.lat), 1)}° ${P.lat >= 0 ? "N" : "S"} · ${fmt(n)} mirror${n > 1 ? "s" : ""} in orbit · lit <b>${fmtMin(c.lit)}</b> this evening` +
+      (c.lit ? ` · ${clockAt(c.startMin)}–${clockAt(c.endMin)} · brightest <b>${sig(c.peakE)} W/m²</b> (${fmtMoon(c.peakE)} full Moon)` : "");
+  }
+}
+
+/* ───────────── train of mirrors: slider, results, chart ───────────── */
+const fmtH = (h) => h === Infinity ? "all night" : `${fmt(h, 1)} h`;
+const clockAt = (minAfterSunset) => { const m = Math.round(18 * 60 + minAfterSunset); return `${Math.floor(m / 60) % 24}:${String(m % 60).padStart(2, "0")}`; };
+const fleetIdx = (N) => { let b = 0; FLEET_STEPS.forEach((v, i) => { if (Math.abs(Math.log(v) - Math.log(N)) < Math.abs(Math.log(FLEET_STEPS[b]) - Math.log(N))) b = i; }); return b; };
+function setFleet(N, fromUser) {
+  state.fleetN = Math.max(1, Math.round(N));
+  const i = fleetIdx(state.fleetN);
+  for (const id of ["fleetN", "fleetN2"]) $(id).value = i;
+  for (const id of ["fleetNVal", "fleetNVal2"]) $(id).textContent = fmt(state.fleetN);
+  if (fromUser && state.mode !== 3 && state.mode !== 5) setMode(5); else { syncVisibility(); updateCaption(); }
+  renderFleet();
+}
+function fleetTargets() {
+  const DN = denseN(), dense = fleetCov(DN);
+  return { dense, need50: DN * 50 / dense.meanE, needStreet: DN * 0.1 / dense.meanE, atOnce: dense.peak / DN };
+}
+function renderFleet() {
+  const N = state.fleetN, c = fleetCov(N); cov = c;
+  const L = fleetLayout(N), T = fleetTargets(), limH = eveningLimitH(P.lat, P.emin);
+  // tiles
+  $("f_time").textContent = c.lit ? fmtMin(c.lit) : "none";
+  const darkMin = Math.max(0, c.endMin - c.startMin - c.lit / 60);
+  $("f_time2").textContent = c.lit ? `${clockAt(c.startMin)}–${clockAt(c.endMin)}${darkMin >= 0.5 ? ` · ${fmt(darkMin, darkMin < 10 ? 1 : 0)} min dark in between` : " · unbroken"}` : "no mirror passes high enough";
+  $("f_peak").textContent = c.lit ? fmtW(c.peakE) : "–";
+  $("f_peak2").textContent = c.lit ? `${fmtMoon(c.peakE)} full Moon · ≈${c.peakE * 100 < 10 ? fmt(c.peakE * 100, c.peakE * 100 < 1 ? 2 : 1) : fmt(round2(c.peakE * 100))} lux` : "";
+  $("f_mean").textContent = c.lit ? fmtW(c.meanE) : "–";
+  $("f_mean2").textContent = c.lit ? (c.meanE >= 10 ? `${fmt(c.meanE / 10, 1)}% of noon sun` : `1/${fmt(round2(1000 / c.meanE))} of noon sun`) : "";
+  const wh = c.energyWh;
+  $("f_energy").textContent = wh >= 1 ? `${fmt(wh, wh < 10 ? 1 : 0)} Wh/m²` : `${fmt(wh * 1000, wh < 0.01 ? 2 : 1)} mWh/m²`;
+  const sec = wh * 3.6; // 1 Wh/m² = 3.6 s of 1,000 W/m² noon sun
+  $("f_energy2").textContent = `= ${sec >= 60 ? `${fmt(sec / 60, 1)} min` : sec >= 1 ? `${fmt(sec, 1)} s` : `${fmt(sec * 1000, sec < 0.01 ? 2 : 0)} ms`} of noon sunshine`;
+  const at = Math.round(c.peak);
+  $("f_cnt").textContent = fmt(at);
+  $("f_cnt2").textContent = N > 1 ? `${fmt(100 * c.peak / N, c.peak / N < 0.1 ? 1 : 0)}% of the fleet` : "it is the whole fleet";
+  // sentence
+  let t;
+  if (!c.lit) t = `<b>${fmt(N)} mirror${N > 1 ? "s" : ""}</b>: none of them passes high enough over this city this evening.`;
+  else if (N === 1) t = `<b>One mirror</b> gives the city a single pass: <b>${fmtMin(c.lit)}</b> of light at about ${fmtMoon(c.peakE)} full Moon, then nothing. It is in sunshine the whole time, but it is high in this city's sky for only minutes.`;
+  else if (L.planes === 1) t = `<b>One train of ${fmt(N)}</b> in one orbit: a new mirror arrives every ${fmt(D.T / 60 / N, 1)} min, so the light ${darkMin >= 0.5 ? "flickers on and off" : "is unbroken"} and stops ${fmtMin(c.endMin * 60)} after sunset, when the city has turned too far from that orbit.`;
+  else if (L.planes < MAXP) t = `<b>${L.planes} trains</b>, each orbit 5° further into the evening, hand the city on from one to the next: <b>${fmtMin(c.lit)}</b> of light, ending ${fmtMin(c.endMin * 60)} after sunset.`;
+  else t = `<b>The evening is now as long as it can get:</b> light until ${fmtMin(c.endMin * 60)} after sunset${darkMin >= 0.5 ? `, dark for ${fmt(darkMin, 1)} min of that` : ""}. The geometric limit is ${fmtH(limH)}. From here, more mirrors add brightness, not minutes: ten times the mirrors gives ten times the light.`;
+  t += ` A steady <b>50 W/m²</b> (5% of noon sun) for the whole evening would take about <b>${fmt(round2(T.need50))} mirrors</b> in orbit. Street-light level (about 10 lux) would take about ${fmt(round2(T.needStreet))}.`;
+  $("fleetSay").innerHTML = t;
+  // presets
+  const pre = [["One mirror", 1], ["One train · 30", 30], [`Full evening · ${fmt(MAXP * PER_TRAIN)}`, MAXP * PER_TRAIN], [`Street-light level · ${fmt(round2(T.needStreet))}`, round2(T.needStreet)], [`50 W/m² all evening · ${fmt(round2(T.need50))}`, round2(T.need50)]];
+  const box = $("presets");
+  const sig_ = pre.map((x) => x[1]).join();
+  if (box.dataset.sig !== sig_) {
+    box.dataset.sig = sig_; box.innerHTML = "";
+    for (const [name, n] of pre) { const b = document.createElement("button"); b.type = "button"; b.textContent = name; b.addEventListener("click", () => setFleet(n, true)); box.appendChild(b); }
+  }
+  // limits table (depends on altitude only)
+  const latName = (v) => `${fmt(Math.abs(v), 1)}° ${v >= 0 ? "N" : "S"}`;
+  const lats = [[0, "Equator"], [32.7, "32.7° N"], [49, "49° N"]].filter(([v]) => Math.abs(v - P.lat) > 0.05);
+  lats.push([P.lat, `${Math.abs(P.lat) < 0.05 ? "Equator" : latName(P.lat)} (this city)`]); lats.sort((a, b) => Math.abs(a[0]) - Math.abs(b[0]));
+  $("limitsBody").innerHTML = lats.map(([lat, name]) => `<tr${lat === P.lat ? ' style="background:#17140b"' : ""}><td>${name}</td>${[90, 30, 10].map((e) => {
+    const H = eveningLimitH(lat, e), n = 50 / D.E(e * D2R);
+    return `<td>${fmtH(H)}<small>${fmt(round2(n))} at once</small></td>`;
+  }).join("")}</tr>`).join("");
+  const dep = 90 - 49 - 23.44;
+  $("summerNote").innerHTML = (dep < D.edge / D2R
+    ? `At 49° N in midsummer the Sun sinks only ${fmt(dep, 1)}° below the horizon at midnight, less than the ${fmt(D.edge / D2R, 1)}° a mirror at ${fmt(P.h)} km can see past, so mirrors overhead stay sunlit <b>all night</b>.`
+    : `At 49° N in midsummer the Sun sinks ${fmt(dep, 1)}° below the horizon at midnight, more than the ${fmt(D.edge / D2R, 1)}° a mirror at ${fmt(P.h)} km can see past.`)
+    + ` Only about ${fmt(100 * T.atOnce, 1)}% of a fleet is over any one city at a time, so the fleet in orbit must be roughly ${fmt(round2(1 / T.atOnce))} times the "at once" number.`;
+  // live answers in the side panel
+  const one = fleetCov(1);
+  $("n_you1").textContent = one.lit ? fmtMin(one.lit) : "no pass tonight";
+  $("n_youNt").innerHTML = `With <b>${fmt(N)}</b> mirror${N > 1 ? "s" : ""} in orbit, your spot is lit for`;
+  $("n_youN").textContent = c.lit ? `${fmtMin(c.lit)} (until ${clockAt(c.endMin)})` : "none";
+  // the observer's answer, in plain words, for this city and altitude
+  const full = MAXP * PER_TRAIN, rows = [1, 10, 30, 120, full, 2000, 20000, 1000000].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+  const see = (n, r) => {
+    if (!r.lit) return "Nothing tonight: no mirror passes high enough.";
+    if (n === 1) return "One bright star drifts across your sky for a few minutes. You are lit only while it is high enough.";
+    if (r.peak < 1.5) return `A new mirror rises every ${fmt(D.T / 60 / Math.min(n, PER_TRAIN), 1)} min. You see one bright star at a time, with dark spells in between.`;
+    if (r.peakE < 0.1) return `Several bright stars at once, handing over to each other. About as bright as ${fmtMoon(r.peakE)} the full Moon.`;
+    if (r.peakE < 10) return "A cluster of dazzling stars in the west. Enough to read by, about street-light level or brighter.";
+    return "A blinding patch of the sky, like a second sunset that lasts the whole evening.";
+  };
+  $("obsBody").innerHTML = rows.map((n) => { const r = fleetCov(n);
+    return `<tr class="${n === N ? "cur" : ""}"><td>${fmt(n)}</td><td>${r.lit ? fmtMin(r.lit) : "–"}</td><td>${r.lit ? `${clockAt(r.endMin)} (+${fmtMin(r.endMin * 60)})` : "–"}</td><td>${r.lit ? `${fmtW(r.peakE)}<small>${fmtMoon(r.peakE)} full Moon</small>` : "–"}</td><td class="txt">${see(n, r)}</td></tr>`; }).join("");
+  const r30 = fleetCov(30), r120 = fleetCov(120), rFull = fleetCov(full);
+  $("obsSay").innerHTML = `From the ground, each mirror looks like a dazzling star that drifts across your sky in a few minutes. You are lit only while a mirror is <b>in sunshine</b> and <b>higher than 30°</b> in your sky. ` +
+    `<b>One mirror</b> gives you one flash of about <b>${fmtMin(one.lit)}</b>. The ${fmt(D.toShadow / 60, 1)} minutes often quoted is how long a mirror stays in sunshine above dark ground; for most of that it is not over you. ` +
+    `<b>With more mirrors the minutes add up</b>, because the next mirror rises as the last one drifts away: 30 mirrors light you for ${fmtMin(r30.lit)}, 120 for ${fmtMin(r120.lit)}, ${fmt(full)} for <b>${fmtMin(rFull.lit)}</b>. ` +
+    `Then it stops growing. About ${fmtH(limH)} after sunset, every mirror high in your sky is itself in Earth's shadow, and the sunlit ones are too low in the west. From there, more mirrors make the light brighter, not longer.`;
+  drawFleetChart(c, limH);
+  drawTimeline();
+}
+function drawFleetChart(c, limH) {
+  const cv = $("fleetChart"), d = fitCanvas(cv), W = cv.width, H = cv.height, g = cv.getContext("2d");
+  g.clearRect(0, 0, W, H);
+  const narrow = W / d < 560, l = (narrow ? 50 : 64) * d, r = (narrow ? 92 : 128) * d, tp = 14 * d, bt = 28 * d, X0 = 0, X1 = 180, Y0 = -4, Y1 = 3;
+  const x = (m) => l + (m - X0) / (X1 - X0) * (W - l - r), y = (E) => tp + (Y1 - Math.log10(Math.max(E, 1e-6))) / (Y1 - Y0) * (H - tp - bt);
+  g.font = `${10.5 * d}px IBM Plex Mono, monospace`; g.textBaseline = "middle";
+  for (let e = Y0; e <= Y1; e++) {
+    g.strokeStyle = "#1b2633"; g.lineWidth = 1; g.beginPath(); g.moveTo(l, y(10 ** e)); g.lineTo(W - r, y(10 ** e)); g.stroke();
+    g.fillStyle = "#5b6a7a"; g.textAlign = "right"; g.fillText(e >= 0 ? fmt(10 ** e) : String(10 ** e), l - 6 * d, y(10 ** e));
+  }
+  g.save(); g.translate(14 * d, (tp + H - bt) / 2); g.rotate(-Math.PI / 2); g.textAlign = "center"; g.fillStyle = "#8a9aab"; g.fillText("W/m² on the ground", 0, 0); g.restore();
+  g.textBaseline = "top";
+  for (let m = narrow ? 60 : 0; m <= 180; m += narrow ? 60 : 30) { g.fillStyle = "#5b6a7a"; g.textAlign = m === 0 ? "left" : "center"; g.fillText(m === 0 ? (narrow ? "sunset" : "sunset 18:00") : `+${m} min`, x(m), H - bt + 8 * d); }
+  const refs = [[MOON_GROUND, "full Moon", "#9fb3c8"], [0.1, narrow ? "street light" : "street lighting", "#9fb3c8"], [50, narrow ? "50 W/m²" : "50 W/m² goal", "#f3b544"], [1000, "noon Sun", "#ffffff"]];
+  g.textBaseline = "middle"; g.textAlign = "left";
+  for (const [E, name, col] of refs) { g.setLineDash([4 * d, 4 * d]); g.strokeStyle = col; g.globalAlpha = 0.55; g.beginPath(); g.moveTo(l, y(E)); g.lineTo(W - r, y(E)); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; g.fillStyle = col; g.fillText(name, W - r + 6 * d, y(E)); }
+  if (isFinite(limH) && limH * 60 < X1) {
+    const lx = x(limH * 60); g.setLineDash([2 * d, 4 * d]); g.strokeStyle = "#62b6e6"; g.beginPath(); g.moveTo(lx, tp); g.lineTo(lx, H - bt); g.stroke(); g.setLineDash([]);
+    g.fillStyle = "#62b6e6"; g.textAlign = "right"; g.fillText(narrow ? "limit" : "limit, any number of mirrors", lx - 5 * d, tp + 8 * d);
+  }
+  // brightness
+  const k0 = SUNSET_K, k1 = Math.min(COV_N, SUNSET_K + X1 * 60 / COV_DT), bw = (W - l - r) / ((X1 - X0) * 60 / COV_DT);
+  g.fillStyle = "rgba(243,181,68,0.45)"; g.strokeStyle = "#f3b544"; g.lineWidth = 1.6 * d;
+  for (let k = k0; k < k1; k++) if (c.E[k] > 0) { const xx = x((k - k0) * COV_DT / 60), yy = y(c.E[k]); g.fillRect(xx, yy, Math.max(1, bw + 0.5), H - bt - yy); }
+  g.beginPath(); let on = false;
+  for (let k = k0; k < k1; k++) { const xx = x((k - k0) * COV_DT / 60); if (c.E[k] > 0) { const yy = y(c.E[k]); on ? g.lineTo(xx, yy) : g.moveTo(xx, yy); on = true; } else on = false; }
+  g.stroke();
+  if (!c.lit) { g.fillStyle = "#8a9aab"; g.textAlign = "center"; g.fillText("no light reaches the city", (l + W - r) / 2, (tp + H - bt) / 2); }
+}
+
+/* ───────────── UI ───────────── */
+document.querySelectorAll("#modes button").forEach((b) => b.addEventListener("click", () => setMode(+b.dataset.m)));
+$("warpBtn").addEventListener("click", () => setSpeed(WARP));
+$("realBtn").addEventListener("click", () => setSpeed(1));
+let rb = 0; const later = () => { clearTimeout(rb); rb = setTimeout(rebuild, 80); };
+const bind = (id, key, show) => $(id).addEventListener("input", (e) => { P[key] = +e.target.value; $(id + "Val").textContent = show(P[key]); later(); });
+bind("alt", "h", (v) => `${v} km`);
+const latText = (v) => `${fmt(Math.abs(v), 1)}° ${v >= 0 ? "N" : "S"}`;
+bind("lat", "lat", latText);
+document.querySelectorAll("#latPresets button").forEach((b) => b.addEventListener("click", () => { P.lat = +b.dataset.lat; $("lat").value = P.lat; $("latVal").textContent = latText(P.lat); rebuild(); }));
+for (const id of ["fleetN", "fleetN2"]) $(id).addEventListener("input", (e) => setFleet(FLEET_STEPS[+e.target.value], true));
+new ResizeObserver(() => renderFleet()).observe($("fleetChart"));
+
+function onResize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  for (const c of [camO, camC, camG]) { c.aspect = w / h; c.updateProjectionMatrix(); }
+}
+new ResizeObserver(onResize).observe($("stage"));
+
+/* ───────────── loop ───────────── */
+let last = performance.now(), hudT = 0;
+function loop(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!state.paused) {
+    state.t += dt * state.speed;
+    if ((state.mode === 2 || state.mode === 3 || state.mode === 5) && state.t > 4 * 3600) state.t = 0;
+  }
+  if (state.mode === 4) { ctlC.update(); updateClose(); renderer.render(sceneC, camC); }
+  else if (state.mode === 5) { ctlG.update(); updateGround(); renderer.render(sceneG, camG); }
+  else { ctlO.update(); updateOrbitScene(); renderer.render(sceneO, camO); }
+  sweepLabels();
+  hudT += dt;
+  if (hudT > 0.1) {
+    hudT = 0; const p = $("pill"); p.className = `pill ${status.cls}`; p.textContent = status.text; drawTimeline();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ───────────── init ───────────── */
+fillArticle();
+rebuild();
+setMode(1);
+onResize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

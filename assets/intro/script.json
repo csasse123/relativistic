@@ -1,0 +1,22 @@
+{
+  "title": "Spinning Neutron Star: a 2-minute introduction",
+  "voice_notes": "Warm, curious, unhurried, like a science presenter talking to a friend. Pause briefly between sentences. Numbers are spelled out so the voice reads them naturally.",
+  "scenes": [
+    { "id": "what", "title": "A star the size of a city", "min": 9,
+      "text": "Meet a neutron star. When a giant star dies, its core collapses into a ball about twenty-four kilometres across, the size of a city, yet heavier than our Sun. One teaspoon would weigh billions of tonnes." },
+    { "id": "spin", "title": "And it spins", "min": 8,
+      "text": "And it spins. The fastest known turns seven hundred and sixteen times every second. For a twelve-kilometre star, its equator would race along at eighteen percent of the speed of light." },
+    { "id": "ladder", "title": "Einstein, one effect at a time", "min": 14,
+      "text": "Here, you switch on Einstein's physics one effect at a time. Start with an ordinary spinning ball. Add the time light takes to reach you, and the pattern shears. Add the Doppler effect: blue where the surface comes toward you, red where it moves away. I've spun it faster than any real star could, so you can see it." },
+    { "id": "gravity", "title": "Gravity bends light", "min": 10,
+      "text": "Gravity here is so strong that it bends light. Switch it on and you can see around the edge: three quarters of the whole surface at once. Starlight streams past, curls around the star, and focuses behind it, like a lens." },
+    { "id": "magnet", "title": "The strongest magnets known", "min": 15,
+      "text": "Neutron stars are the strongest magnets known. This one is ten thousand times stronger than a hospital scanner, and magnetars are millions of times stronger still. Near the star the field makes simple loops. But plasma wraps the star, tears the field open where it would have to outrun light, and flings it out as a wind. The field doesn't bend light, though. That's all gravity." },
+    { "id": "pulse", "title": "How we know", "min": 9,
+      "text": "We can't photograph a star this small from so far away. Instead, telescopes watch hot spots sweep round, and measure how the brightness rises and falls. NASA's NICER uses those pulses to weigh and measure neutron stars." },
+    { "id": "limits", "title": "Where to be careful", "min": 14,
+      "text": "Be careful, though. Light bending, Doppler shifts and delays are computed exactly, for a slowly spinning star. Frame dragging is approximate, and the magnetic field is a sketch, not a supercomputer simulation. Beyond what real stars can survive, a red warning appears. And deep inside? Nobody knows. Neutrons, quarks, something stranger. It's one of physics' biggest open questions." },
+    { "id": "invite", "title": "Your turn", "min": 8,
+      "text": "Now it's your turn. Drag to turn the star. Rest on any button for an explanation, and a badge showing how exact it is. Turn up the speed dial. Or take the interactive tour." }
+  ]
+}

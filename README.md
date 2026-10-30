@@ -25,6 +25,80 @@ An adaptive narrow frustum shrank with β and filled the screen → pure zoom mu
 | β = v/c | Optics strength |
 | Doppler | Color vs angle to velocity |
 
+## Spinning Neutron Star (v1.17)
+
+`neutron-star.html` · [live](https://csasse123.github.io/relativistic/neutron-star.html)
+
+A real-time WebGL2 ray tracer for a rapidly spinning neutron star. It has no dependencies.
+
+**How it works:**
+- Every pixel is a photon traced backwards along a Schwarzschild null geodesic: RK4 on d²x/dλ² = −3/2 r_s h² x/r⁵.
+- The trace runs back to an oblate surface, where it picks up the light-travel-time rotation phase, aberration, Doppler and redshift.
+
+**Physics ladder** (keys 0–8, or Guided):
+1. Newton
+2. Length contraction
+3. Light-travel time
+4. Aberration (Terrell–Penrose)
+5. Doppler
+6. Beaming
+7. Light bending
+8. Gravitational redshift and Shapiro delay
+9. Oblateness (AlGendy & Morsink 2014) and frame dragging
+
+Each effect can also be switched on and off on its own.
+
+**Views:** mono, split screen (Newton beside the current physics), and two eyes (red/cyan anaglyph, cross-eye or parallel), each eye ray-traced from its own position.
+
+**Live pulse profile:** a 64² flux trace using the same physics, the observable that NICER fits.
+
+**Look (v1.15):**
+- **Surface:** a NASA-style blue wireframe. The grid hue is a Doppler-shifted 490 nm line. The hot caps are coloured by observed brightness on NASA's red→yellow scale.
+- **Brightness curve:** shown on screen, with a moving dot and the Newton curve for reference.
+- **Ghost grid:** shows the previous step, so you can see what each new effect moves.
+- **Surface maps:** the Doppler × redshift factor g, or the light delay.
+- **Magnetic field lines:** a rotating vacuum dipole with retarded fields (Deutsch), which sweeps back toward the light cylinder. Near the star it uses the Schwarzschild dipole shape (Wasserman & Shapiro 1983). The lines are seen through the same lensing and light delay as the surface.
+
+**Magnetosphere (v1.17):** the default field model is now **plasma-filled (force-free)**:
+- co-rotating closed loops inside the light cylinder;
+- open polar-cap lines that become a winding split-monopole wind;
+- the wavy current sheet ("striped wind") where pulsed γ-rays are made.
+
+The vacuum dipole remains as the starting point to compare against. **▶ Magnetosphere tour** steps from vacuum to plasma to the current sheet. The same tour is exported as video: [`assets/ns_magnetosphere_tour.mp4`](assets/ns_magnetosphere_tour.mp4).
+
+**Field strength and light rays (v1.20):**
+- **B_p input:** a log-scale slider in tesla. The presets use spin-down estimates, 2 × 3.2×10¹⁹ √(PṖ) G, and say when a value is assumed.
+- **Field-line colour:** shows |B| in tesla on a log scale, with comparisons to an MRI scanner, lab magnets and magnetars.
+- **Numbers panel:** the diameters (24.0 km equatorial, 21.2 km pole to pole), |B| at the light cylinder, the force-free spin-down power, and a 10 km scale bar.
+- **Incoming light beam (v1.24):** about 430 light paths, integrated with the per-pixel tracer's own null-geodesic equation and drawn as a blurred, glowing fog.
+  - Fog brightness = density of photon paths (the flux), times the local gravitational blueshift. It shows the star's shadow and the bright focal line behind it.
+  - Wavefronts travel inward at c, with a few crisp lines on top.
+  - The deflection matches the exact Schwarzschild integral to within 0.06°.
+  - The magnetic field does not bend light: Maxwell's theory is linear, vacuum birefringence only matters near 4.4×10⁹ T, and plasma refraction affects radio only.
+
+**Tutorial tooltips (v1.23):** every button and slider (71 controls) has a hover tooltip, or long-press on a phone. Each says what the control does and what to look for, with a badge for how exact it is: *Exact* (within the stated model), *Approximation*, *Schematic*, *Convention*, *Display only* or *Assumed*.
+
+**Introduction and tour (v1.27):**
+- **▶ Watch the intro** (key **I**): a 2.5-minute film for complete beginners, running on the live renderer. It covers what a neutron star is, the physics ladder, how gravity bends light, the magnetic field, how NICER measures pulses, where the physics is exact, approximate or unknown, and how to explore. Subtitles always; narration plays if `assets/intro/s*.mp3` exist.
+- **🧭 Interactive tour** (key **T**): a one-minute spotlight tour of the controls.
+- A welcome card on the first visit, and collapsible panel sections.
+- Make the narrated MP4 with your ElevenLabs voice: [`docs/INTRO_VIDEO.md`](docs/INTRO_VIDEO.md) (`tools/make_intro_voice.mjs`, `tools/render_intro.mjs`).
+
+**Audit (v1.26):** every formula re-derived and checked against X-PSI, bender and exact integrations ([`docs/AUDIT_2026-10.md`](docs/AUDIT_2026-10.md)). Fixed: frame dragging now bends prograde and retrograde light differently (gravitomagnetic force, verified against the exact slow-rotation geodesic); the background sky next to the limb is no longer over-bent; the field-line light delay is solved robustly (no more zigzags); the light beam comes from a fixed direction in space; the lensing lookup covers the view at 0.15° resolution; field lines sweeping past the viewpoint fade out, and nearer lines are drawn thicker.
+
+**Reality checks and layout (v1.25):**
+- **Warning box** under the title whenever a setting leaves real physics: spin parameter χ = cJ/GM² beyond the slow-rotation gravity model (> 0.45) or above 1, spin past break-up, compactness beyond the causality limit (R < 2.9 GM/c²), masses outside the measured range, or fields above the quantum critical 4.4×10⁹ T. Special relativity stays exact at any speed; the gravity part is flagged as a what-if.
+- **Control drawer:** the panel slides away behind a "Controls" tab (or press H), and the star glides back to the centre.
+- **Star field** is now the default background.
+
+**Speed:** the **v/c** dial (0–0.97 c, or the 0.1c–0.9c chips) sets the spin f = βcN/(2πR). **Playback** only sets the slow-motion rate.
+
+**Presets:** J1748−2446ad (716 Hz), J0030+0451, J0740+6620, J0437−4715, and a hypothetical 2 kHz star.
+
+Colours are false-colour blackbody: X-ray temperatures ×1/400. A blackbody at T is seen as one at gT.
+
+The physics and the formula check are in [`docs/NEUTRON_STAR_LITERATURE.md`](docs/NEUTRON_STAR_LITERATURE.md).
+
 ## Thirty-Two Clocks (v1.1)
 
 v1.1 adds:
@@ -52,6 +126,27 @@ Formula rain, always-moving satellites, GPS clocks (−7 +45 = +38 μs), windshi
 - `video.html?sync` — tap **Space** at each line start while it plays; times are saved and used on reload.
 - **R** / button — export WebM (real-time capture with audio).
 
+## Orbital Heat Budget (v1.32) — `space-dc/`
+
+Live: [csasse123.github.io/relativistic/space-dc](https://csasse123.github.io/relativistic/space-dc/)
+
+3D thermal model of a MW-class data center satellite (solar array + radiator keel + compute core) in three orbits:
+
+| Orbit | What it shows |
+|------|---------------|
+| LEO 550 km · 53° | ~36 min shadow every ~96 min → ~5,000 thermal cycles/yr, batteries or throttling |
+| Dawn–dusk SSO 650 km (Google Suncatcher) | near-constant sun, constant full heat load, June eclipse season |
+| GEO | eclipses only near equinoxes, cold sky for radiators, ~240 ms latency |
+
+Views: **Satellite** (false-colour IR or visible, coolant flow, exaggerated CTE expansion), **Orbit** (shadow cylinder, sunlit/eclipse arcs), **Cluster** (hex formation, laser links, radiator view-factor penalty).
+Live lumped thermal sim (array, radiator, bypassed panels, GPU), module sizing per MW and per GW, briefing tabs on radiators, cycling/CTE, solar panels, coupling, and what is solved vs open.
+
+## Mirrors After Sunset (v1.32) — `mirrors/`
+
+Live: [csasse123.github.io/relativistic/mirrors](https://csasse123.github.io/relativistic/mirrors/)
+
+Can sunlight-reflecting satellites light a city at night? 3D scenes: one mirror flying into Earth's shadow, a to-scale close-up of its own sunset, a dawn–dusk orbit riding the sunset line, and a parade of mirrors over a city. Live numbers (shadow edge, pass time, spot size, brightness) and a check of the email thread's claims.
+
 ## Develop
 
 ```bash
@@ -62,6 +157,10 @@ cd relativistic && python3 -m http.server 8765
 
 - **v0.5** — guided tour; adaptive frustum (too zoom-like)  
 - **v0.6** — free look + velocity-fixed boost + full-sphere capture  
+- **v1.36** — `mirrors/`: scene 5 'Standing in the city' (a person on the ground, mirrors drawn in their sky, beams and a running 'light on you tonight' counter); plain-language 'what do you see' answer and mirrors → minutes table; live 'your spot is lit for' rows in the side panel  
+- **v1.35** — `mirrors/`: one slider from 1 mirror to 1,000,000 drives the 3D train and a live results panel (minutes lit, W/m², lux, energy, brightness chart, unlimited-mirror ceiling); city latitude is live again and re-runs the simulation; Cursor's separate train view replaced  
+- **v1.33** — `mirrors/` simplified: fixed 750× / real-speed switch, altitude the only control, reply-check sections removed  
+- **v1.32** — `space-dc/` Orbital Heat Budget (space data center thermal cycling) and `mirrors/` Mirrors After Sunset (orbital mirror shadow geometry)  
 
 ## License
 
