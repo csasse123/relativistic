@@ -11,7 +11,7 @@ Same recipe as Thirty-Two Clocks: deadpan spoken verses, a sung trance chorus, 1
 | Mode | **Custom** |
 | Model | **v6** |
 | Variety | **Off** |
-| Duration | **1:35**. The lyrics fill about 1:30. |
+| Duration | **1:40**. The lyrics fill about 1:35. A shorter slider hard-cuts the outro. |
 | Max Mode | On if you have credits |
 | Title | `Five Atoms Thick` |
 
@@ -60,8 +60,8 @@ Open the box.
 [Chorus]
 Through the wall, through the wall, and it never knocks
 Here and not here like the cat in the box
-Five atoms thick, but the wall is a lie
-Every phone, every chip, every star in the sky
+I go through walls you said I couldn't climb
+Five atoms thick and I'm through every time
 
 [Verse 2]
 [Spoken Word]
@@ -69,15 +69,19 @@ The Sun is too cold to burn.
 Fifteen million degrees. Not enough.
 Protons tunnel anyway.
 That's daylight.
+A needle one atom sharp.
+A current through nothing.
+That's how we see atoms.
 
 [Chorus]
 Through the wall, through the wall, and it never knocks
 Here and not here like the cat in the box
-Five atoms thick, but the wall is a lie
-Every phone, every chip, every star in the sky
+I go through walls you said I couldn't climb
+Five atoms thick and I'm through every time
 
 [Outro]
 [Spoken Word]
+Every phone. Every chip. Every star in the sky.
 You're reading this on a leak.
 Open the box.
 
@@ -90,6 +94,10 @@ Tips:
 - No parentheses (Suno sings them).
 - Upload the chosen mp3 here and I'll transcribe it and lock every cut to the real words and kicks.
 
+## Beat map
+
+After export: `python3 tools/beatmap.py assets/five-atoms-thick.mp3 --vocals vocals.wav` writes tempo, beats, downbeats, kicks, section starts and vocal phrase starts to `assets/five-atoms-thick.beats.json`. Whisper word times go on top.
+
 ## Planned structure (132 BPM, 1 bar ≈ 1.82 s, about 50 bars)
 
 | Section | Bars | Planned time | Picture |
@@ -97,10 +105,10 @@ Tips:
 | Intro (spoken, no beat) | 8 | 0:00–0:14 | Box on a lab bench, cat's eyes in the gap → macro into the cat's eye → phone in a hand, dive into the chip |
 | Build "Leak." | 2 | 0:14–0:18 | Wafer in a cleanroom, rush into the die |
 | Drop | 4 | 0:18–0:25 | Fast montage on the kick: fab rails, GPU hall, die macro, gate-all-around transistor explodes open |
-| Verse 1 | 8 | 0:25–0:40 | 3D: electron wave packet hits the gate barrier, part of it comes out the other side. Live formula T ≈ e^(−2κd) with d sliding 2 → 1 nm and the counter climbing to ×50,000,000. Flash cell: electrons tunnel through the oxide into the trap layer, photos fill a phone |
-| Pre-Chorus | 2 | 0:40–0:43 | Paw on the lid, light leaking through the cracks |
-| Chorus | 8 | 0:43–0:58 | Club / crowd with phones up, ghosted cat walking through a laser wall, Schrödinger equation iħ ∂ψ/∂t = Ĥψ falling as rain |
-| Verse 2 | 4 | 0:58–1:05 | The Sun (SDO-style), proton–proton Coulomb barrier, tunneling probability graph |
+| Verse 1 | 8 | 0:25–0:40 | 3D: a glowing particle bounces off a dark wall, slow push in. Then electron wave packet hits the gate barrier, part of it comes out the other side. Live formula T ≈ e^(−2κd) with d sliding 2 → 1 nm and the counter climbing to ×50,000,000. Flash cell: electrons tunnel through the oxide into the trap layer, photos fill a phone |
+| Pre-Chorus | 2 | 0:40–0:43 | The wave starts to ripple and the wall turns see-through. Paw on the lid, light leaking through the cracks |
+| Chorus | 8 | 0:43–0:58 | Downbeat: whip pan to the far side of the wall, the wave weaker but still there. Club / crowd with phones up, ghosted cat walking through a laser wall, Schrödinger equation iħ ∂ψ/∂t = Ĥψ falling as rain |
+| Verse 2 | 6 | 0:58–1:09 | The Sun (SDO-style), proton–proton Coulomb barrier, tunneling probability graph. Then the STM tip scanning single atoms |
 | Chorus | 8 | 1:05–1:20 | Constellation of chips: phone, GPU rack, SSD, quantum-computer chandelier, Sun |
 | Outro | 4 | 1:20–1:30 | The box opens: empty, only glowing static. End card |
 
@@ -111,6 +119,7 @@ Fact-checked against the sources listed. Where a number is rounded for the lyric
 | Line | Value |
 |---|---|
 | A wall a few atoms thick | The gate insulator separates the control gate from the channel. Intel's 90 and 65 nm chips used 1.2 nm SiO₂, about **5 atomic layers** (EDN, bit-tech). Since 2007 (Intel 45 nm, hafnium high-k/metal gate) the oxide is physically thicker but electrically equivalent to about 1 nm, and roadmaps go to about 0.9 nm. |
+| I go through walls you said I couldn't climb | The electron never has the energy to get over the barrier (classically forbidden) and still ends up on the other side. |
 | Five atoms thick (chorus) | The 1.2 nm SiO₂ gate oxide above: the moment tunneling forced the industry to change materials. Gordon Moore called high-k/metal gate the biggest transistor change in about 40 years. |
 | The electrons walk right through | Direct tunneling through the gate oxide is gate leakage. Since high-k it is >10× lower, but it is still there. |
 | Billions of switches | Modern CPUs, GPUs and phone chips carry tens of billions of transistors. |
@@ -124,7 +133,7 @@ Fact-checked against the sources listed. Where a number is rounded for the lyric
 | Too cold to burn, fifteen million degrees | Core about 1.5×10⁷ K, thermal energy about 1.3 keV vs. a proton–proton Coulomb barrier of about 0.5–1 MeV. Classically fusion would need about 10¹⁰ K, roughly 700× hotter. Tunneling makes it possible. |
 | Every star in the sky | Every main-sequence star burns by tunneling. |
 | Picture: quantum computer | 2025 Nobel Prize in Physics (Clarke, Devoret, Martinis): macroscopic quantum tunneling in a Josephson-junction circuit, the basis of superconducting qubits. |
-| Picture: STM | Scanning tunneling microscope (Binnig & Rohrer, 1981; Nobel 1986): current changes about 10× per 0.1 nm, so it sees single atoms. |
+| A needle one atom sharp, a current through nothing | Scanning tunneling microscope (Binnig & Rohrer, 1981; Nobel 1986): current changes about 10× per 0.1 nm, so it sees single atoms. |
 | Picture: tunnel diode | Esaki, 1957/58; Nobel 1973 with Giaever and Josephson. |
 | Picture: hard disks, MRAM | Every hard-disk read head and every MRAM bit is a magnetic tunnel junction with an oxide barrier about 1 nm thick. |
 | You're reading this on a leak | The device you're watching on stores, switches and loses charge by tunneling. |
