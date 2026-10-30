@@ -45,7 +45,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const BUILD = "v1.42.0";
+const BUILD = "v1.43.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · five atoms thick";
 const params = new URLSearchParams(location.search), CLEAN = params.has("clean");
@@ -300,7 +300,9 @@ const LAT = mk("lat");
   LAT.tip = new THREE.Group(); LAT.tip.add(atoms(tip, 0.24, 0xb8c0c8, 0x101418, 0.3)); LAT.root.add(LAT.tip);
   LAT.beam = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0x9ff2ff, ...ADD, toneMapped: false })); LAT.beam.add(glow(0x9ff2ff, 0.6, 0.6)); LAT.root.add(LAT.beam);
   LAT.update = (t, sh) => { const stm = !!(sh.lat && sh.lat.stm); LAT.oxSi.visible = LAT.oxO.visible = LAT.au.visible = !stm; LAT.tip.visible = LAT.beam.visible = stm;
-    LAT.e.forEach((e) => { e.s.visible = !stm; const p = (t * e.sp + e.ph) % 1, y = lerp(-1.2, 4.6, p), inOx = y > 0.1 && y < 2.6; e.s.position.set(e.x, y, e.z);
+    LAT.e.forEach((e, i) => { e.s.visible = !stm; const p = (t * e.sp + e.ph) % 1, thr = hash(i + 21) < 0.3;
+      const y = thr ? lerp(-1.2, 4.6, p) : -1.2 + 1.35 * (p < 0.5 ? p * 2 : (1 - p) * 2), inOx = thr && y > 0.1 && y < 2.6; e.s.position.set(e.x, y, e.z);
+      e.mood = thr ? (inOx ? "wow" : "happy") : p < 0.44 ? "happy" : p < 0.6 ? "ouch" : "sad"; e.ghost = inOx;
       e.s.material.opacity = inOx ? 0.18 + 0.5 * Math.abs(Math.sin(t * 40 + e.ph * 9)) : 1; e.s.scale.setScalar(inOx ? 1.6 : 0.9); });
     if (stm) { const x = ((t - sh.t0) * 0.9) % 6 - 3, surf = 0.3 * Math.cos(x / a * 2 * Math.PI) ** 2, gap = 0.9 - surf; LAT.tip.position.set(x, 0.2 + gap, 0); LAT.STM = { x, gap };
       LAT.beam.position.set(x, 0.2 + gap / 2, 0); LAT.beam.scale.set(1, gap, 1); LAT.beam.material.opacity = clamp(Math.exp(-(gap - 0.6) * 3)); } };
@@ -388,12 +390,12 @@ function buildShots() {
   // INTRO — knock knock · who's there · both · the wall in your phone · zoom down to atoms
   shot(0, T0("who") - 0.3, ["bar"], CAM.barSide(-1.4, -1.1, 22, 16), { clip: "q_box", clipOff: 0.2, push: 0.05, bar: B("packet", { p0: 0, p1: 0.05 }) });
   shot(T0("who") - 0.3, T0("both"), ["bar"], CAM.barSide(-1.1, -0.9, 16, 13), { clip: "q_eye", clipOff: 2.6, push: 0.08, bar: B("packet", { p0: 0.05, p1: 0.15 }) });
-  shot(T0("both"), T0("wall"), ["bar"], CAM.barSide(-0.25, 0.25, 15, 12, 0.35), { bar: B("packet", { p0: 0.92, p1: 1.0 }), cat: true });
-  shot(T0("wall"), T0("atoms") + 0.3, ["phone"], CAM.phone, { clip: "q_phone", clipOff: 0.3, scale: [150e-3, 50e-3] });
-  shot(T0("atoms") + 0.3, T0("through"), ["phone"], CAM.phone, { clip: "q_teardown", clipOff: 0.3, push: 0.1, scale: [30e-3, 5e-3] });
-  { const z0 = T0("through"), z1 = T0("riser"), d = (z1 - z0) / 5; // powers of ten
-    shot(z0, z0 + d, ["die"], CAM.die, { scale: [2e-3, 50e-6] }); shot(z0 + d, z0 + 2 * d, ["arr"], CAM.arrDive, { scale: [20e-6, 200e-9] });
-    shot(z0 + 2 * d, z0 + 3 * d, ["gaa"], CAM.gaa(0.6, 0.9, 16, 9), { scale: [100e-9, 20e-9], gaa: { on: 1 } }); shot(z0 + 3 * d, z1, ["lat"], CAM.latDive, { scale: [10e-9, 1.2e-9], electrons: true }); }
+  shot(T0("both"), 9.6, ["bar"], CAM.barSide(-0.25, 0.25, 15, 12, 0.35), { bar: B("packet", { p0: 0.92, p1: 1.0 }), cat: true });
+  shot(9.6, T0("through"), [], CAM.phone, { cart: "split" }); // classical vs quantum, on "a wall in your phone, a few atoms thick"
+  { const z0 = T0("through"), z1 = T0("riser"), d = (z1 - z0) / 5.5; // into the phone, powers of ten, down to the electrons at the wall
+    shot(z0, z0 + d, ["phone"], CAM.phone, { clip: "q_teardown", clipOff: 1.0, push: 0.15, scale: [80e-3, 10e-3] }); shot(z0 + d, z0 + 2 * d, ["die"], CAM.die, { scale: [2e-3, 50e-6] });
+    shot(z0 + 2 * d, z0 + 3 * d, ["arr"], CAM.arrDive, { scale: [20e-6, 200e-9] }); shot(z0 + 3 * d, z0 + 4 * d, ["gaa"], CAM.gaa(0.6, 0.9, 16, 9), { scale: [100e-9, 20e-9], gaa: { on: 1 } });
+    shot(z0 + 4 * d, z1, ["lat"], CAM.latDive, { scale: [10e-9, 1.2e-9], electrons: true, faces: true, cap: ["INSIDE YOUR PHONE", "electrons hit a 1.2 nm wall · most bounce · some tunnel"] }); }
   shot(T0("riser"), DROP, ["lat"], CAM.latFly, { clip: "q_wafer", clipOff: 0.3, push: 0.12 });
   // DROP — cut every 2 beats
   [["q_fab", ["arr"], CAM.arrFly, {}], [null, ["gaa"], CAM.gaa(0.3, 1.2, 12, 10), { gaa: { explode: true, on: 1 }, labels: true }], ["q_gpu", ["arr"], CAM.arrFly, {}]].forEach(([clip, use, cam, o], i) =>
@@ -412,16 +414,16 @@ function buildShots() {
   // PRE — open the box
   shot(T0("open"), T0("c1"), ["bar"], CAM.barSide(-1.2, -1.0, 18, 16), { clip: "q_paw", clipOff: 0.2, push: 0.06, bar: B("packet", { p0: 0.2, p1: 0.3 }) });
   // CHORUS — whip pan to the far side on the downbeat
-  shot(T0("c1"), T0("c2"), ["bar"], CAM.barFar, { bar: B("packet", { p0: 0.55, p1: 0.95 }), rain: 1, kick: true });
+  shot(T0("c1"), T0("c2"), [], CAM.phone, { cart: "beat", kick: true });
   shot(T0("c2"), T0("c2") + 2.2, ["bar"], CAM.barSide(0.4, 0.7, 14, 12), { clip: "q_crowd", clipOff: 0.4, rain: 0.6, kick: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
   shot(T0("c2") + 2.2, T0("c3"), ["bar"], CAM.barSide(-0.3, 0.3, 14, 12, 0.35), { clip: "q_ghost", clipOff: 4.2, cat: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
-  shot(T0("c3"), T1("c3"), ["bar"], CAM.barSide(-0.75, -0.45, 14, 12, 0.18), { bar: B("ball", { p0: 0.2, p1: 0.95 }), climb: true, kick: true });
+  shot(T0("c3"), T1("c3"), [], CAM.phone, { cart: "hill", climb: true });
   shot(T1("c3"), T0("c4"), ["bar"], CAM.barFar, { clip: "q_dancer", clipOff: 0.4, bar: B("packet", { p0: 0.6, p1: 0.9 }) });
-  shot(T0("c4"), T0("inst"), ["lat"], CAM.latFly, { rain: 0.7, kick: true, electrons: true, oxide: true });
+  shot(T0("c4"), T0("inst"), ["lat"], CAM.latFly, { rain: 0.5, kick: true, electrons: true, faces: true, cap: ["THE GATE OXIDE", "silicon · 5 atoms of glass · metal gate"] });
   // INSTRUMENTAL — the Sun, the 2025 Nobel, the microscope that sees atoms
   const bars = [T0("inst"), barAt(25), barAt(26), barAt(27), barAt(28), barAt(29), T0("phone")];
-  const D = [[null, ["lat"], CAM.latFly, { electrons: true, oxide: true, who: 0 }], ["q_sun", ["sky"], CAM.sky, { gamow: true, who: 1 }], ["q_qpu", ["gaa"], CAM.gaa(0, 1, 10, 8), { gaa: { on: 1 }, nobel: true, who: 5 }],
-    ["q_stm", ["lat"], CAM.stm, { lat: { stm: true }, stmPanel: true, who: 4 }], [null, ["lat"], CAM.stm, { lat: { stm: true }, stmPanel: true, who: 4 }], ["q_tem", ["lat"], CAM.latDive, { electrons: true, who: 3, scale: [5e-9, 0.5e-9] }]];
+  const D = [[null, ["lat"], CAM.latFly, { electrons: true, faces: true, who: 0 }], ["q_sun", ["sky"], CAM.sky, { gamow: true, who: 1 }], ["q_qpu", ["gaa"], CAM.gaa(0, 1, 10, 8), { gaa: { on: 1 }, nobel: true, who: 5 }],
+    ["q_stm", ["lat"], CAM.stm, { lat: { stm: true }, stmPanel: true, who: 4 }], [null, ["lat"], CAM.stm, { lat: { stm: true }, stmPanel: true, who: 4 }], ["q_tem", ["lat"], CAM.latDive, { electrons: true, faces: true, who: 3, scale: [5e-9, 0.5e-9] }]];
   for (let i = 0; i < bars.length - 1; i++) { const [clip, use, cam, o] = D[i]; shot(bars[i], bars[i + 1], use, cam, { clip, clipOff: 0.4, kick: true, rain: 0.5, ...o }); }
   // OUTRO
   shot(T0("phone"), T0("chip"), ["phone"], CAM.phone, { clip: "q_teardown", clipOff: 3.0 });
@@ -429,7 +431,8 @@ function buildShots() {
   shot(T0("star"), T0("reading"), ["sky"], CAM.sky, {});
   shot(T0("reading"), T0("obox"), ["phone"], CAM.phone, { clip: "q_phone", clipOff: 4.0, glitch: true });
   shot(T0("obox"), T0("hit"), ["bar"], CAM.barSide(1.0, 1.2, 16, 15), { clip: "q_open", clipOff: 0.2, push: 0.05, bar: B("packet", { p0: 0.95, p1: 1 }) });
-  shot(T0("hit"), TOTAL + 50, ["bar"], (t, u) => orbit(lerp(10, 26, sm((t - T0("hit")) / 7)), 0.25 + (t - T0("hit")) * 0.03, 0.3, V(1.5, 0, 0)), { bar: B("packet", { p0: 0.9, p1: 1, ease: true }), end: true });
+  shot(T0("hit"), 88.9, [], CAM.phone, { cart: "end" });
+  shot(88.9, TOTAL + 50, ["bar"], (t, u) => orbit(lerp(14, 26, sm((t - 88.9) / 3)), 0.25 + (t - 88.9) * 0.03, 0.3, V(1.5, 0, 0)), { bar: B("packet", { p0: 0.9, p1: 1, ease: true }), end: true });
 }
 const shotAt = (t) => { for (const s of SHOTS) if (t >= s.t0 && t < s.t1) return s; return SHOTS[SHOTS.length - 1]; };
 
@@ -504,9 +507,56 @@ function callout(g, p, txt, sub, dx, dy, a = 1) { const [x, y, z] = P2(p); if (z
   g.textAlign = dx > 0 ? "left" : "right"; g.font = `700 15px ${MONO}`; g.fillStyle = "#e8fbff"; g.fillText(txt, x + dx + (dx > 0 ? 46 : -46), y + dy + 5); if (sub) { g.font = `12px ${MONO}`; g.fillStyle = "#9fdcef"; g.fillText(sub, x + dx + (dx > 0 ? 46 : -46), y + dy + 22); } g.restore(); }
 function glitch(g, t) { const c = g.canvas, k = RW / OW; g.save(); g.setTransform(1, 0, 0, 1, 0, 0); for (let i = 0; i < 9; i++) { if (hash(i + Math.floor(t * 18)) < 0.5) continue; const y = hash(i * 3 + Math.floor(t * 18)) * RH, h = 6 + hash(i * 5) * 40 * k, dx = (hash(i * 7 + Math.floor(t * 18)) - 0.5) * 80 * k;
   g.drawImage(c, 0, y, RW, h, dx, y, RW, h); } g.globalCompositeOperation = "lighter"; g.fillStyle = `rgba(255,40,60,${0.08 + 0.1 * hash(Math.floor(t * 18))})`; g.fillRect(0, 0, RW, RH); g.restore(); }
+// CARTOON — classical balls always bounce; electrons mostly bounce (sad), a few tunnel (happy)
+function face(g, x, y, r, mood, al = 1, sq = 1, ghost = false) { if (!isFinite(x + y + r)) return; g.save(); g.globalAlpha = al; g.translate(x, y); g.scale(sq, 1 / sq);
+  const gr = g.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r); gr.addColorStop(0, "#f2feff"); gr.addColorStop(0.45, "#4fdcf7"); gr.addColorStop(1, "#0a5f7a");
+  g.shadowColor = "#38d6f5"; g.shadowBlur = ghost ? 34 : 14; g.fillStyle = gr; g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill(); g.shadowBlur = 0;
+  if (ghost) { g.strokeStyle = "rgba(160,240,255,.6)"; g.lineWidth = 1.5; for (let k = 1; k <= 2; k++) { g.beginPath(); g.arc(0, 0, r * (1 + k * 0.35), 0, 7); g.stroke(); } }
+  g.fillStyle = "#03202b"; g.strokeStyle = "#03202b"; g.lineWidth = Math.max(1.5, r * 0.11); g.lineCap = "round";
+  const ey = mood === "sad" ? -r * 0.12 : -r * 0.18; g.beginPath(); g.arc(-r * 0.33, ey, r * (mood === "wow" || mood === "ouch" ? 0.15 : 0.12), 0, 7); g.arc(r * 0.33, ey, r * (mood === "wow" || mood === "ouch" ? 0.15 : 0.12), 0, 7); g.fill();
+  if (mood === "sad") { g.beginPath(); g.arc(-r * 0.36, ey - r * 0.22, r * 0.14, Math.PI * 1.1, Math.PI * 1.6); g.stroke(); g.beginPath(); g.arc(r * 0.36, ey - r * 0.22, r * 0.14, Math.PI * 1.4, Math.PI * 1.9); g.stroke(); }
+  g.beginPath(); if (mood === "happy") g.arc(0, r * 0.02, r * 0.45, Math.PI * 0.15, Math.PI * 0.85); else if (mood === "sad") g.arc(0, r * 0.62, r * 0.36, Math.PI * 1.2, Math.PI * 1.8); else g.arc(0, r * 0.38, r * 0.16, 0, 7); g.stroke(); g.restore(); }
+function ballC(g, x, y, r, sq = 1) { g.save(); g.translate(x, y); g.scale(sq, 1 / sq); const gr = g.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r); gr.addColorStop(0, "#fff1dc"); gr.addColorStop(0.45, "#ff8a3a"); gr.addColorStop(1, "#7a2a08");
+  g.fillStyle = gr; g.shadowColor = "#ff8a1e"; g.shadowBlur = 10; g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill(); g.restore(); }
+function cartLane(g, t, a, c) { const { y, h, xw, ww = 40, n, sp, v, x0 = -40, kind, through = [], title, r = 22, seed = 0 } = c, q = kind === "quantum";
+  g.save(); g.fillStyle = "rgba(6,20,30,.7)"; g.fillRect(20, y - h / 2, OW - 40, h); g.strokeStyle = q ? "rgba(110,225,255,.35)" : "rgba(255,170,110,.35)"; g.lineWidth = 1; g.strokeRect(20.5, y - h / 2 + .5, OW - 41, h - 1);
+  g.fillStyle = q ? "rgba(56,214,245,.16)" : "rgba(120,130,145,.55)"; g.fillRect(xw, y - h / 2 + 34, ww, h - 44); g.strokeStyle = q ? "rgba(140,235,255,.8)" : "rgba(200,205,215,.8)"; g.strokeRect(xw + .5, y - h / 2 + 34.5, ww - 1, h - 45);
+  if (q) { g.fillStyle = "rgba(170,240,255,.55)"; for (let col = 0; col < 5; col++) for (let yy = y - h / 2 + 44; yy < y + h / 2 - 12; yy += 9) { g.beginPath(); g.arc(xw + 4 + col * (ww - 8) / 4, yy + (col % 2) * 4, 2.2, 0, 7); g.fill(); } }
+  else { g.strokeStyle = "rgba(40,45,55,.9)"; for (let yy = y - h / 2 + 34; yy < y + h / 2 - 10; yy += 16) { g.beginPath(); g.moveTo(xw, yy); g.lineTo(xw + ww, yy); g.stroke(); } }
+  let bounced = 0, thru = 0; const hitT = (xw - r - x0) / v;
+  for (let i = 0; i < n; i++) { const tt = t - (a + 0.2 + i * sp); if (tt < 0) continue; const yy = y + 14 + (hash(i * 3 + seed) - 0.5) * (h - 2 * r - 60), go = q && through.includes(i);
+    let x, mood = "happy", al = 1, sq = 1, gh = false;
+    if (tt < hitT) x = x0 + v * tt;
+    else if (!go) { const d = tt - hitT; x = xw - r - v * 0.8 * d; mood = d < 0.18 ? "ouch" : "sad"; sq = d < 0.07 ? 0.72 : 1; bounced++; }
+    else { const d = tt - hitT, vin = v * 0.3, tin = (ww + 2 * r) / vin; if (d < tin) { x = xw - r + vin * d; mood = "wow"; al = 0.6; gh = true; } else { x = xw + ww + r + v * (d - tin); thru++; } }
+    if (x < -60 || x > OW + 60) continue; q ? face(g, x, yy, r, mood, al, sq, gh) : ballC(g, x, yy, r, sq); }
+  g.font = `700 17px ${MONO}`; g.textAlign = "left"; g.textBaseline = "alphabetic"; g.fillStyle = q ? "#bff6ff" : "#ffd9b0"; g.fillText(title, 36, y - h / 2 + 24);
+  g.textAlign = "right"; g.fillStyle = "#ffffff"; g.fillText(`BOUNCED ${bounced}  ·  THROUGH ${thru}${!q ? "  ·  NEVER" : ""}`, OW - 36, y - h / 2 + 24); g.restore(); return { bounced, thru }; }
+function cartHill(g, t, a, b, c) { const { y, h, kind, title } = c, q = kind === "quantum", base = y + h / 2 - 16, xc = OW * 0.55, H = h * 0.62, E = H * 0.6, sig = 80, hill = (x) => H * Math.exp(-(((x - xc) / sig) ** 2)), r = 20;
+  g.save(); g.fillStyle = "rgba(6,20,30,.7)"; g.fillRect(20, y - h / 2, OW - 40, h); g.beginPath(); g.moveTo(20, base); for (let x = 20; x <= OW - 20; x += 6) g.lineTo(x, base - hill(x)); g.lineTo(OW - 20, base); g.closePath();
+  g.fillStyle = q ? "rgba(56,214,245,.18)" : "rgba(120,130,145,.5)"; g.fill(); g.strokeStyle = q ? "rgba(140,235,255,.8)" : "rgba(200,205,215,.8)"; g.lineWidth = 2; g.stroke();
+  g.setLineDash([7, 6]); g.strokeStyle = "#ffd28a"; g.lineWidth = 1.5; g.beginPath(); g.moveTo(30, base - E); g.lineTo(OW - 30, base - E); g.stroke(); g.setLineDash([]); g.fillStyle = "#ffd28a"; g.font = `13px ${MONO}`; g.textAlign = "left"; g.fillText("E", 34, base - E - 6);
+  const u = clamp((t - a) / (b - a)), x0 = 60, xt = xc - sig * Math.sqrt(Math.log(H / E));
+  if (!q) { const k = u < 0.5 ? sm(u / 0.5) : 1 - sm((u - 0.5) / 0.5) * 1.1, x = lerp(x0, xt, k); ballC(g, x, base - hill(x) - r, r); }
+  else { const x = lerp(x0, OW + 40, u), inside = hill(x) > E; face(g, x, base - E - r, r, inside ? "wow" : x > xc ? "happy" : "happy", inside ? 0.6 : 1, 1, inside); }
+  g.font = `700 17px ${MONO}`; g.textAlign = "left"; g.fillStyle = q ? "#bff6ff" : "#ffd9b0"; g.fillText(title, 36, y - h / 2 + 24); g.restore(); }
+function cartoon(g, t, sh) { const c = sh.cart; if (!c) return; g.fillStyle = "#02070b"; g.fillRect(0, 0, OW, OH);
+  g.strokeStyle = "rgba(56,214,245,.06)"; for (let x = 0; x < OW; x += 40) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, OH); g.stroke(); } for (let y = 0; y < OH; y += 40) { g.beginPath(); g.moveTo(0, y); g.lineTo(OW, y); g.stroke(); }
+  const a = sh.t0;
+  if (c === "split") { cartLane(g, t, a, { kind: "classic", y: 196, h: 236, xw: 700, n: 10, sp: 0.42, v: 760, title: "CLASSICAL BALL  ·  ENERGY BELOW THE WALL" });
+    const r = cartLane(g, t, a, { kind: "quantum", y: 478, h: 300, xw: 700, n: 10, sp: 0.42, v: 760, through: [6], seed: 5, title: "ELECTRON  ·  WALL = 5 ATOMS OF GLASS" });
+    slam(g, t, a, a + 1.6, "CLASSICAL vs QUANTUM", 0.5, 0.06, 34, "#e8fbff", { w: 700, f: MONO });
+    if (r.thru) { slam(g, t, a + 4.15, sh.t1, "SOME LEAK THROUGH", 0.32, 0.94, 36, "#ffffff", { glow: "#38d6f5" }); slam(g, t, a + 4.6, sh.t1, "THAT'S QUANTUM TUNNELING", 0.7, 0.94, 36, "#ffd9a8", { glow: "#ff8a1e" }); } }
+  if (c === "beat") { cartLane(g, t, a - 0.2, { kind: "quantum", y: 400, h: 520, xw: 760, ww: 46, n: 7, sp: BEAT, v: 980, r: 30, through: [3], seed: 9, title: "1 IN 7 GETS THROUGH  ·  THAT'S QUANTUM TUNNELING" }); }
+  if (c === "hill") { cartHill(g, t, a, sh.t1, { kind: "classic", y: 214, h: 250, title: "CLASSICAL  ·  CAN'T CLIMB IT  ·  ROLLS BACK" }); cartHill(g, t, a, sh.t1, { kind: "quantum", y: 506, h: 270, title: "QUANTUM  ·  GOES THROUGH IT" }); }
+  if (c === "end") { cartLane(g, t, a, { kind: "quantum", y: 330, h: 470, xw: 720, ww: 46, n: 12, sp: 0.36, v: 900, r: 28, through: [3, 9], seed: 13, title: "BILLIONS OF TIMES A SECOND · IN EVERY CHIP" });
+    slam(g, t, a + 1.9, sh.t1, "SOME LEAK THROUGH.", 0.5, 0.84, 58, "#ffffff", { glow: "#38d6f5" }); slam(g, t, a + 2.7, sh.t1, "THAT'S QUANTUM TUNNELING.", 0.5, 0.93, 40, "#ffd9a8", { glow: "#ff8a1e" }); } }
+function latFaces(g, sh) { if (!sh.faces || !S.lat.root.visible || (sh.lat && sh.lat.stm)) return; LAT.e.forEach((e) => { const p = e.s.position, [x, y, z] = P2(p); if (z > 1) return; const [x2, y2] = P2(p.clone().add(V(0.32, 0, 0)));
+  const r = clamp(Math.hypot(x2 - x, y2 - y), 5, 26); if (!isFinite(r + x + y)) return; face(g, x, y, r, e.mood || "happy", e.ghost ? 0.6 : 1, 1, e.ghost); }); }
 function drawOverlay(g, t, sh) {
   g.clearRect(0, 0, OW, OH); if (CLEAN) return;
   const clipOn = drawClip(g, t, sh);
+  latFaces(g, sh); cartoon(g, t, sh);
   formulaRain(g, t, (sh.rain || 0) * (clipOn ? 0.6 : 1));
   if (sh.tdse) tdsePanel(g, t, T0("wave") - 0.8, T0("photos")); tCounter(g, t, sh); fnPanel(g, t, sh); gamowPanel(g, t, sh); stmPanel(g, t, sh); scaleBar(g, t, sh);
   if (sh.who != null) lowerThird(g, t, sh, ...WHO[sh.who]);
@@ -519,9 +569,8 @@ function drawOverlay(g, t, sh) {
   // lyric beats
   slam(g, t, T0("knock"), T0("knock") + 0.5, "KNOCK", 0.5, 0.5, 150, "#ffffff"); slam(g, t, T0("knock") + 0.55, T0("who") - 0.3, "KNOCK", 0.5, 0.5, 150, "#ffffff");
   slam(g, t, T0("who"), T1("who") + 0.4, "WHO'S THERE?", 0.5, 0.84, 70, "#e8fbff");
-  slam(g, t, T0("both"), T0("wall"), "BOTH.", 0.5, 0.2, 130, "#ffffff", { sub: "LEFT OF THE WALL AND RIGHT OF IT · UNTIL YOU LOOK" });
+  slam(g, t, T0("both"), 9.6, "BOTH.", 0.5, 0.2, 130, "#ffffff", { sub: "LEFT OF THE WALL AND RIGHT OF IT · UNTIL YOU LOOK" });
   if (sh.cat) slam(g, t, sh.t0 + 0.3, sh.t1, "|ψ⟩ = α|alive⟩ + β|dead⟩", 0.5, 0.86, 44, "#ffffff", { w: 500, f: MATH, sub: "|α|² + |β|² = 1" });
-  slam(g, t, T0("wall"), T0("atoms"), "A WALL IN YOUR PHONE", 0.5, 0.86, 62, "#e8fbff"); slam(g, t, T0("atoms"), T1("atoms") + 0.6, "A FEW ATOMS THICK", 0.5, 0.86, 62, "#ffd9a8", { glow: "#ff8a1e" });
   slam(g, t, T0("switches"), T0("every"), "208 000 000 000", 0.5, 0.42, 92, "#ffffff", { sub: "TRANSISTORS IN ONE AI GPU · TENS OF BILLIONS IN YOUR PHONE" });
   slam(g, t, T0("every"), T0("gate"), "EVERY ONE A WALL", 0.5, 0.88, 50, "#e8fbff");
   slam(g, t, T0("gate"), T0("doesnt") - 0.1, "GATE OFF · I = 0 ?", 0.5, 0.88, 54, "#ffd9a8", { glow: "#ff8a1e" });
@@ -531,8 +580,8 @@ function drawOverlay(g, t, sh) {
   slam(g, t, T0("photos"), T0("photos") + 1.4, "YOUR PHOTOS?", 0.5, 0.8, 70, "#ffffff");
   slam(g, t, T0("glass"), T1("glass") + 0.1, "ELECTRONS THROUGH GLASS", 0.3, 0.88, 44, "#ffd9a8", { glow: "#ff8a1e", sub: "SiO₂ TUNNEL OXIDE · ~10 YEARS UNTIL THEY LEAK BACK" });
   slam(g, t, T0("open"), T1("open") + 0.5, "OPEN THE BOX", 0.5, 0.5, 120, "#ffffff");
-  slam(g, t, T0("c1"), T0("c1") + 1.5, "THROUGH THE WALL", 0.5, 0.82, 80, "#ffffff", { glow: "#38d6f5" });
-  if (sh.climb) { slam(g, t, sh.t0 + 0.2, sh.t1, "E < V₀", 0.5, 0.2, 90, "#ffd9a8", { w: 500, f: MATH, glow: "#ff8a1e", sub: "CLASSICALLY FORBIDDEN · QUANTUM ALLOWED" }); }
+  slam(g, t, T0("c1"), T0("c1") + 1.5, "THROUGH THE WALL", 0.5, 0.09, 64, "#ffffff", { glow: "#38d6f5" });
+  if (sh.climb) { slam(g, t, sh.t0 + 0.2, sh.t1, "E < V₀  ·  CLASSICALLY FORBIDDEN  ·  QUANTUM ALLOWED", 0.5, 0.055, 26, "#ffd9a8", { w: 700, f: MONO, glow: "#ff8a1e" }); }
   slam(g, t, T0("c4"), T1("c4"), "1.2 nm ≈ 5 ATOMS", 0.5, 0.86, 64, "#ffffff", { sub: "SiO₂ GATE OXIDE · INTEL 90 nm → 65 nm · THEN HAFNIUM (2007)" });
   slam(g, t, T0("phone"), T0("chip"), "EVERY PHONE", 0.5, 0.5, 110, "#ffffff"); slam(g, t, T0("chip"), T0("star"), "EVERY CHIP", 0.5, 0.5, 110, "#ffffff");
   slam(g, t, T0("star"), T0("reading"), "EVERY STAR IN THE SKY", 0.5, 0.82, 64, "#ffd9a8", { glow: "#ff8a1e", sub: "STARS BURN BY TUNNELING" });
@@ -541,8 +590,8 @@ function drawOverlay(g, t, sh) {
   if (sh.glitch) glitch(g, t);
   if (sh.kick) { const d = lastKick(t); if (d < 0.08) { g.fillStyle = `rgba(220,248,255,${0.14 * (1 - d / 0.08)})`; g.fillRect(0, 0, OW, OH); } }
   for (const id of ["drop", "c1", "hit"]) { const d = t - T0(id); if (d >= 0 && d < 0.35) { g.fillStyle = `rgba(230,250,255,${0.7 * (1 - d / 0.35)})`; g.fillRect(0, 0, OW, OH); } }
-  if (sh.end) { const k = sm((t - (TOTAL - 4.6)) / 1.6); g.fillStyle = `rgba(0,0,0,${k})`; g.fillRect(0, 0, OW, OH);
-    const c = clamp((t - (T0("hit") + 0.8)) / 0.8) * (1 - sm((t - (TOTAL - 0.6)) / 0.5)); if (c > 0) { g.save(); g.globalAlpha = c; g.textAlign = "center"; g.font = `700 50px ${MONO}`; g.fillStyle = "#ddf8ff"; g.shadowColor = "#38d6f5"; g.shadowBlur = 18;
+  if (sh.end) { const k = 0.55 + 0.45 * sm((t - (TOTAL - 1.3)) / 1.0); g.fillStyle = `rgba(0,0,0,${k})`; g.fillRect(0, 0, OW, OH);
+    const c = clamp((t - sh.t0 - 0.1) / 0.5) * (1 - sm((t - (TOTAL - 0.4)) / 0.35)); if (c > 0) { g.save(); g.globalAlpha = c; g.textAlign = "center"; g.font = `700 50px ${MONO}`; g.fillStyle = "#ddf8ff"; g.shadowColor = "#38d6f5"; g.shadowBlur = 18;
       g.fillText("THE WALL WAS NEVER CLOSED", OW / 2, OH * 0.47); g.font = `600 20px ${MONO}`; g.fillText("QUANTUM TUNNELING · IN EVERY CHIP, EVERY PHONE, EVERY STAR", OW / 2, OH * 0.47 + 50); g.restore(); } }
   g.fillStyle = "#000"; g.fillRect(0, 0, OW, 6); g.fillRect(0, OH - 6, OW, 6);
 }
