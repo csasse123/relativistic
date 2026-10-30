@@ -387,7 +387,7 @@ function buildShots() {
   SHOTS = []; const shot = (t0, t1, use, cam, o = {}) => { if (t1 > t0 + 0.001) SHOTS.push({ t0, t1, use, cam, ...o }); };
   // INTRO — knock knock · who's there · both · the wall in your phone · zoom down to atoms
   shot(0, T0("who") - 0.3, ["bar"], CAM.barSide(-1.4, -1.1, 22, 16), { clip: "q_box", clipOff: 0.2, push: 0.05, bar: B("packet", { p0: 0, p1: 0.05 }) });
-  shot(T0("who") - 0.3, T0("both"), ["bar"], CAM.barSide(-1.1, -0.9, 16, 13), { clip: "q_eye", clipOff: 0.3, push: 0.08, bar: B("packet", { p0: 0.05, p1: 0.15 }) });
+  shot(T0("who") - 0.3, T0("both"), ["bar"], CAM.barSide(-1.1, -0.9, 16, 13), { clip: "q_eye", clipOff: 2.6, push: 0.08, bar: B("packet", { p0: 0.05, p1: 0.15 }) });
   shot(T0("both"), T0("wall"), ["bar"], CAM.barSide(-0.25, 0.25, 15, 12, 0.35), { bar: B("packet", { p0: 0.92, p1: 1.0 }), cat: true });
   shot(T0("wall"), T0("atoms") + 0.3, ["phone"], CAM.phone, { clip: "q_phone", clipOff: 0.3, scale: [150e-3, 50e-3] });
   shot(T0("atoms") + 0.3, T0("through"), ["phone"], CAM.phone, { clip: "q_teardown", clipOff: 0.3, push: 0.1, scale: [30e-3, 5e-3] });
@@ -414,7 +414,7 @@ function buildShots() {
   // CHORUS — whip pan to the far side on the downbeat
   shot(T0("c1"), T0("c2"), ["bar"], CAM.barFar, { bar: B("packet", { p0: 0.55, p1: 0.95 }), rain: 1, kick: true });
   shot(T0("c2"), T0("c2") + 2.2, ["bar"], CAM.barSide(0.4, 0.7, 14, 12), { clip: "q_crowd", clipOff: 0.4, rain: 0.6, kick: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
-  shot(T0("c2") + 2.2, T0("c3"), ["bar"], CAM.barSide(-0.3, 0.3, 14, 12, 0.35), { clip: "q_ghost", clipOff: 0.3, cat: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
+  shot(T0("c2") + 2.2, T0("c3"), ["bar"], CAM.barSide(-0.3, 0.3, 14, 12, 0.35), { clip: "q_ghost", clipOff: 4.2, cat: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
   shot(T0("c3"), T1("c3"), ["bar"], CAM.barSide(-0.75, -0.45, 14, 12, 0.18), { bar: B("ball", { p0: 0.2, p1: 0.95 }), climb: true, kick: true });
   shot(T1("c3"), T0("c4"), ["bar"], CAM.barFar, { clip: "q_dancer", clipOff: 0.4, bar: B("packet", { p0: 0.6, p1: 0.9 }) });
   shot(T0("c4"), T0("inst"), ["lat"], CAM.latFly, { rain: 0.7, kick: true, electrons: true, oxide: true });
