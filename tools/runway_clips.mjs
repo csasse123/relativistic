@@ -6,14 +6,15 @@
 //   node tools/runway_clips.mjs --stills 4 [ids]    → 4 candidate stills per clip → assets/clips/takes/<id>_1..4.jpg (≈8 credits each)
 //   node tools/runway_clips.mjs --animate id:2 ...  → animate take 2 of <id> as a 10 s clip → assets/clips/<id>.mp4 (+ .jpg)
 //   --duration 5|10 overrides the clip length (default 10 for --animate)
+//   --spec docs/ai_clips_tunnel.json picks another shot list (default docs/ai_clips.json)
 import fs from "fs";
 const KEY = process.env.RUNWAY_API_KEY; if (!KEY) { console.error("RUNWAY_API_KEY is not set"); process.exit(1); }
 const API = "https://api.dev.runwayml.com/v1", H = { Authorization: `Bearer ${KEY}`, "X-Runway-Version": "2024-11-06", "Content-Type": "application/json" };
-const root = new URL("../", import.meta.url), spec = JSON.parse(fs.readFileSync(new URL("docs/ai_clips.json", root)));
 const argv = process.argv.slice(2), flag = (f) => argv.includes(f), val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
+const root = new URL("../", import.meta.url), spec = JSON.parse(fs.readFileSync(new URL(val("--spec") || "docs/ai_clips.json", root)));
 const force = flag("--force"), redo = flag("--redo"), nStills = +(val("--stills") || 0), dur = +(val("--duration") || 0);
 const animate = argv.includes("--animate") ? argv.slice(argv.indexOf("--animate") + 1).filter((a) => /^[a-z_]+:\d+$/.test(a)) : [];
-const only = argv.filter((a, i) => !a.startsWith("--") && !/^\d+$/.test(a) && !/:\d+$/.test(a) && argv[i - 1] !== "--stills" && argv[i - 1] !== "--duration");
+const only = argv.filter((a, i) => !a.startsWith("--") && !/^\d+$/.test(a) && !/:\d+$/.test(a) && argv[i - 1] !== "--stills" && argv[i - 1] !== "--duration" && argv[i - 1] !== "--spec");
 const outDir = new URL("assets/clips/", root), takes = new URL("assets/clips/takes/", root); fs.mkdirSync(takes, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const dataUri = (rel) => { const b = fs.readFileSync(new URL(rel, root)); return `data:image/${rel.endsWith(".png") ? "png" : "jpeg"};base64,${b.toString("base64")}`; };
