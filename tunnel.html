@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Five Atoms Thick · music video</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: #bfeaff;
+    font: 12px "JetBrains Mono", "DejaVu Sans Mono", monospace; }
+  #stage { position: absolute; left: 50%; top: 50%; width: min(100vw, 177.78vh); height: min(56.25vw, 100vh);
+    transform: translate(-50%, -50%); background: #000; }
+  #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #ui { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 10px; align-items: center; padding: 8px 12px;
+    background: linear-gradient(0deg, rgba(0,0,0,.85), transparent); z-index: 5; opacity: .25; transition: opacity .3s; }
+  #ui:hover { opacity: 1; }
+  #ui button, #ui label { background: #07202a; color: #7dd3fc; border: 1px solid #1d5b70; padding: 5px 10px; font: inherit; cursor: pointer; }
+  #ui input[type=range] { flex: 1; accent-color: #22d3ee; }
+  #start { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center;
+    background: #000; z-index: 9; cursor: pointer; letter-spacing: .3em; font-size: 14px; text-align: center; }
+  #start b { font: 800 34px Impact, sans-serif; letter-spacing: .22em; color: #e8fbff; }
+  #build { position: fixed; right: 10px; top: 8px; z-index: 6; opacity: .35; }
+  #drop { position: fixed; inset: 0; z-index: 10; display: none; align-items: center; justify-content: center; background: rgba(0,30,40,.8);
+    font-size: 22px; letter-spacing: .2em; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c" width="1920" height="1080"></canvas><canvas id="ov" width="1920" height="1080"></canvas></div>
+<div id="start"><b>FIVE ATOMS THICK</b><span>loading…</span>
+  <span style="opacity:.6;letter-spacing:.12em">R = export webm · ?q=720 for slower machines</span></div>
+<div id="drop">DROP THE SONG</div>
+<div id="build"></div>
+<div id="ui"><button id="pp">play</button><label>load song<input id="file" type="file" accept="audio/*" hidden /></label>
+  <input id="seek" type="range" min="0" max="92" step="0.01" value="0" /><span id="tc">0:00.0</span><button id="rec">export webm</button></div>
+<audio id="au" preload="auto"></audio>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+const BUILD = "v1.41.0";
+const $ = (id) => document.getElementById(id);
+$("build").textContent = BUILD + " · five atoms thick";
+const params = new URLSearchParams(location.search), CLEAN = params.has("clean");
+let TOTAL = 91.62;
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const sm = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
+const lerp = (a, b, x) => a + (b - a) * x;
+const hash = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const MONO = '"JetBrains Mono","DejaVu Sans Mono",monospace';
+const MATH = '"Cambria Math","STIX Two Math","DejaVu Serif",serif';
+const IMPACT = "Impact, 'Arial Narrow Bold', sans-serif";
+
+// =============================================================================
+// CUES — measured on the cut Suno take (Whisper, 0.4 s windows) + kick grid.
+// Verse 2 and the second chorus were not sung; the Sun, STM and the 2025
+// Nobel play as pictures over the instrumental drop (65.6–74.9 s).
+// =============================================================================
+const BEAT = 0.4493, DROP = 21.735, BAR = BEAT * 4;
+const KICKS = [3.71, 5.00, 18.11, 20.02, 21.73, 21.95, 22.19, 22.40, 22.64, 23.09, 23.54, 23.75, 23.99, 24.44, 24.88, 25.32, 25.77, 26.21, 26.66, 27.12, 27.56, 28.01, 28.46, 28.91, 29.35, 29.81, 30.26, 30.70, 31.15, 31.59, 32.05, 32.50, 32.94, 33.39, 33.84, 34.29, 34.73, 35.18, 35.63, 36.08, 36.53, 36.98, 37.42, 37.87, 38.32, 38.77, 39.21, 39.66, 40.11, 40.56, 41.01, 41.46, 41.90, 42.35, 42.80, 43.25, 43.69, 44.14, 44.59, 45.04, 45.49, 45.94, 46.38, 46.83, 47.28, 47.73, 48.18, 48.62, 49.07, 49.52, 49.97, 50.42, 50.86, 51.31, 51.76, 52.21, 52.66, 53.10, 53.55, 54.00, 54.45, 54.90, 55.34, 55.79, 56.24, 56.69, 57.14, 57.58, 58.03, 58.48, 58.93, 59.38, 59.82, 60.27, 60.72, 61.17, 61.62, 62.06, 62.51, 62.96, 63.41, 63.86, 64.30, 64.75, 65.20, 65.65, 66.10, 66.54, 66.99, 67.44, 67.89, 68.34, 68.78, 69.23, 69.68, 70.13, 70.58, 71.02, 71.47, 71.92, 72.37, 72.82, 73.26, 73.71, 74.16, 74.61, 75.06, 75.50, 75.95, 76.40, 76.85, 77.30, 77.74, 78.19, 78.64, 79.09, 79.54, 79.98, 80.43, 80.88, 81.33, 81.78, 82.22, 82.67, 84.42, 84.87, 85.32, 85.77, 86.22, 86.66, 87.11, 87.56];
+const PLAN = [
+  ["knock", 1.4, 3.4, "Knock knock."], ["who", 4.3, 6.0, "Who's there?"], ["both", 7.8, 9.0, "Both."],
+  ["wall", 11.3, 13.0, "There's a wall in your phone."], ["atoms", 13.0, 14.6, "A few atoms thick."], ["through", 15.4, 18.0, "The electrons walk right through."],
+  ["riser", 19.91, 21.7, "(riser)"], ["drop", DROP, 22.0, "(drop)"],
+  ["switches", 24.1, 25.9, "Billions of switches."], ["every", 26.0, 27.8, "Every one a wall."], ["gate", 28.0, 29.4, "Close the gate."], ["stop", 29.6, 30.7, "The current should stop."],
+  ["doesnt", 30.8, 32.9, "It doesn't."], ["ball", 33.3, 35.0, "An electron is not a ball. It's a wave."], ["wave", 36.0, 38.6, "And a wave doesn't stop at a wall. It fades."],
+  ["half", 38.9, 40.2, "Halve the wall."], ["million", 40.4, 42.2, "Fifty million times the leak."], ["photos", 42.4, 43.8, "Your photos?"], ["glass", 44.0, 46.2, "Electrons pushed through glass."],
+  ["open", 49.3, 51.3, "Open the box."],
+  ["c1", 52.0, 54.8, "Through the wall, through the wall, and it never knocks"], ["c2", 55.0, 58.9, "Here and not here like the cat in the box"],
+  ["c3", 59.2, 61.5, "I go through walls you said I couldn't climb"], ["c4", 62.3, 65.6, "Five atoms thick and I'm through every time"],
+  ["inst", 65.6, 74.8, "(instrumental)"],
+  ["phone", 74.9, 76.6, "Every phone."], ["chip", 76.8, 78.4, "Every chip."], ["star", 78.6, 80.4, "Every star in the sky."], ["reading", 80.5, 82.4, "You're reading this on a leak."], ["obox", 82.6, 84.2, "Open the box."],
+  ["hit", 84.42, 84.8, "(hit)"], ["end", 85.0, 91.6, "(end)"],
+];
+const idx = {}; PLAN.forEach(([id, t0, t1, txt]) => { idx[id] = { id, t0, t1, txt }; });
+const T0 = (id) => idx[id].t0, T1 = (id) => idx[id].t1;
+let kIdx = 0; const lastKick = (t) => { if (kIdx >= KICKS.length || KICKS[kIdx] > t) kIdx = 0; while (kIdx + 1 < KICKS.length && KICKS[kIdx + 1] <= t) kIdx++; return KICKS[kIdx] <= t ? t - KICKS[kIdx] : 9; };
+const pulse = (t, w = 0.14) => Math.exp(-lastKick(t) / w);
+const barAt = (n) => DROP + n * BAR; // downbeat grid
+
+// =============================================================================
+// PHYSICS — constants and the numbers on screen (all computed live)
+// =============================================================================
+const HBAR = 1.054571817e-34, ME = 9.1093837e-31, QE = 1.602176634e-19, HPL = 6.62607015e-34;
+const kappaNm = (dVeV, mEff = 1) => Math.sqrt(2 * mEff * ME * dVeV * QE) / HBAR * 1e-9; // nm⁻¹
+const K_BAR = kappaNm(3); // E = 1 eV, V₀ = 4 eV, free electron → 8.87 nm⁻¹
+const Texact = (dNm, E = 1, V0 = 4) => { const k = K_BAR * dNm, s = Math.sinh(k); return 1 / (1 + V0 * V0 * s * s / (4 * E * (V0 - E))); };
+const T2 = Texact(2), T1n = Texact(1), RATIO = T1n / T2;
+const K_STM = kappaNm(4.5), STM_PER_A = Math.exp(2 * K_STM * 0.1);
+// Fowler–Nordheim through SiO₂: φ = 3.1 eV, m* = 0.42 mₑ, F = 10 MV/cm
+const FN = (() => { const phi = 3.1 * QE, m = 0.42 * ME, F = 1e9; const A = QE ** 3 / (8 * Math.PI * HPL * phi) * (ME / m), B = 4 * Math.sqrt(2 * m) * phi ** 1.5 / (3 * HBAR * QE);
+  return { A, B, F, J: A * F * F * Math.exp(-B / F) * 1e-4 /* A/cm² */, Bmv: B / 1e8 }; })();
+// Gamow: proton + proton in the Sun's core
+const EG = 938272.088 * (Math.PI / 137.035999) ** 2, KT = 8.617333e-8 * 1.57e7, PGAM = Math.exp(-Math.sqrt(EG / KT)); // keV
+const sci = (x, d = 1) => { const e = Math.floor(Math.log10(Math.abs(x))), m = x / 10 ** e; const sup = String(e).split("").map((c) => "⁰¹²³⁴⁵⁶⁷⁸⁹"["0123456789".indexOf(c)] ?? (c === "-" ? "⁻" : c)).join(""); return `${m.toFixed(d)}×10${sup}`; };
+
+// =============================================================================
+// Renderer, post (ACES, bloom, grain + chromatic aberration)
+// =============================================================================
+const Q = +(params.get("q") || 1080), RW = Math.round(Q * 16 / 9), RH = Q;
+$("c").width = RW; $("c").height = RH; $("ov").width = RW; $("ov").height = RH;
+const renderer = new THREE.WebGLRenderer({ canvas: $("c"), antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(1); renderer.setSize(RW, RH, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000); scene.fog = new THREE.FogExp2(0x000000, 0.0);
+const camera = new THREE.PerspectiveCamera(40, RW / RH, 0.01, 2000); scene.add(camera);
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(RW, RH), 0.6, 0.5, 0.75); composer.addPass(bloom);
+composer.addPass(new OutputPass());
+const grain = new ShaderPass({ uniforms: { tDiffuse: { value: null }, uT: { value: 0 }, uAmt: { value: 0.035 }, uCA: { value: 0.008 }, uVig: { value: 0.4 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uT,uAmt,uCA,uVig; varying vec2 vUv;
+    void main(){ vec2 d=vUv-.5; float r=dot(d,d); vec3 c; c.r=texture2D(tDiffuse,vUv-d*uCA*r*4.).r; c.g=texture2D(tDiffuse,vUv).g; c.b=texture2D(tDiffuse,vUv+d*uCA*r*4.).b;
+      float n=fract(sin(dot(floor(vUv*vec2(1920.,1080.))+floor(uT*24.)*vec2(7.,13.),vec2(12.9898,78.233)))*43758.5453); c+=(n-.5)*uAmt; c*=1.-uVig*smoothstep(.15,.65,r*2.); gl_FragColor=vec4(c,1.); }` });
+composer.addPass(grain);
+const octx = $("ov").getContext("2d"); octx.scale(RW / 1280, RH / 720);
+const OW = 1280, OH = 720;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+function canvasTex(w, h, draw, srgb = true) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
+const glowTex = canvasTex(128, 128, (g) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.2, "rgba(255,255,255,.5)"); r.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = r; g.fillRect(0, 0, 128, 128); });
+const ADD = { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false };
+function glow(color, size, op = 1) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color, opacity: op, ...ADD })); s.scale.set(size, size, 1); return s; }
+// math text: "e^(−2κd)" draws −2κd as a real superscript; respects textAlign
+function parseSup(s) { const out = []; let i = 0, buf = ""; while (i < s.length) { if (s[i] === "^" && s[i + 1] === "(") { if (buf) out.push([buf, 0]), buf = ""; let d = 1, j = i + 2; while (j < s.length && d) { if (s[j] === "(") d++; else if (s[j] === ")") d--; j++; } out.push([s.slice(i + 2, d ? j : j - 1), 1]); i = j; } else buf += s[i++]; } if (buf) out.push([buf, 0]); return out; }
+function mtext(g, s, x, y) { if (!s.includes("^(")) { g.fillText(s, x, y); return; } const font = g.font, m = /(\d+(?:\.\d+)?)px/.exec(font), px = m ? +m[1] : 16, sf = font.replace(/(\d+(?:\.\d+)?)px/, Math.round(px * 0.64) + "px");
+  const parts = parseSup(s), ws = parts.map(([t, sup]) => { g.font = sup ? sf : font; return g.measureText(t).width; }), W = ws.reduce((a, b) => a + b, 0), al = g.textAlign;
+  let cx = al === "center" ? x - W / 2 : al === "right" ? x - W : x; g.textAlign = "left"; parts.forEach(([t, sup], i) => { g.font = sup ? sf : font; g.fillText(t, cx, sup ? y - px * 0.4 : y); cx += ws[i]; }); g.font = font; g.textAlign = al; }
+const S = {};
+const mk = (name) => { const root = new THREE.Group(); root.visible = false; scene.add(root); S[name] = { root }; return S[name]; };
+const look = (p, tgt, up = V(0, 1, 0)) => { camera.position.copy(p); camera.up.copy(up); camera.lookAt(tgt); };
+const orbit = (r, az, el, tgt = V(0, 0, 0)) => look(V(tgt.x + r * Math.cos(el) * Math.sin(az), tgt.y + r * Math.sin(el), tgt.z + r * Math.cos(el) * Math.cos(az)), tgt);
+const keyLight = new THREE.DirectionalLight(0xcfe8ff, 2.2); keyLight.position.set(4, 8, 6); scene.add(keyLight);
+const rimLight = new THREE.DirectionalLight(0x38d6f5, 1.6); rimLight.position.set(-6, 2, -5); scene.add(rimLight);
+scene.add(new THREE.HemisphereLight(0x304860, 0x05070a, 0.6));
+const atomGeo = new THREE.SphereGeometry(1, 20, 14);
+function atoms(list, r, color, emissive = 0x000000, ei = 0) { // list of [x,y,z]
+  const m = new THREE.InstancedMesh(atomGeo, new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.2, emissive, emissiveIntensity: ei }), list.length), o = new THREE.Object3D();
+  list.forEach((p, i) => { o.position.set(p[0], p[1], p[2]); o.scale.setScalar(r); o.updateMatrix(); m.setMatrixAt(i, o.matrix); }); m.frustumCulled = false; return m; }
+
+// =============================================================================
+// 1-D SCHRÖDINGER SOLVER (split-step Fourier, ħ = m = 1) — a real wave packet
+// hitting a real barrier, precomputed once so every frame is seekable.
+// =============================================================================
+function fft(re, im, inv) { const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+  for (let len = 2; len <= n; len <<= 1) { const ang = 2 * Math.PI / len * (inv ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) { let cr = 1, ci = 0; for (let j = 0; j < len / 2; j++) { const a = i + j, b = a + len / 2, xr = re[b] * cr - im[b] * ci, xi = re[b] * ci + im[b] * cr;
+      re[b] = re[a] - xr; im[b] = im[a] - xi; re[a] += xr; im[a] += xi; const nr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = nr; } } }
+  if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; } }
+const SIM = { N: 1024, L: 200, k0: 1.6, V0: 1.8, w: 1.2, x0: -28, sig: 4, dt: 0.04, steps: 900, every: 3, XS: 0.28, win: 32 };
+{ const { N, L, k0, V0, w, x0, sig, dt, steps, every, win } = SIM, dx = L / N, re = new Float64Array(N), im = new Float64Array(N), X = (i) => -L / 2 + i * dx;
+  const Vx = new Float64Array(N); for (let i = 0; i < N; i++) Vx[i] = X(i) >= 0 && X(i) < w ? V0 : 0;
+  const nrm = (2 * Math.PI * sig * sig) ** -0.25; for (let i = 0; i < N; i++) { const x = X(i), a = nrm * Math.exp(-((x - x0) ** 2) / (4 * sig * sig)); re[i] = a * Math.cos(k0 * x); im[i] = a * Math.sin(k0 * x); }
+  const kk = new Float64Array(N); for (let j = 0; j < N; j++) kk[j] = 2 * Math.PI / L * (j < N / 2 ? j : j - N);
+  const i0 = Math.floor((L / 2 - win) / dx), n = Math.ceil(2 * win / dx); SIM.i0 = i0; SIM.n = n; SIM.dx = dx; SIM.frames = [];
+  const half = (ph) => { for (let i = 0; i < N; i++) { const c = Math.cos(ph[i]), s = Math.sin(ph[i]), r = re[i], q = im[i]; re[i] = r * c + q * s; im[i] = q * c - r * s; } };
+  const pv = Float64Array.from(Vx, (v) => v * dt / 2), pk = Float64Array.from(kk, (k) => k * k / 2 * dt);
+  for (let s = 0; s <= steps; s++) {
+    if (s % every === 0) { const f = new Float32Array(n * 2); for (let i = 0; i < n; i++) { f[i * 2] = re[i0 + i]; f[i * 2 + 1] = im[i0 + i]; } SIM.frames.push(f); }
+    half(pv); fft(re, im, false); half(pk); fft(re, im, true); half(pv); }
+}
+// exact stationary scattering state for a rectangular barrier (incoming amplitude 1)
+const cx = { mul: (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]], add: (a, b) => [a[0] + b[0], a[1] + b[1]], sc: (a, s) => [a[0] * s, a[1] * s],
+  div: (a, b) => { const q = b[0] * b[0] + b[1] * b[1]; return [(a[0] * b[0] + a[1] * b[1]) / q, (a[1] * b[0] - a[0] * b[1]) / q]; }, ex: (a) => [Math.cos(a), Math.sin(a)] };
+function stationary(k, V0, d) { const kap = Math.sqrt(2 * (V0 - k * k / 2)), e = cx.ex(k * d);
+  let C = cx.sc(cx.mul(e, [1, k / kap]), 0.5 * Math.exp(-kap * d)), D = cx.sc(cx.mul(e, [1, -k / kap]), 0.5 * Math.exp(kap * d));
+  const p0 = cx.add(C, D), dp = cx.div(cx.sc(cx.add(C, cx.sc(D, -1)), kap), [0, k]), A = cx.sc(cx.add(p0, dp), 0.5), B = cx.sc(cx.add(p0, cx.sc(dp, -1)), 0.5);
+  const t = cx.div([1, 0], A); return { k, kap, d, r: cx.mul(B, t), t, C: cx.mul(C, t), D: cx.mul(D, t) }; }
+function statPsi(st, x) { const { k, kap, d } = st; if (x < 0) return cx.add(cx.ex(k * x), cx.mul(st.r, cx.ex(-k * x))); if (x <= d) return cx.add(cx.sc(st.C, Math.exp(kap * x)), cx.sc(st.D, Math.exp(-kap * x))); return cx.mul(st.t, cx.ex(k * x)); }
+
+// =============================================================================
+// SCENE · BARRIER — the wall, the complex wave as a helix (Re, Im), |ψ|², phasor comb
+// =============================================================================
+const BAR_ = mk("bar");
+{ const n = SIM.n, R = BAR_.root, XS = SIM.XS;
+  const mkLine = (count, mat) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(count * 3), 3)); g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(count * 3), 3)); const l = new THREE.Line(g, mat); l.frustumCulled = false; R.add(l); return l; };
+  BAR_.helix = mkLine(n, new THREE.LineBasicMaterial({ vertexColors: true, ...ADD, toneMapped: false }));
+  BAR_.helix2 = mkLine(n, new THREE.LineBasicMaterial({ vertexColors: true, ...ADD, opacity: 0.35, toneMapped: false }));
+  BAR_.dens = mkLine(n, new THREE.LineBasicMaterial({ color: 0xffd28a, ...ADD, toneMapped: false }));
+  { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 2 * 3), 3)); g.setAttribute("color", new THREE.BufferAttribute(new Float32Array(n * 2 * 3), 3));
+    BAR_.comb = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, ...ADD, opacity: 0.45, toneMapped: false })); BAR_.comb.frustumCulled = false; R.add(BAR_.comb); }
+  { const pos = new Float32Array(n * 2 * 3); BAR_.fillG = new THREE.BufferGeometry(); BAR_.fillG.setAttribute("position", new THREE.BufferAttribute(pos, 3)); const ix = [];
+    for (let i = 0; i < n - 1; i++) { const a = i * 2; ix.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } BAR_.fillG.setIndex(ix);
+    const f = new THREE.Mesh(BAR_.fillG, new THREE.MeshBasicMaterial({ color: 0xff9a3a, ...ADD, opacity: 0.22, side: THREE.DoubleSide, toneMapped: false })); f.frustumCulled = false; R.add(f); }
+  const axis = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(-SIM.win * XS, 0, 0), V(SIM.win * XS, 0, 0)]), new THREE.LineBasicMaterial({ color: 0x2a7f99, transparent: true, opacity: 0.6 })); R.add(axis);
+  const grid = new THREE.GridHelper(40, 80, 0x0d3a48, 0x082430); grid.position.y = -2.2; R.add(grid);
+  // the wall: a glass slab with five layers of atoms
+  BAR_.wall = new THREE.Group(); R.add(BAR_.wall);
+  const wd = SIM.w * XS; BAR_.wd = wd;
+  BAR_.slab = new THREE.Mesh(new THREE.BoxGeometry(1, 3.6, 2.4), new THREE.MeshStandardMaterial({ color: 0x0b2733, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.35, emissive: 0x0a4a5c, emissiveIntensity: 0.6, depthWrite: false }));
+  BAR_.edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 3.6, 2.4)), new THREE.LineBasicMaterial({ color: 0x66e3ff, transparent: true, opacity: 0.8, toneMapped: false }));
+  BAR_.wall.add(BAR_.slab, BAR_.edges);
+  const al = []; const sp = wd / 5; for (let l = 0; l < 5; l++) for (let a = -12; a <= 12; a++) for (let b = -8; b <= 8; b++) al.push([-wd / 2 + sp * (l + 0.5), a * 0.14 + (l % 2) * 0.07, b * 0.14 + (l % 2) * 0.07]);
+  BAR_.atoms = atoms(al, 0.03, 0x9fd6e8, 0x1a6a80, 0.6); BAR_.wall.add(BAR_.atoms);
+  BAR_.ball = new THREE.Mesh(new THREE.SphereGeometry(0.32, 32, 20), new THREE.MeshStandardMaterial({ color: 0xff6a3a, emissive: 0xff5a20, emissiveIntensity: 1.6, roughness: 0.3 })); BAR_.ball.add(glow(0xff8a4a, 2.4, 0.8)); R.add(BAR_.ball);
+  BAR_.eLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(-9, 0, -2.2), V(9, 0, -2.2)]), new THREE.LineDashedMaterial({ color: 0xffd28a, dashSize: 0.25, gapSize: 0.15, transparent: true, opacity: 0.9 })); BAR_.eLine.computeLineDistances(); R.add(BAR_.eLine);
+  const HUE = new THREE.Color();
+  BAR_.set = (get, wallX, wallW, amp = 1, dAmp = 1, hel2 = false) => { // get(i) → [re, im] at display sample i
+    const hp = BAR_.helix.geometry.attributes.position.array, hc = BAR_.helix.geometry.attributes.color.array, dp = BAR_.dens.geometry.attributes.position.array, cp = BAR_.comb.geometry.attributes.position.array, cc = BAR_.comb.geometry.attributes.color.array, fp = BAR_.fillG.attributes.position.array;
+    for (let i = 0; i < n; i++) { const [re, im] = get(i), x = (-SIM.win + i * SIM.dx) * XS, y = re * 4.2 * amp, z = im * 4.2 * amp, d = (re * re + im * im) * 14 * dAmp, ph = Math.atan2(im, re);
+      HUE.setHSL((ph / (2 * Math.PI) + 1) % 1 * 0.5 + 0.45, 0.9, 0.62); const mag = Math.min(1, Math.sqrt(re * re + im * im) * 4 + 0.08);
+      hp[i * 3] = x; hp[i * 3 + 1] = y; hp[i * 3 + 2] = z; hc[i * 3] = HUE.r * mag; hc[i * 3 + 1] = HUE.g * mag; hc[i * 3 + 2] = HUE.b * mag;
+      dp[i * 3] = x; dp[i * 3 + 1] = -2.2 + d; dp[i * 3 + 2] = -2.2;
+      fp[i * 6] = x; fp[i * 6 + 1] = -2.2; fp[i * 6 + 2] = -2.2; fp[i * 6 + 3] = x; fp[i * 6 + 4] = -2.2 + d; fp[i * 6 + 5] = -2.2;
+      const on = i % 3 === 0 ? 1 : 0; cp[i * 6] = x; cp[i * 6 + 1] = 0; cp[i * 6 + 2] = 0; cp[i * 6 + 3] = x; cp[i * 6 + 4] = y * on; cp[i * 6 + 5] = z * on;
+      for (let k = 0; k < 2; k++) { cc[i * 6 + k * 3] = HUE.r * mag * on; cc[i * 6 + k * 3 + 1] = HUE.g * mag * on; cc[i * 6 + k * 3 + 2] = HUE.b * mag * on; } }
+    for (const l of [BAR_.helix, BAR_.dens, BAR_.comb]) { l.geometry.attributes.position.needsUpdate = true; if (l.geometry.attributes.color) l.geometry.attributes.color.needsUpdate = true; }
+    BAR_.fillG.attributes.position.needsUpdate = true; BAR_.helix2.visible = hel2;
+    BAR_.wall.position.x = wallX; BAR_.slab.scale.x = wallW; BAR_.edges.scale.x = wallW; BAR_.atoms.scale.x = wallW / wd; };
+  BAR_.frame = (p) => { const f = SIM.frames[Math.round(clamp(p) * (SIM.frames.length - 1))]; return (i) => [f[i * 2], f[i * 2 + 1]]; };
+  BAR_.update = (t, sh, u) => { const b = sh.bar || { mode: "packet", p0: 0.3, p1: 0.8 }; BAR_.ball.visible = false; BAR_.eLine.visible = false;
+    if (b.mode === "packet" || b.mode === "ball") { const p = lerp(b.p0, b.p1, b.ease ? sm(u) : u);
+      BAR_.set(BAR_.frame(p), wd / 2, wd, 1, 1);
+      if (b.mode === "ball") { const bu = clamp(u / 0.55), bx = bu < 0.6 ? lerp(-8, -wd * 0.5 - 0.32, bu / 0.6) : lerp(-wd * 0.5 - 0.32, -5, (bu - 0.6) / 0.4);
+        BAR_.ball.visible = !b.morph || u < 0.42; BAR_.ball.position.set(b.morph ? lerp(-8, -3.2, clamp(u / 0.42)) : bx, b.morph ? 0 : 0, 0);
+        BAR_.ball.scale.setScalar(b.morph ? 1 - sm((u - 0.3) / 0.12) * 0.9 : 1);
+        if (b.morph) BAR_.set(BAR_.frame(lerp(b.p0, b.p1, clamp((u - 0.3) / 0.7))), wd / 2, wd, sm((u - 0.3) / 0.25), sm((u - 0.3) / 0.25));
+        else { BAR_.eLine.visible = true; BAR_.eLine.position.y = -2.2 + 1.28 / 1.8 * 4.4 * 0.5; } }
+    } else if (b.mode === "stat") { const d = lerp(b.d0, b.d1, sm(clamp((u - 0.1) / 0.75))), st = stationary(SIM.k0, SIM.V0, d), w = SIM.k0 * SIM.k0 / 2 * (t - sh.t0) * 2.2, ph = cx.ex(-w);
+      BAR_.set((i) => cx.mul(statPsi(st, -SIM.win + i * SIM.dx), ph), d * XS / 2, d * XS, 0.22, 0.012); BAR_.T = cx.mul(st.t, [st.t[0], -st.t[1]])[0]; BAR_.d = d; }
+    BAR_.slab.material.emissiveIntensity = 0.5 + 0.8 * pulse(t, 0.2); };
+}
+
+// =============================================================================
+// SCENE · TRANSISTOR — gate-all-around: 3 silicon nanosheets, high-k oxide shells,
+// a metal gate wrapping all four sides. 1 unit = 10 nm. Electrons as particles.
+// =============================================================================
+const GAA = mk("gaa");
+{ const R = GAA.root, L = 1.2, W = 2.0, TH = 0.5, GAP = 1.0, OX = 0.12;
+  const si = new THREE.MeshStandardMaterial({ color: 0x5f7180, roughness: 0.45, metalness: 0.35, emissive: 0x0c2230, emissiveIntensity: 0.6 });
+  const sd = new THREE.MeshStandardMaterial({ color: 0x3a4e5e, roughness: 0.5, metalness: 0.3, emissive: 0x281008, emissiveIntensity: 0.5 });
+  const gate = new THREE.MeshStandardMaterial({ color: 0xd4a24c, roughness: 0.25, metalness: 0.9, transparent: true, opacity: 0.32, depthWrite: false, emissive: 0x3a2400, emissiveIntensity: 0.4 });
+  const oxm = new THREE.MeshStandardMaterial({ color: 0x38d6f5, roughness: 0.1, transparent: true, opacity: 0.35, emissive: 0x0e6f88, emissiveIntensity: 1.0, depthWrite: false });
+  GAA.parts = []; const part = (geo, mat, x, y, z, ex) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.userData.base = V(x, y, z); m.userData.ex = ex; R.add(m); GAA.parts.push(m); return m; };
+  const Y = [-GAP - TH, 0, GAP + TH].map((y) => y + 0.2);
+  Y.forEach((y, i) => { part(new THREE.BoxGeometry(L + 3.2, TH, W), si, 0, y, 0, V(0, (i - 1) * 1.4, 0)); part(new THREE.BoxGeometry(L, TH + OX * 2, W + OX * 2), oxm, 0, y, 0, V(0, (i - 1) * 1.4 + 0.0, 0)); });
+  part(new THREE.BoxGeometry(1.6, 4.6, W + 0.6), sd, -(L / 2 + 1.6 + 0.8), 0.2, 0, V(-2.5, 0, 0)); part(new THREE.BoxGeometry(1.6, 4.6, W + 0.6), sd, L / 2 + 1.6 + 0.8, 0.2, 0, V(2.5, 0, 0));
+  GAA.gate = part(new THREE.BoxGeometry(L, 5.2, W + 1.0), gate, 0, 0.5, 0, V(0, 3.2, 0)); GAA.gate.add(new THREE.LineSegments(new THREE.EdgesGeometry(GAA.gate.geometry), new THREE.LineBasicMaterial({ color: 0xffd28a, transparent: true, opacity: 0.7 })));
+  part(new THREE.BoxGeometry(L + 7.5, 0.6, W + 2.5), new THREE.MeshStandardMaterial({ color: 0x1a222b, roughness: 0.7 }), 0, -2.6, 0, V(0, -1.5, 0));
+  const NE = 900, pos = new Float32Array(NE * 3); GAA.e = Array.from({ length: NE }, (_, i) => ({ sheet: i % 3, x0: hash(i) , y: (hash(i + 1) - 0.5) * TH * 0.8, z: (hash(i + 2) - 0.5) * W * 0.9, sp: 0.6 + hash(i + 3) * 0.8 }));
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  GAA.pts = new THREE.Points(g, new THREE.PointsMaterial({ color: 0x9ff2ff, size: 0.09, map: glowTex, ...ADD, toneMapped: false })); GAA.pts.frustumCulled = false; R.add(GAA.pts);
+  const NL = 60, lp = new Float32Array(NL * 6); const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.BufferAttribute(lp, 3));
+  GAA.leaks = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xff7a3a, ...ADD, toneMapped: false })); GAA.leaks.frustumCulled = false; R.add(GAA.leaks);
+  GAA.Y = Y; GAA.L = L; GAA.TH = TH; GAA.W = W;
+  GAA.update = (t, sh, u) => { const o = sh.gaa || {}, ex = o.explode ? sm((t - sh.t0) / 0.7) : 0, on = o.on ?? 1, leak = o.leak ?? 0;
+    GAA.parts.forEach((m) => { m.position.copy(m.userData.base).addScaledVector(m.userData.ex, ex); });
+    GAA.gate.material.emissive.setHex(on > 0.5 ? 0x3a2400 : 0x5a0a08); GAA.gate.material.emissiveIntensity = on > 0.5 ? 0.4 : 0.9 + 0.6 * pulse(t);
+    const span = L + 3.2, tt = t - sh.t0, flow = o.stopAt != null ? Math.min(tt, o.stopAt + (tt - o.stopAt) * 0.0) : tt;
+    for (let i = 0; i < NE; i++) { const e = GAA.e[i], x = (((e.x0 + flow * e.sp * 0.55 * (on > 0.5 || o.stopAt == null ? 1 : 0)) % 1) - 0.5) * span; pos[i * 3] = x; pos[i * 3 + 1] = Y[e.sheet] + e.y + (e.sheet - 1) * 1.4 * ex; pos[i * 3 + 2] = e.z; }
+    g.attributes.position.needsUpdate = true;
+    for (let k = 0; k < NL; k++) { const ph = (tt * 2.2 + hash(k * 7)) % 1, vis = leak > 0 && ph < 0.35 && hash(k + Math.floor(tt * 2.2 + hash(k * 7)) * 13) < leak; const s = k % 3, x = (hash(k * 3) - 0.5) * L * 0.9, z = (hash(k * 5) - 0.5) * W, up = k % 2 ? 1 : -1;
+      const y0 = Y[s] + up * TH / 2, y1 = y0 + up * (OX + 0.35) * sm(ph / 0.35); lp.set(vis ? [x, y0, z, x, y1, z] : [0, 0, 0, 0, 0, 0], k * 6); }
+    lg.attributes.position.needsUpdate = true; };
+}
+
+// =============================================================================
+// SCENE · ARRAY — billions of switches: a city of gates over silicon fins
+// =============================================================================
+const ARR = mk("arr");
+{ const NX = 90, NZ = 90, n = NX * NZ, o = new THREE.Object3D();
+  const gates = new THREE.InstancedMesh(new THREE.BoxGeometry(0.12, 0.5, 0.9), new THREE.MeshStandardMaterial({ color: 0xc9953e, metalness: 0.85, roughness: 0.3, emissive: 0xffffff, emissiveIntensity: 0 }), n);
+  const fins = new THREE.InstancedMesh(new THREE.BoxGeometry(1.0, 0.25, 0.2), new THREE.MeshStandardMaterial({ color: 0x46596a, metalness: 0.4, roughness: 0.5 }), n);
+  const col = new THREE.Color(); let i = 0; for (let a = 0; a < NX; a++) for (let b = 0; b < NZ; b++) { o.position.set((a - NX / 2) * 1.1, 0.25, (b - NZ / 2) * 1.1); o.updateMatrix(); gates.setMatrixAt(i, o.matrix);
+    o.position.y = 0.05; o.updateMatrix(); fins.setMatrixAt(i, o.matrix); gates.setColorAt(i, col.setHSL(0.1, 0.6, 0.45 + hash(i) * 0.2)); i++; }
+  gates.frustumCulled = fins.frustumCulled = false; ARR.root.add(gates, fins); ARR.gates = gates;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: 0x0b1218, roughness: 0.6, metalness: 0.4 })); floor.rotation.x = -Math.PI / 2; ARR.root.add(floor);
+  const sp = []; for (let k = 0; k < 2500; k++) sp.push((hash(k) - 0.5) * 95, 0.55 + hash(k + 1) * 0.3, (hash(k + 2) - 0.5) * 95);
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.Float32BufferAttribute(sp, 3));
+  ARR.sparks = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xff8a3a, size: 0.35, map: glowTex, ...ADD, toneMapped: false })); ARR.sparks.frustumCulled = false; ARR.root.add(ARR.sparks);
+  ARR.update = (t) => { ARR.sparks.material.opacity = 0.35 + 0.65 * pulse(t, 0.18); ARR.sparks.material.size = 0.25 + 0.3 * pulse(t, 0.18); };
+}
+
+// =============================================================================
+// SCENE · LATTICE — silicon crystal, 5-ish atomic layers of SiO₂ (1.2 nm), metal gate.
+// 1 unit = 0.5 nm. Electrons cross the oxide. Also the STM tip mode.
+// =============================================================================
+const LAT = mk("lat");
+{ const a = 1.086, base = [[0, 0, 0], [0, .5, .5], [.5, 0, .5], [.5, .5, 0], [.25, .25, .25], [.25, .75, .75], [.75, .25, .75], [.75, .75, .25]], si = [];
+  for (let i = -4; i < 4; i++) for (let k = -4; k < 4; k++) for (let j = -3; j < 0; j++) base.forEach(([x, y, z]) => si.push([(i + x) * a, (j + y) * a, (k + z) * a]));
+  LAT.si = atoms(si, 0.2, 0x8fa6b8, 0x10283a, 0.5); LAT.root.add(LAT.si);
+  const r = rng(7), ox = [], oo = []; for (let l = 0; l < 5; l++) for (let i = 0; i < 160; i++) { const p = [(r() - 0.5) * 8.6, 0.25 + l * 0.48 + (r() - 0.5) * 0.16, (r() - 0.5) * 8.6]; (r() < 0.34 ? ox : oo).push(p); }
+  LAT.oxSi = atoms(ox, 0.2, 0xd8e2ea, 0x203040, 0.4); LAT.oxO = atoms(oo, 0.15, 0xff4a4a, 0x601010, 0.6); LAT.root.add(LAT.oxSi, LAT.oxO);
+  const au = []; for (let i = -6; i < 6; i++) for (let k = -6; k < 6; k++) for (let j = 0; j < 3; j++) au.push([(i + (j % 2) * 0.5) * 0.72, 2.9 + j * 0.6, (k + (j % 2) * 0.5) * 0.72]);
+  LAT.au = atoms(au, 0.26, 0xd9a441, 0x3a2000, 0.4); LAT.au.material.metalness = 0.9; LAT.root.add(LAT.au);
+  LAT.e = Array.from({ length: 26 }, (_, i) => { const s = glow(0x9ff2ff, 0.9, 1); LAT.root.add(s); return { s, x: (hash(i) - 0.5) * 6, z: (hash(i + 4) - 0.5) * 6, ph: hash(i + 9), sp: 0.5 + hash(i + 2) * 0.5 }; });
+  // STM tip: a pyramid of tungsten atoms ending in one atom
+  const tip = []; for (let l = 0; l < 7; l++) for (let i = -l; i <= l; i++) for (let k = -l; k <= l; k++) tip.push([i * 0.5, l * 0.45, k * 0.5]);
+  LAT.tip = new THREE.Group(); LAT.tip.add(atoms(tip, 0.24, 0xb8c0c8, 0x101418, 0.3)); LAT.root.add(LAT.tip);
+  LAT.beam = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0x9ff2ff, ...ADD, toneMapped: false })); LAT.beam.add(glow(0x9ff2ff, 0.6, 0.6)); LAT.root.add(LAT.beam);
+  LAT.update = (t, sh) => { const stm = !!(sh.lat && sh.lat.stm); LAT.oxSi.visible = LAT.oxO.visible = LAT.au.visible = !stm; LAT.tip.visible = LAT.beam.visible = stm;
+    LAT.e.forEach((e) => { e.s.visible = !stm; const p = (t * e.sp + e.ph) % 1, y = lerp(-1.2, 4.6, p), inOx = y > 0.1 && y < 2.6; e.s.position.set(e.x, y, e.z);
+      e.s.material.opacity = inOx ? 0.18 + 0.5 * Math.abs(Math.sin(t * 40 + e.ph * 9)) : 1; e.s.scale.setScalar(inOx ? 1.6 : 0.9); });
+    if (stm) { const x = ((t - sh.t0) * 0.9) % 6 - 3, surf = 0.3 * Math.cos(x / a * 2 * Math.PI) ** 2, gap = 0.9 - surf; LAT.tip.position.set(x, 0.2 + gap, 0); LAT.STM = { x, gap };
+      LAT.beam.position.set(x, 0.2 + gap / 2, 0); LAT.beam.scale.set(1, gap, 1); LAT.beam.material.opacity = clamp(Math.exp(-(gap - 0.6) * 3)); } };
+}
+
+// =============================================================================
+// SCENE · NAND — 3D flash: hundreds of word-line layers pierced by channel holes
+// =============================================================================
+const NAND = mk("nand");
+{ const NL = 72, o = new THREE.Object3D(), H = 0.11, X = 14, Dp = 7; // cross-section: front face at z = 0
+  const plates = new THREE.InstancedMesh(new THREE.BoxGeometry(X, H * 0.55, Dp), new THREE.MeshStandardMaterial({ color: 0x9aa6b2, metalness: 0.8, roughness: 0.3 }), NL);
+  const oxide = new THREE.Mesh(new THREE.BoxGeometry(X, NL * H, Dp - 0.02), new THREE.MeshStandardMaterial({ color: 0x1a2630, roughness: 0.6 }));
+  for (let i = 0; i < NL; i++) { o.position.set(0, i * H, -Dp / 2); o.updateMatrix(); plates.setMatrixAt(i, o.matrix); } oxide.position.set(0, (NL - 1) * H / 2, -Dp / 2 - 0.01); NAND.root.add(plates, oxide);
+  const chM = new THREE.MeshStandardMaterial({ color: 0x0c2a33, emissive: 0x38d6f5, emissiveIntensity: 0.9, roughness: 0.3 }), trapM = new THREE.MeshStandardMaterial({ color: 0x402a10, emissive: 0xff8a1e, emissiveIntensity: 0.35 });
+  NAND.cx = []; for (let i = 0; i < 9; i++) { const x = (i - 4) * 1.45; NAND.cx.push(x);
+    const ch = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.17, NL * H, 24, 1, false, -Math.PI / 2, Math.PI), chM); ch.position.set(x, (NL - 1) * H / 2, 0.0); NAND.root.add(ch);
+    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.29, NL * H, 24, 1, true, -Math.PI / 2, Math.PI), trapM); tr.position.copy(ch.position); NAND.root.add(tr); }
+  plates.frustumCulled = false;
+  NAND.e = Array.from({ length: 90 }, (_, i) => { const s = glow(0xffd28a, 0.2, 1); NAND.root.add(s); return { s, c: i % 9, l: Math.floor(hash(i + 3) * NL), ph: hash(i + 5), side: i % 2 ? 1 : -1 }; });
+  NAND.update = (t) => { NAND.e.forEach((e) => { const p = (t * 1.1 + e.ph) % 1; e.s.position.set(NAND.cx[e.c] + e.side * (0.2 + 0.14 * sm(p)), e.l * H, 0.06); e.s.material.opacity = Math.sin(p * Math.PI); });
+    chM.emissiveIntensity = 0.6 + 0.6 * pulse(t, 0.2); };
+}
+
+// =============================================================================
+// SCENE · DIE, BOARD, PHONE — the zoom from your hand down to the transistor
+// =============================================================================
+const DIE = mk("die");
+{ const tex = canvasTex(2048, 2048, (g) => { const r = rng(3); g.fillStyle = "#0a1016"; g.fillRect(0, 0, 2048, 2048);
+    for (let i = 0; i < 70; i++) { const x = r() * 1900, y = r() * 1900, w = 60 + r() * 380, h = 60 + r() * 380; g.fillStyle = `hsl(${190 + r() * 60},30%,${10 + r() * 14}%)`; g.fillRect(x, y, w, h);
+      g.strokeStyle = `rgba(120,220,255,${0.15 + r() * 0.3})`; for (let k = 0; k < w; k += 6) { g.beginPath(); g.moveTo(x + k, y); g.lineTo(x + k, y + h); g.stroke(); } }
+    g.strokeStyle = "rgba(255,200,120,.35)"; for (let i = 0; i < 400; i++) { g.beginPath(); const y = r() * 2048; g.moveTo(0, y); g.lineTo(2048, y + (r() - 0.5) * 6); g.stroke(); } });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.55, metalness: 0.6, roughness: 0.35 })); m.rotation.x = -Math.PI / 2; DIE.root.add(m); DIE.update = () => {}; }
+const PHONE = mk("phone");
+{ const scr = canvasTex(512, 1024, (g) => { const gr = g.createLinearGradient(0, 0, 512, 1024); gr.addColorStop(0, "#0b3550"); gr.addColorStop(1, "#2a0b3a"); g.fillStyle = gr; g.fillRect(0, 0, 512, 1024);
+    for (let i = 0; i < 18; i++) { const x = 30 + (i % 3) * 160, y = 170 + Math.floor(i / 3) * 140; g.fillStyle = `hsl(${(i * 47) % 360},55%,45%)`; g.fillRect(x, y, 130, 120); }
+    g.fillStyle = "#e8fbff"; g.font = "700 88px sans-serif"; g.textAlign = "center"; g.fillText("19:41", 256, 120); });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(7.4, 15, 0.8), new THREE.MeshStandardMaterial({ color: 0x15181c, metalness: 0.8, roughness: 0.25 }));
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(6.9, 14.4), new THREE.MeshBasicMaterial({ map: scr, toneMapped: false })); s.position.z = 0.41; body.add(s); PHONE.root.add(body);
+  PHONE.root.add(glow(0x4fb0ff, 30, 0.25)); PHONE.update = () => {}; }
+
+// =============================================================================
+// SCENE · SKY — every star in the sky; the Sun up close
+// =============================================================================
+const SKY = mk("sky");
+{ const p = [], c = [], r = rng(11), col = new THREE.Color(); for (let i = 0; i < 9000; i++) { const u = r() * 2 - 1, th = r() * 6.283, s = Math.sqrt(1 - u * u), R = 400 + r() * 300; p.push(R * s * Math.cos(th), R * u, R * s * Math.sin(th));
+    col.setHSL(0.55 + (r() - 0.5) * 0.2, 0.4, 0.5 + r() * 0.5); c.push(col.r, col.g, col.b); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(c, 3));
+  SKY.root.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, vertexColors: true, map: glowTex, ...ADD, sizeAttenuation: true, toneMapped: false })));
+  SKY.sun = new THREE.Group(); SKY.sun.add(new THREE.Mesh(new THREE.SphereGeometry(6, 64, 32), new THREE.MeshBasicMaterial({ color: 0xffb060, toneMapped: false })), glow(0xff9030, 40, 0.9), glow(0xffd8a0, 18, 1)); SKY.sun.position.set(0, 0, -60); SKY.root.add(SKY.sun);
+  SKY.update = (t) => { SKY.root.rotation.y = t * 0.01; }; }
+
+// =============================================================================
+// AI VIDEO CLIP SLOTS — assets/clips/<id>.mp4 (docs/ai_clips_tunnel.json).
+// Missing clip → the 3D shot underneath plays instead.
+// =============================================================================
+const CLIP_IDS = ["q_box", "q_eye", "q_phone", "q_teardown", "q_wafer", "q_fab", "q_gpu", "q_die", "q_nand", "q_glass", "q_board", "q_tem", "q_paw", "q_crowd", "q_ghost", "q_dancer", "q_sun", "q_qpu", "q_stm", "q_open"];
+const CLIPS = {}; CLIP_IDS.forEach((id) => { const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.crossOrigin = "anonymous"; const c = { v, ready: false };
+  v.addEventListener("loadeddata", () => { c.ready = true; }); v.addEventListener("error", () => {}); v.src = `assets/clips/${id}.mp4`; CLIPS[id] = c; });
+function drawClip(g, t, sh) { const c = sh.clip && CLIPS[sh.clip]; if (!c || !c.ready) return false; const want = (t - sh.t0) + (sh.clipOff ?? 0.5), v = c.v;
+  if (playing()) { if (v.paused) v.play().catch(() => {}); if (Math.abs(v.currentTime - want) > 0.25) v.currentTime = want; } else { if (!v.paused) v.pause(); if (Math.abs(v.currentTime - want) > 0.04) v.currentTime = want; }
+  const ar = v.videoWidth / v.videoHeight || 16 / 9, z = 1 + (sh.push || 0) * clamp((t - sh.t0) / (sh.t1 - sh.t0)), w = Math.max(OW, OH * ar) * z, h = w / ar; g.drawImage(v, (OW - w) / 2, (OH - h) / 2, w, h); return true; }
+
+// =============================================================================
+// SHOTS — every cut lands on a lyric line or the kick grid
+// =============================================================================
+let SHOTS = [];
+const CAM = {
+  barSide: (az0, az1, r0 = 13, r1 = 10, el = 0.22) => (t, u) => orbit(lerp(r0, r1, sm(u)), lerp(az0, az1, sm(u)), el, V(0, 0, 0)),
+  barWall: (t, u) => orbit(lerp(10, 8, sm(u)), lerp(-0.72, -0.48, u), 0.24, V(-1.2, 0, 0)),
+  barFar: (t, u) => { const k = sm(u / 0.18); orbit(lerp(9, 11, u), lerp(-1.2, 1.15, k) + u * 0.12, 0.2, V(lerp(-2, 3, k), 0, 0)); },
+  gaa: (az0, az1, r0, r1, el = 0.35) => (t, u) => orbit(lerp(r0, r1, sm(u)), lerp(az0, az1, u), el, V(0, 0.2, 0)),
+  arrFly: (t, u) => look(V(lerp(-30, 10, u), lerp(3.5, 1.6, u), lerp(20, -6, u)), V(lerp(-20, 22, u), 0.3, lerp(-10, -30, u))),
+  arrDive: (t, u) => look(V(0.3, lerp(18, 1.4, sm(u)), lerp(10, 1.8, sm(u))), V(0, 0.2, 0)),
+  latFly: (t, u) => orbit(lerp(14, 9, sm(u)), lerp(0.5, 1.1, u), lerp(0.12, 0.28, u), V(0, 1.2, 0)),
+  latDive: (t, u) => orbit(lerp(30, 9, sm(u)), lerp(0.3, 0.9, u), 0.25, V(0, 1.2, 0)),
+  stm: (t, u) => orbit(lerp(9, 7, u), lerp(-0.6, -0.2, u), 0.18, V(LAT.STM ? LAT.STM.x : 0, 0.8, 0)),
+  nand: (t, u) => orbit(lerp(16, 10, sm(u)), lerp(0.55, 0.25, u), lerp(0.05, 0.2, u), V(lerp(-1, 1, u), lerp(2, 4.6, u), 0)),
+  die: (t, u) => look(V(lerp(0, 1, u), lerp(14, 2.2, sm(u)), lerp(4, 0.6, sm(u))), V(0, 0, 0)),
+  phone: (t, u) => look(V(lerp(4, 0, u), lerp(-2, 0, u), lerp(34, 12, sm(u))), V(0, 0, 0)),
+  sky: (t, u) => look(V(0, 0, 40 - u * 30), V(0, lerp(4, 0, u), -60)),
+};
+const B = (mode, o = {}) => ({ mode, ...o });
+function buildShots() {
+  SHOTS = []; const shot = (t0, t1, use, cam, o = {}) => { if (t1 > t0 + 0.001) SHOTS.push({ t0, t1, use, cam, ...o }); };
+  // INTRO — knock knock · who's there · both · the wall in your phone · zoom down to atoms
+  shot(0, T0("who") - 0.3, ["bar"], CAM.barSide(-1.4, -1.1, 22, 16), { clip: "q_box", clipOff: 0.2, push: 0.05, bar: B("packet", { p0: 0, p1: 0.05 }) });
+  shot(T0("who") - 0.3, T0("both"), ["bar"], CAM.barSide(-1.1, -0.9, 16, 13), { clip: "q_eye", clipOff: 0.3, push: 0.08, bar: B("packet", { p0: 0.05, p1: 0.15 }) });
+  shot(T0("both"), T0("wall"), ["bar"], CAM.barSide(-0.25, 0.25, 15, 12, 0.35), { bar: B("packet", { p0: 0.92, p1: 1.0 }), cat: true });
+  shot(T0("wall"), T0("atoms") + 0.3, ["phone"], CAM.phone, { clip: "q_phone", clipOff: 0.3, scale: [150e-3, 50e-3] });
+  shot(T0("atoms") + 0.3, T0("through"), ["phone"], CAM.phone, { clip: "q_teardown", clipOff: 0.3, push: 0.1, scale: [30e-3, 5e-3] });
+  { const z0 = T0("through"), z1 = T0("riser"), d = (z1 - z0) / 5; // powers of ten
+    shot(z0, z0 + d, ["die"], CAM.die, { scale: [2e-3, 50e-6] }); shot(z0 + d, z0 + 2 * d, ["arr"], CAM.arrDive, { scale: [20e-6, 200e-9] });
+    shot(z0 + 2 * d, z0 + 3 * d, ["gaa"], CAM.gaa(0.6, 0.9, 16, 9), { scale: [100e-9, 20e-9], gaa: { on: 1 } }); shot(z0 + 3 * d, z1, ["lat"], CAM.latDive, { scale: [10e-9, 1.2e-9], electrons: true }); }
+  shot(T0("riser"), DROP, ["lat"], CAM.latFly, { clip: "q_wafer", clipOff: 0.3, push: 0.12 });
+  // DROP — cut every 2 beats
+  [["q_fab", ["arr"], CAM.arrFly, {}], [null, ["gaa"], CAM.gaa(0.3, 1.2, 12, 10), { gaa: { explode: true, on: 1 }, labels: true }], ["q_gpu", ["arr"], CAM.arrFly, {}]].forEach(([clip, use, cam, o], i) =>
+    shot(DROP + i * BEAT * 2, i === 2 ? T0("switches") : DROP + (i + 1) * BEAT * 2, use, cam, { clip, clipOff: 0.4, kick: true, slamEq: ["iħ ∂Ψ/∂t = ĤΨ", "T ≈ e^(−2κd)", "κ = √(2m(V₀−E)) / ħ"][i], ...o }));
+  // VERSE 1
+  shot(T0("switches"), T0("every"), ["arr"], CAM.arrFly, { rain: 0.4 });
+  shot(T0("every"), T0("gate"), ["gaa"], CAM.gaa(-0.5, 0.2, 11, 8.5), { gaa: { on: 1 }, labels: true });
+  shot(T0("gate"), T0("doesnt"), ["gaa"], CAM.gaa(0.2, 0.7, 8.5, 7, 0.25), { gaa: { on: 0, stopAt: 0.7 }, labels: true });
+  shot(T0("doesnt"), T0("ball"), ["gaa"], CAM.gaa(0.7, 1.1, 7, 5.5, 0.15), { gaa: { on: 0, stopAt: 0, leak: 0.9 }, kick: true });
+  shot(T0("ball"), T0("wave") - 0.8, ["bar"], CAM.barSide(-0.6, -0.35, 14, 11), { bar: B("ball", { morph: true, p0: 0.08, p1: 0.32 }) });
+  shot(T0("wave") - 0.8, T0("half"), ["bar"], CAM.barWall, { bar: B("packet", { p0: 0.32, p1: 0.92 }), tdse: true });
+  shot(T0("half"), T0("photos"), ["bar"], CAM.barSide(-0.15, 0.15, 12, 10.5, 0.3), { bar: B("stat", { d0: 2.4, d1: 1.2 }), tdse: true, tcount: true });
+  shot(T0("photos"), T0("glass"), ["nand"], CAM.nand, { clip: "q_nand", clipOff: 0.3, push: 0.08, cap: ["3D NAND FLASH", "321 layers · every photo you keep"] });
+  shot(T0("glass"), T1("glass") + 0.1, ["nand"], CAM.nand, { fn: true });
+  shot(T1("glass") + 0.1, T0("open"), ["bar"], CAM.barWall, { clip: "q_glass", clipOff: 0.3, bar: B("packet", { p0: 0.5, p1: 0.7 }), glassEq: ["T ≈ exp(−2/ħ ∫ √(2m(V(x)−E)) dx)", "J = (AF²/φ) · exp(−Bφ^(3/2) / F)"] });
+  // PRE — open the box
+  shot(T0("open"), T0("c1"), ["bar"], CAM.barSide(-1.2, -1.0, 18, 16), { clip: "q_paw", clipOff: 0.2, push: 0.06, bar: B("packet", { p0: 0.2, p1: 0.3 }) });
+  // CHORUS — whip pan to the far side on the downbeat
+  shot(T0("c1"), T0("c2"), ["bar"], CAM.barFar, { bar: B("packet", { p0: 0.55, p1: 0.95 }), rain: 1, kick: true });
+  shot(T0("c2"), T0("c2") + 2.2, ["bar"], CAM.barSide(0.4, 0.7, 14, 12), { clip: "q_crowd", clipOff: 0.4, rain: 0.6, kick: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
+  shot(T0("c2") + 2.2, T0("c3"), ["bar"], CAM.barSide(-0.3, 0.3, 14, 12, 0.35), { clip: "q_ghost", clipOff: 0.3, cat: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
+  shot(T0("c3"), T1("c3"), ["bar"], CAM.barSide(-0.75, -0.45, 14, 12, 0.18), { bar: B("ball", { p0: 0.2, p1: 0.95 }), climb: true, kick: true });
+  shot(T1("c3"), T0("c4"), ["bar"], CAM.barFar, { clip: "q_dancer", clipOff: 0.4, bar: B("packet", { p0: 0.6, p1: 0.9 }) });
+  shot(T0("c4"), T0("inst"), ["lat"], CAM.latFly, { rain: 0.7, kick: true, electrons: true, oxide: true });
+  // INSTRUMENTAL — the Sun, the 2025 Nobel, the microscope that sees atoms
+  const bars = [T0("inst"), barAt(25), barAt(26), barAt(27), barAt(28), barAt(29), T0("phone")];
+  const D = [[null, ["lat"], CAM.latFly, { electrons: true, oxide: true, who: 0 }], ["q_sun", ["sky"], CAM.sky, { gamow: true, who: 1 }], ["q_qpu", ["gaa"], CAM.gaa(0, 1, 10, 8), { gaa: { on: 1 }, nobel: true, who: 5 }],
+    ["q_stm", ["lat"], CAM.stm, { lat: { stm: true }, stmPanel: true, who: 4 }], [null, ["lat"], CAM.stm, { lat: { stm: true }, stmPanel: true, who: 4 }], ["q_tem", ["lat"], CAM.latDive, { electrons: true, who: 3, scale: [5e-9, 0.5e-9] }]];
+  for (let i = 0; i < bars.length - 1; i++) { const [clip, use, cam, o] = D[i]; shot(bars[i], bars[i + 1], use, cam, { clip, clipOff: 0.4, kick: true, rain: 0.5, ...o }); }
+  // OUTRO
+  shot(T0("phone"), T0("chip"), ["phone"], CAM.phone, { clip: "q_teardown", clipOff: 3.0 });
+  shot(T0("chip"), T0("star"), ["die"], CAM.die, { clip: "q_die", clipOff: 2.5 });
+  shot(T0("star"), T0("reading"), ["sky"], CAM.sky, {});
+  shot(T0("reading"), T0("obox"), ["phone"], CAM.phone, { clip: "q_phone", clipOff: 4.0, glitch: true });
+  shot(T0("obox"), T0("hit"), ["bar"], CAM.barSide(1.0, 1.2, 16, 15), { clip: "q_open", clipOff: 0.2, push: 0.05, bar: B("packet", { p0: 0.95, p1: 1 }) });
+  shot(T0("hit"), TOTAL + 50, ["bar"], (t, u) => orbit(lerp(10, 26, sm((t - T0("hit")) / 7)), 0.25 + (t - T0("hit")) * 0.03, 0.3, V(1.5, 0, 0)), { bar: B("packet", { p0: 0.9, p1: 1, ease: true }), end: true });
+}
+const shotAt = (t) => { for (const s of SHOTS) if (t >= s.t0 && t < s.t1) return s; return SHOTS[SHOTS.length - 1]; };
+
+// =============================================================================
+// OVERLAY (1280×720 units) — slams, scale bar, live panels, formula rain, callouts
+// =============================================================================
+function slam(g, t, a, b, txt, x, y, size, col = "#e8fbff", opt = {}) {
+  if (t < a || t > b) return; const u = (t - a) / 0.14, k = u < 1 ? 1 + (1 - u) * 0.9 : 1, fade = clamp((b - t) / 0.25), skew = u < 1 ? (1 - u) * 0.5 : 0;
+  g.save(); g.globalAlpha = fade; g.translate(x * OW, y * OH); g.transform(1, 0, -skew, 1, 0, 0); g.scale(k, k); g.font = `${opt.w || 800} ${size}px ${opt.f || IMPACT}`; g.textAlign = "center"; g.textBaseline = "middle";
+  g.shadowColor = opt.glow || "#38d6f5"; g.shadowBlur = 24; g.fillStyle = col; mtext(g, txt, 0, 0);
+  if (opt.sub) { g.font = `600 ${Math.round(size * 0.22 + 8)}px ${MONO}`; g.shadowBlur = 10; g.fillStyle = "#bff6ff"; mtext(g, opt.sub, 0, size * 0.62 + 6); } g.restore(); }
+function panelBox(g, x, y, w, h, title) { g.fillStyle = "rgba(2,12,18,.8)"; g.fillRect(x, y, w, h); g.strokeStyle = "rgba(110,225,255,.55)"; g.lineWidth = 1; g.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  g.fillStyle = "rgba(110,225,255,.18)"; g.fillRect(x, y, w, 26); g.fillStyle = "#bff6ff"; g.font = `700 13px ${MONO}`; g.textAlign = "left"; g.textBaseline = "alphabetic"; g.fillText(title, x + 10, y + 18); }
+const TDSE = [
+  ["iħ ∂Ψ/∂t = −(ħ²/2m) ∂²Ψ/∂x² + V(x)Ψ", ""],
+  ["Ψ(x,t) = ψ(x) e^(−iEt/ħ)", "stationary state"],
+  ["−(ħ²/2m) ψ″ + V₀ψ = Eψ", "inside the wall, E < V₀"],
+  ["ψ″ = κ²ψ ,   κ = √(2m(V₀ − E)) / ħ", ""],
+  ["ψ(x) = C e^(κx) + D e^(−κx)", "no oscillation: it fades"],
+  ["match ψ and ψ′ at x = 0 and x = d", ""],
+  ["T = |t|² = [1 + V₀² sinh²(κd) / 4E(V₀−E)]⁻¹", "exact"],
+  ["κd ≫ 1  ⇒  T ≈ 16E(V₀−E)/V₀² · e^(−2κd)", ""],
+  [`E = 1 eV, V₀ = 4 eV  ⇒  κ = ${K_BAR.toFixed(2)} nm⁻¹`, "free electron"],
+  [`d = 2 nm  ⇒  T = ${sci(T2)}`, ""],
+  [`d = 1 nm  ⇒  T = ${sci(T1n)}`, ""],
+  [`T(1 nm) / T(2 nm) = ${sci(RATIO)}`, "halve the wall → ×50 million"]];
+function tdsePanel(g, t, a, b) { if (t < a || t > b) return; const al = clamp((t - a) / 0.4) * clamp((b - t) / 0.4); g.save(); g.globalAlpha = al;
+  const x = 24, y = 50, w = 545, h = 440; panelBox(g, x, y, w, h, "SCHRÖDINGER · TUNNELING THROUGH A WALL · LIVE"); const n = TDSE.length, per = (b - a - 0.8) / n;
+  TDSE.forEach(([e, note], i) => { const ts = a + 0.2 + i * per; if (t < ts) return; const yy = y + 52 + i * 32, cur = t < ts + per; if (cur) { g.fillStyle = "rgba(110,225,255,.12)"; g.fillRect(x + 4, yy - 20, w - 8, 30); }
+    const k = clamp((t - ts) / (per * 0.6)), s = e.slice(0, Math.ceil(e.length * k)); g.font = `16px ${MATH}`; g.fillStyle = i >= 8 ? "#ffd9a8" : "#e8fbff"; mtext(g, s, x + 14, yy);
+    if (note && k >= 1) { g.font = `11px ${MONO}`; g.fillStyle = "rgba(160,225,255,.7)"; g.textAlign = "right"; g.fillText(note, x + w - 12, yy); g.textAlign = "left"; } }); g.restore(); }
+function tCounter(g, t, sh) { if (!sh.tcount) return; const d = BAR_.d ?? 2.4, dNm = d / 1.2, T = Texact(dNm); g.save(); g.textAlign = "center";
+  g.font = `800 64px ${MONO}`; g.shadowColor = "#ff8a1e"; g.shadowBlur = 24; g.fillStyle = "#ffd9a8"; g.fillText(`d = ${dNm.toFixed(2)} nm`, OW * 0.73, OH * 0.2);
+  g.font = `700 40px ${MONO}`; g.fillStyle = "#ffffff"; g.fillText(`T = ${sci(T)}`, OW * 0.73, OH * 0.29);
+  g.font = `800 46px ${IMPACT}`; g.fillStyle = "#ff9a9a"; g.shadowColor = "#ff2a3a"; g.fillText(`× ${Math.round(T / T2).toLocaleString("en")}`, OW * 0.73, OH * 0.38); g.restore(); }
+function fnPanel(g, t, sh) { if (!sh.fn) return; const a = sh.t0, al = clamp((t - a) / 0.3) * clamp((sh.t1 - t) / 0.3); g.save(); g.globalAlpha = al;
+  const x = 700, y = 60, w = 540, h = 400; panelBox(g, x, y, w, h, "FOWLER–NORDHEIM · HOW FLASH WRITES A BIT"); const X0 = x + 40, Y0 = y + 365;
+  g.strokeStyle = "#7dd3fc"; g.lineWidth = 2; g.beginPath(); g.moveTo(X0, Y0 - 120); g.lineTo(X0 + 120, Y0 - 120); g.lineTo(X0 + 120, Y0 - 250); g.lineTo(X0 + 300, Y0 - 140); g.lineTo(X0 + 300, Y0 - 60); g.lineTo(X0 + 460, Y0 - 60); g.stroke();
+  g.fillStyle = "rgba(56,214,245,.12)"; g.beginPath(); g.moveTo(X0 + 120, Y0 - 120); g.lineTo(X0 + 120, Y0 - 250); g.lineTo(X0 + 300, Y0 - 140); g.lineTo(X0 + 300, Y0 - 120); g.fill();
+  g.setLineDash([6, 5]); g.strokeStyle = "#ffd28a"; g.beginPath(); g.moveTo(X0, Y0 - 124); g.lineTo(X0 + 460, Y0 - 124); g.stroke(); g.setLineDash([]);
+  const p = ((t - a) * 0.9) % 1; g.strokeStyle = "#ffd28a"; g.lineWidth = 2; g.beginPath(); for (let i = 0; i <= 120; i++) { const xx = X0 + i * 3.8, inB = xx > X0 + 120 && xx < X0 + 230, amp = xx < X0 + 120 ? 14 : inB ? 14 * Math.exp(-(xx - X0 - 120) / 40) : 14 * Math.exp(-110 / 40);
+    const yy = Y0 - 124 - amp * Math.sin(i * 0.5 - p * 12); i ? g.lineTo(xx, yy) : g.moveTo(xx, yy); } g.stroke();
+  g.font = `12px ${MONO}`; g.fillStyle = "#bff6ff"; g.fillText("silicon channel", X0, Y0 - 100); g.fillText("tunnel oxide", X0 + 130, Y0 - 262); g.fillText("charge trap", X0 + 320, Y0 - 40); g.fillText("E", X0 - 18, Y0 - 120);
+  g.font = `17px ${MATH}`; g.fillStyle = "#e8fbff"; mtext(g, "J = (A F² / φ) · exp(−B φ^(3/2) / F)", x + 16, y + 56);
+  g.font = `13px ${MONO}`; g.fillStyle = "#ffd9a8"; g.fillText(`φ = 3.1 eV · m* = 0.42 mₑ · F = 10 MV/cm  ⇒  J ≈ ${sci(FN.J)} A/cm²`, x + 16, y + 82); g.restore(); }
+function gamowPanel(g, t, sh) { if (!sh.gamow) return; const al = clamp((t - sh.t0) / 0.3) * clamp((sh.t1 - t) / 0.3); g.save(); g.globalAlpha = al;
+  const x = 720, y = 70, w = 520, h = 300; panelBox(g, x, y, w, h, "THE SUN · PROTON MEETS PROTON"); const X0 = x + 40, Y0 = y + 268;
+  g.strokeStyle = "#ffb060"; g.lineWidth = 2; g.beginPath(); g.moveTo(X0, Y0 + 10); g.lineTo(X0 + 30, Y0 + 10); g.lineTo(X0 + 30, Y0 - 150); for (let i = 0; i <= 100; i++) { const r = 30 + i * 4.3; g.lineTo(X0 + r, Y0 - 150 * 30 / r); } g.stroke();
+  g.setLineDash([6, 5]); g.strokeStyle = "#e8fbff"; g.beginPath(); g.moveTo(X0 + 30, Y0 - 3); g.lineTo(X0 + 460, Y0 - 3); g.stroke(); g.setLineDash([]);
+  g.font = `12px ${MONO}`; g.fillStyle = "#bff6ff"; g.fillText("Coulomb wall ≈ 550 keV", X0 + 40, Y0 - 150); g.fillText(`kT ≈ ${KT.toFixed(1)} keV  (15.7 million K)`, X0 + 200, Y0 + 12);
+  g.font = `16px ${MATH}`; g.fillStyle = "#e8fbff"; g.fillText("P ≈ exp(−√(Eɢ / E)) ,  Eɢ = 2mᵣc² (παZ₁Z₂)²", x + 16, y + 56);
+  g.font = `13px ${MONO}`; g.fillStyle = "#ffd9a8"; g.fillText(`Eɢ = ${EG.toFixed(0)} keV ⇒ P(kT) ≈ ${sci(PGAM)} · classically: 10¹⁰ K`, x + 16, y + 82); g.restore(); }
+function stmPanel(g, t, sh) { if (!sh.stmPanel) return; g.save(); const x = 760, y = 70, w = 480, h = 230; panelBox(g, x, y, w, h, "SCANNING TUNNELING MICROSCOPE · LINE SCAN");
+  g.font = `16px ${MATH}`; g.fillStyle = "#e8fbff"; mtext(g, "I ∝ V · e^(−2κd) ,  κ = √(2mφ)/ħ", x + 16, y + 54); g.font = `13px ${MONO}`; g.fillStyle = "#ffd9a8"; g.fillText(`φ = 4.5 eV ⇒ ×${STM_PER_A.toFixed(1)} current per 0.1 nm`, x + 16, y + 78);
+  g.strokeStyle = "#9ff2ff"; g.lineWidth = 2; g.beginPath(); const tt = t - sh.t0; for (let i = 0; i <= 200; i++) { const xs = i / 200 * 6 - 3; if (xs > (tt * 0.9) % 6 - 3 && i) break; const surf = 0.3 * Math.cos(xs / 1.086 * 2 * Math.PI) ** 2, I = Math.exp(2 * 2.2 * surf);
+    const px = x + 20 + i * 2.2, py = y + h - 20 - (I - 1) * 30; i ? g.lineTo(px, py) : g.moveTo(px, py); } g.stroke(); g.restore(); }
+const WHO = [["ERWIN SCHRÖDINGER · 1926", "the wave equation"], ["GEORGE GAMOW · 1928", "alpha decay and the burning of stars"], ["FOWLER & NORDHEIM · 1928", "electrons tunneling out of metal"],
+  ["LEO ESAKI · 1957 · NOBEL 1973", "the tunnel diode"], ["BINNIG & ROHRER · 1981 · NOBEL 1986", "the scanning tunneling microscope"], ["CLARKE · DEVORET · MARTINIS · NOBEL 2025", "macroscopic quantum tunnelling in a circuit"]];
+function lowerThird(g, t, sh, l1, l2) { const a = clamp((t - sh.t0 - 0.15) / 0.3) * clamp((sh.t1 - t - 0.05) / 0.3); if (a <= 0) return; g.save(); g.globalAlpha = a; g.textAlign = "left";
+  g.fillStyle = "rgba(2,12,18,.72)"; g.fillRect(40, OH - 118, 560, 66); g.fillStyle = "#38d6f5"; g.fillRect(40, OH - 118, 4, 66);
+  g.font = `700 20px ${MONO}`; g.fillStyle = "#e8fbff"; g.fillText(l1, 58, OH - 90); g.font = `14px ${MONO}`; g.fillStyle = "#9fdcef"; g.fillText(l2, 58, OH - 66); g.restore(); }
+function scaleBar(g, t, sh) { if (!sh.scale) return; const u = clamp((t - sh.t0) / (sh.t1 - sh.t0)), m = Math.exp(lerp(Math.log(sh.scale[0]), Math.log(sh.scale[1]), u));
+  const unit = m >= 1e-2 ? [m * 100, "cm"] : m >= 1e-3 ? [m * 1e3, "mm"] : m >= 1e-6 ? [m * 1e6, "µm"] : [m * 1e9, "nm"]; g.save(); g.strokeStyle = "#e8fbff"; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(OW - 300, OH - 70); g.lineTo(OW - 100, OH - 70); g.moveTo(OW - 300, OH - 80); g.lineTo(OW - 300, OH - 60); g.moveTo(OW - 100, OH - 80); g.lineTo(OW - 100, OH - 60); g.stroke();
+  g.font = `700 30px ${MONO}`; g.fillStyle = "#ffffff"; g.textAlign = "center"; g.shadowColor = "#38d6f5"; g.shadowBlur = 14; g.fillText(`${unit[0] < 10 ? unit[0].toFixed(2) : unit[0].toFixed(0)} ${unit[1]}`, OW - 200, OH - 88); g.restore(); }
+const RAIN = ["iħ ∂Ψ/∂t = ĤΨ", "Ĥ = −ħ²∇²/2m + V", "ψ = Ae^(ikx) + Be^(−ikx)", "κ = √(2m(V₀−E))/ħ", "T ≈ e^(−2κd)", "∫|ψ|² dx = 1", "j = (ħ/m) Im(ψ*∇ψ)", "λ = h/p", "ΔxΔp ≥ ħ/2",
+  "|ψ⟩ = α|0⟩ + β|1⟩", "T = 1/(1 + V₀² sinh²κd / 4E(V₀−E))", "⟨x|p⟩ = e^(ipx/ħ)/√(2πħ)", "E = ħω", "p = ħk", "ψ(x) = Ce^(−κx)", "∂ρ/∂t + ∇·j = 0", "[x̂, p̂] = iħ", "P = exp(−√(Eɢ/E))"];
+function formulaRain(g, t, amt) { if (!amt) return; g.save(); g.textAlign = "center"; for (let i = 0; i < 26; i++) { const sp = 40 + hash(i) * 70, x = (hash(i + 3) * 1.1 - 0.05) * OW, y = ((t * sp + hash(i + 7) * OH * 2) % (OH + 120)) - 60, z = 0.6 + hash(i + 11) * 0.9;
+  g.globalAlpha = amt * (0.12 + 0.35 * (z - 0.6)); g.font = `${Math.round(14 * z + 6)}px ${MATH}`; g.fillStyle = i % 5 ? "#9fe8ff" : "#ffd28a"; mtext(g, RAIN[i % RAIN.length], x, y); } g.restore(); }
+const P2 = (p) => { const v = p.clone().project(camera); return [(v.x * 0.5 + 0.5) * OW, (-v.y * 0.5 + 0.5) * OH, v.z]; };
+function callout(g, p, txt, sub, dx, dy, a = 1) { const [x, y, z] = P2(p); if (z > 1) return; g.save(); g.globalAlpha = a; g.strokeStyle = "rgba(190,240,255,.85)"; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y, 4, 0, 7); g.moveTo(x, y); g.lineTo(x + dx, y + dy); g.lineTo(x + dx + (dx > 0 ? 40 : -40), y + dy); g.stroke();
+  g.textAlign = dx > 0 ? "left" : "right"; g.font = `700 15px ${MONO}`; g.fillStyle = "#e8fbff"; g.fillText(txt, x + dx + (dx > 0 ? 46 : -46), y + dy + 5); if (sub) { g.font = `12px ${MONO}`; g.fillStyle = "#9fdcef"; g.fillText(sub, x + dx + (dx > 0 ? 46 : -46), y + dy + 22); } g.restore(); }
+function glitch(g, t) { const c = g.canvas, k = RW / OW; g.save(); g.setTransform(1, 0, 0, 1, 0, 0); for (let i = 0; i < 9; i++) { if (hash(i + Math.floor(t * 18)) < 0.5) continue; const y = hash(i * 3 + Math.floor(t * 18)) * RH, h = 6 + hash(i * 5) * 40 * k, dx = (hash(i * 7 + Math.floor(t * 18)) - 0.5) * 80 * k;
+  g.drawImage(c, 0, y, RW, h, dx, y, RW, h); } g.globalCompositeOperation = "lighter"; g.fillStyle = `rgba(255,40,60,${0.08 + 0.1 * hash(Math.floor(t * 18))})`; g.fillRect(0, 0, RW, RH); g.restore(); }
+function drawOverlay(g, t, sh) {
+  g.clearRect(0, 0, OW, OH); if (CLEAN) return;
+  const clipOn = drawClip(g, t, sh);
+  formulaRain(g, t, (sh.rain || 0) * (clipOn ? 0.6 : 1));
+  if (sh.tdse) tdsePanel(g, t, T0("wave") - 0.8, T0("photos")); tCounter(g, t, sh); fnPanel(g, t, sh); gamowPanel(g, t, sh); stmPanel(g, t, sh); scaleBar(g, t, sh);
+  if (sh.who != null) lowerThird(g, t, sh, ...WHO[sh.who]);
+  if (sh.nobel) slam(g, t, sh.t0 + 0.2, sh.t1, "NOBEL PRIZE 2025", 0.5, 0.2, 64, "#ffd9a8", { glow: "#ff8a1e", sub: "TUNNELLING IN A CIRCUIT YOU CAN HOLD · THE ROOT OF SUPERCONDUCTING QUBITS" });
+  if (sh.cap) { const a = clamp((t - sh.t0 - 0.2) / 0.4) * clamp((sh.t1 - t) / 0.3); g.save(); g.globalAlpha = a; g.textAlign = "left"; g.font = `700 22px ${MONO}`; g.fillStyle = "#e8fbff"; g.fillText(sh.cap[0], 40, 60); g.font = `14px ${MONO}`; g.fillStyle = "#9fdcef"; g.fillText(sh.cap[1], 40, 82); g.restore(); }
+  if (sh.labels && !clipOn) { const a = clamp((t - sh.t0 - 0.2) / 0.3); callout(g, V(0, 3.2, 0).add(GAA.gate.position).sub(V(0, 0.5, 0)), "METAL GATE", "wraps all four sides", 120, -60, a);
+    callout(g, V(0.6, GAA.Y[2], GAA.W / 2 + 0.1), "HIGH-k OXIDE ≈ 1 nm", "the wall", 150, 40, a); callout(g, V(-1.8, GAA.Y[0], 0), "SILICON NANOSHEET ≈ 5 nm", "the channel", -120, 70, a); callout(g, V(0, -1.6, 1.4), "GATE LENGTH ≈ 12 nm", "\"2 nm\" is a name, not a size", -40, 90, a); }
+  if (sh.glassEq && clipOn) sh.glassEq.forEach((e, i) => { const a = clamp((t - sh.t0 - 0.3 - i * 0.9) / 0.5) * clamp((sh.t1 - t) / 0.3); g.save(); g.globalAlpha = a * 0.9; g.font = `30px ${MATH}`; g.textAlign = "center"; g.fillStyle = "#dffaff"; g.shadowColor = "#38d6f5"; g.shadowBlur = 18; mtext(g, e, OW * 0.5, OH * (0.24 + i * 0.12)); g.restore(); });
+  if (sh.slamEq) slam(g, t, sh.t0, sh.t1, sh.slamEq, 0.5, 0.82, 54, "#ffffff", { w: 500, f: MATH });
+  // lyric beats
+  slam(g, t, T0("knock"), T0("knock") + 0.5, "KNOCK", 0.5, 0.5, 150, "#ffffff"); slam(g, t, T0("knock") + 0.55, T0("who") - 0.3, "KNOCK", 0.5, 0.5, 150, "#ffffff");
+  slam(g, t, T0("who"), T1("who") + 0.4, "WHO'S THERE?", 0.5, 0.84, 70, "#e8fbff");
+  slam(g, t, T0("both"), T0("wall"), "BOTH.", 0.5, 0.2, 130, "#ffffff", { sub: "LEFT OF THE WALL AND RIGHT OF IT · UNTIL YOU LOOK" });
+  if (sh.cat) slam(g, t, sh.t0 + 0.3, sh.t1, "|ψ⟩ = α|alive⟩ + β|dead⟩", 0.5, 0.86, 44, "#ffffff", { w: 500, f: MATH, sub: "|α|² + |β|² = 1" });
+  slam(g, t, T0("wall"), T1("atoms") + 0.4, "A FEW ATOMS THICK", 0.5, 0.86, 62, "#ffd9a8", { glow: "#ff8a1e" });
+  slam(g, t, T0("switches"), T0("every"), "208 000 000 000", 0.5, 0.42, 92, "#ffffff", { sub: "TRANSISTORS IN ONE AI GPU · TENS OF BILLIONS IN YOUR PHONE" });
+  slam(g, t, T0("every"), T0("gate"), "EVERY ONE A WALL", 0.5, 0.88, 50, "#e8fbff");
+  slam(g, t, T0("gate"), T0("doesnt") - 0.1, "GATE OFF · I = 0 ?", 0.5, 0.88, 54, "#ffd9a8", { glow: "#ff8a1e" });
+  slam(g, t, T0("doesnt"), T0("ball"), "IT DOESN'T.", 0.5, 0.45, 140, "#ff9a9a", { glow: "#ff2a3a", sub: "GATE LEAKAGE · BAND-TO-BAND · SOURCE-TO-DRAIN TUNNELING" });
+  slam(g, t, T0("ball") + 1.2, T0("wave") - 0.8, "λ = h / p", 0.5, 0.86, 62, "#ffffff", { w: 500, f: MATH, sub: "≈ 6–12 nm IN SILICON · AS BIG AS THE TRANSISTOR" });
+  slam(g, t, T0("wave") + 1.6, T0("half"), "IT FADES", 0.76, 0.86, 54, "#e8fbff", { sub: "ψ(x) = C e^(−κx)" });
+  slam(g, t, T0("photos"), T0("photos") + 1.4, "YOUR PHOTOS?", 0.5, 0.8, 70, "#ffffff");
+  slam(g, t, T0("glass"), T1("glass") + 0.1, "ELECTRONS THROUGH GLASS", 0.3, 0.88, 44, "#ffd9a8", { glow: "#ff8a1e", sub: "SiO₂ TUNNEL OXIDE · ~10 YEARS UNTIL THEY LEAK BACK" });
+  slam(g, t, T0("open"), T1("open") + 0.5, "OPEN THE BOX", 0.5, 0.5, 120, "#ffffff");
+  slam(g, t, T0("c1"), T0("c1") + 1.5, "THROUGH THE WALL", 0.5, 0.82, 80, "#ffffff", { glow: "#38d6f5" });
+  if (sh.climb) { slam(g, t, sh.t0 + 0.2, sh.t1, "E < V₀", 0.5, 0.2, 90, "#ffd9a8", { w: 500, f: MATH, glow: "#ff8a1e", sub: "CLASSICALLY FORBIDDEN · QUANTUM ALLOWED" }); }
+  slam(g, t, T0("c4"), T1("c4"), "1.2 nm ≈ 5 ATOMS", 0.5, 0.86, 64, "#ffffff", { sub: "SiO₂ GATE OXIDE · INTEL 90 nm → 65 nm · THEN HAFNIUM (2007)" });
+  slam(g, t, T0("phone"), T0("chip"), "EVERY PHONE", 0.5, 0.5, 110, "#ffffff"); slam(g, t, T0("chip"), T0("star"), "EVERY CHIP", 0.5, 0.5, 110, "#ffffff");
+  slam(g, t, T0("star"), T0("reading"), "EVERY STAR IN THE SKY", 0.5, 0.82, 64, "#ffd9a8", { glow: "#ff8a1e", sub: "STARS BURN BY TUNNELING" });
+  slam(g, t, T0("reading"), T0("obox"), "YOU'RE READING THIS ON A LEAK", 0.5, 0.86, 52, "#ffffff");
+  slam(g, t, T0("obox"), T0("hit"), "OPEN THE BOX", 0.5, 0.5, 120, "#ffffff");
+  if (sh.glitch) glitch(g, t);
+  if (sh.kick) { const d = lastKick(t); if (d < 0.08) { g.fillStyle = `rgba(220,248,255,${0.14 * (1 - d / 0.08)})`; g.fillRect(0, 0, OW, OH); } }
+  for (const id of ["drop", "c1", "hit"]) { const d = t - T0(id); if (d >= 0 && d < 0.35) { g.fillStyle = `rgba(230,250,255,${0.7 * (1 - d / 0.35)})`; g.fillRect(0, 0, OW, OH); } }
+  if (sh.end) { const k = sm((t - (TOTAL - 4.6)) / 1.6); g.fillStyle = `rgba(0,0,0,${k})`; g.fillRect(0, 0, OW, OH);
+    const c = clamp((t - (T0("hit") + 0.8)) / 0.8) * (1 - sm((t - (TOTAL - 0.6)) / 0.5)); if (c > 0) { g.save(); g.globalAlpha = c; g.textAlign = "center"; g.font = `700 50px ${MONO}`; g.fillStyle = "#ddf8ff"; g.shadowColor = "#38d6f5"; g.shadowBlur = 18;
+      g.fillText("THE WALL WAS NEVER CLOSED", OW / 2, OH * 0.47); g.font = `600 20px ${MONO}`; g.fillText("QUANTUM TUNNELING · IN EVERY CHIP, EVERY PHONE, EVERY STAR", OW / 2, OH * 0.47 + 50); g.restore(); } }
+  g.fillStyle = "#000"; g.fillRect(0, 0, OW, 6); g.fillRect(0, OH - 6, OW, 6);
+}
+
+// =============================================================================
+// Frame
+// =============================================================================
+let curShot = null, frameNo = 0;
+function renderFrame(t) {
+  const sh = shotAt(t);
+  if (sh !== curShot) { curShot = sh; for (const k in S) S[k].root.visible = sh.use.includes(k); }
+  const u = clamp((t - sh.t0) / Math.max(0.001, sh.t1 - sh.t0));
+  camera.near = 0.05; camera.far = 2000; camera.fov = sh.fov || 40; camera.aspect = RW / RH; camera.updateProjectionMatrix();
+  for (const k of sh.use) S[k].update && S[k].update(t, sh, u);
+  sh.cam(t, u); camera.updateMatrixWorld();
+  bloom.strength = 0.55 + 0.35 * pulse(t, 0.2) * (sh.kick ? 1 : 0.4); grain.uniforms.uT.value = t;
+  composer.render();
+  drawOverlay(octx, t, sh); frameNo++;
+}
+
+// =============================================================================
+// Player: song, preview clock, recorder, frame-exact export hooks
+// =============================================================================
+const au = $("au"); let manualT = null, running = false, recording = null, hasSong = false, pt = 0, pPlay = false, pLast = 0;
+const comp = document.createElement("canvas"); comp.width = RW; comp.height = RH; const cctx = comp.getContext("2d");
+function loadSong(src) { au.src = src; hasSong = true; au.load(); }
+au.addEventListener("loadedmetadata", () => { if (isFinite(au.duration)) { TOTAL = au.duration; buildShots(); $("seek").max = TOTAL; } });
+au.addEventListener("error", () => { hasSong = false; });
+loadSong(params.get("song") || "assets/five-atoms-thick.mp3");
+const playing = () => hasSong ? !au.paused : pPlay;
+const nowT = () => { if (manualT !== null && !playing()) return manualT; return hasSong ? au.currentTime : pt; };
+function play() { manualT = null; if (hasSong) { audioStream(); au.play(); } else { pPlay = true; pLast = performance.now(); } }
+function pause() { if (hasSong) au.pause(); else pPlay = false; manualT = nowT(); }
+function seekTo(t) { manualT = t; if (hasSong) au.currentTime = t; pt = t; }
+function tick() {
+  if (!hasSong && pPlay) { const n = performance.now(); pt += (n - pLast) / 1000; pLast = n; if (pt >= TOTAL) pPlay = false; }
+  const t = clamp(nowT(), 0, TOTAL - 0.001); renderFrame(t);
+  $("seek").value = t; $("tc").textContent = Math.floor(t / 60) + ":" + (t % 60).toFixed(1).padStart(4, "0"); $("pp").textContent = playing() ? "pause" : "play";
+  if (recording) { cctx.drawImage($("c"), 0, 0); cctx.drawImage($("ov"), 0, 0); if (au.ended || (!hasSong && !pPlay)) stopRec(); }
+  requestAnimationFrame(tick);
+}
+function begin() { $("start").style.display = "none"; if (!running) { running = true; tick(); } }
+$("start").onclick = () => { begin(); seekTo(0); play(); };
+$("pp").onclick = () => { begin(); playing() ? pause() : play(); };
+$("seek").oninput = (e) => seekTo(+e.target.value);
+$("file").onchange = (e) => { const f = e.target.files[0]; if (f) { loadSong(URL.createObjectURL(f)); begin(); seekTo(0); } };
+addEventListener("dragover", (e) => { e.preventDefault(); $("drop").style.display = "flex"; });
+addEventListener("dragleave", () => { $("drop").style.display = "none"; });
+addEventListener("drop", (e) => { e.preventDefault(); $("drop").style.display = "none"; const f = e.dataTransfer.files[0]; if (f) { loadSong(URL.createObjectURL(f)); begin(); seekTo(0); } });
+window.__SHOTS = () => SHOTS.map((x) => ({ t0: x.t0, t1: x.t1, clip: x.clip || null }));
+window.__frame = async (t, q = 0.92) => { running = true; if (hasSong) au.pause(); pPlay = false; manualT = t; const sh = shotAt(t), c = sh.clip && CLIPS[sh.clip];
+  if (c && c.ready) { const v = c.v, want = (t - sh.t0) + (sh.clipOff ?? 0.5); if (!v.paused) v.pause(); if (Math.abs(v.currentTime - want) > 0.001) { await new Promise((res) => { v.addEventListener("seeked", res, { once: true }); v.currentTime = want; setTimeout(res, 3000); }); } }
+  renderFrame(t); cctx.drawImage($("c"), 0, 0); cctx.drawImage($("ov"), 0, 0); return comp.toDataURL("image/jpeg", q); };
+window.__seek = (t) => { if (!running) { running = true; $("start").style.display = "none"; tick(); } if (hasSong) au.pause(); pPlay = false; seekTo(t); };
+let actx = null, adest = null;
+function audioStream() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); const src = actx.createMediaElementSource(au); adest = actx.createMediaStreamDestination(); src.connect(actx.destination); src.connect(adest); }
+  if (actx.state === "suspended") actx.resume(); return adest.stream; } catch (e) { return null; } }
+function startRec() { begin(); pause(); seekTo(0);
+  const st = comp.captureStream(30); const as = hasSong ? audioStream() : null; as && as.getAudioTracks().forEach((tr) => st.addTrack(tr));
+  const mt = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].find((m) => MediaRecorder.isTypeSupported(m));
+  const mr = new MediaRecorder(st, { mimeType: mt, videoBitsPerSecond: 24e6, audioBitsPerSecond: 192e3 }); const chunks = []; mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  mr.onstop = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(chunks, { type: "video/webm" })); a.download = "five-atoms-thick.webm"; a.click(); };
+  mr.start(500); recording = mr; play(); $("rec").textContent = "recording…"; }
+function stopRec() { recording && recording.stop(); recording = null; $("rec").textContent = "export webm"; }
+$("rec").onclick = () => (recording ? stopRec() : startRec());
+addEventListener("keydown", (e) => { if (e.key === "r" || e.key === "R") $("rec").click(); });
+buildShots();
+setTimeout(() => { document.querySelector("#start span").textContent = "CLICK · PLAY"; window.__ready = true; }, 300);
+</script>
+</body>
+</html>
