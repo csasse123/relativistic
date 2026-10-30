@@ -120,6 +120,34 @@
    "image": "The lid of a dark steel box is open, the box is empty, only a soft glowing cyan static fills it, the lab is dark",
    "motion": "slow push down into the empty glowing box, the static flickers and fades to black",
    "style": "cat"
+  },
+  {
+   "id": "q_glass",
+   "t": "0:25–0:28",
+   "image": "A young female physicist in a dark lab writes long quantum-mechanics equations with a white marker on a tall glass wall, integrals and Greek letters glowing in cyan backlight, her face lit through the glass",
+   "motion": "camera behind the glass tracks her hand as she writes, the strokes glow, slow arc",
+   "style": "tech"
+  },
+  {
+   "id": "q_board",
+   "t": "0:28–0:31",
+   "image": "Two young physicists, a man and a woman, at a blackboard covered in chalk equations and a sketch of a wave passing through a rectangular barrier, one tapping the sketch with chalk",
+   "motion": "handheld push-in as she draws the decaying wave through the barrier, chalk dust in the light",
+   "style": "tech"
+  },
+  {
+   "id": "q_tem",
+   "t": "0:31–0:34",
+   "image": "A young scientist in a dark microscopy room studies a large monitor showing a grayscale electron-microscope cross-section of stacked transistor nanosheets, rows of individual atoms visible as dots, a tiny scale bar",
+   "motion": "slow push past her shoulder into the monitor until the atom rows fill the frame",
+   "style": "tech"
+  },
+  {
+   "id": "q_teardown",
+   "t": "0:07–0:10",
+   "image": "A smartphone opened on an anti-static mat under a microscope ring light, tweezers lifting a metal shield off the logic board revealing the main processor chip",
+   "motion": "slow macro push toward the processor as the shield lifts away, reflections glide",
+   "style": "macro"
   }
  ]
 }
