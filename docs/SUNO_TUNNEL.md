@@ -141,3 +141,39 @@ Fact-checked against the sources listed. Where a number is rounded for the lyric
 | You're reading this on a leak | The device you're watching on stores, switches and loses charge by tunneling. |
 
 Sources: Intel press releases (Jan and Nov 2007), EDN, IEEE TechNav gate leakage, IRDS / arXiv 2007.14448 and 2509.17617, IEICE (Kawaura 2001), NASA NEPP flash retention (Oldham 2011), SK hynix (Nov 2024), Samsung (Jun 2022), Tom's Hardware (TSMC N2), EPFL (Nobel 2025), Gerber (STM), UNM ASTR 421 (stellar fusion), plus.maths.org (Schrödinger 1935).
+
+## The take we used (cut to 1:31.6)
+
+The Suno take ran 1:49.6. It sang the intro, verse 1, the pre-chorus, one chorus and the outro. It skipped "Leak" mostly into the build, and left out verse 2 (Sun, STM) and the second chorus. Those become pictures over the instrumental drop.
+
+We cut 18.0 s of instrumental between the intro and verse 1, on the kick grid (133.5 BPM, 1 bar = 1.797 s), with 12 ms equal-power crossfades:
+- source 19.909 → 27.112 (4 bars of build): the intro now runs straight into the riser
+- source 30.737 → 41.511 (6 bars of the first drop): one bar of drop hit, then the bar that leads into the verse
+
+Cut song `assets/five-atoms-thick.mp3`, beat map `assets/five-atoms-thick.beats.json`.
+
+| Event | Time in the cut song |
+|---|---|
+| Knock knock / Who's there / Both | 0.0 / 4.0 / 6.5 s |
+| There's a wall in your phone / walk right through | 10.5 / 15.0–19.0 s |
+| Riser / drop | 19.9 / 21.7 s |
+| Verse 1 "Billions of switches" | 25.3 s |
+| Pre-chorus "Open the box" | about 48 s |
+| Chorus | about 52 s |
+| Instrumental drop (Sun, STM, quantum computer) | about 66.5–74 s |
+| Outro "Every phone, every chip" / "Open the box" | about 74 / 82 s |
+| Final hit / end | about 84.4 / 91.6 s |
+
+## Formulas and diagrams for the 3D parts
+
+- Time-dependent Schrödinger equation iħ ∂Ψ/∂t = −(ħ²/2m) ∇²Ψ + VΨ, and the stationary form ĤΨ = EΨ
+- Inside the barrier: ψ(x) = A e^(−κx), κ = √(2m(V₀−E))/ħ
+- Exact rectangular barrier: T = [1 + V₀² sinh²(κd) / (4E(V₀−E))]⁻¹
+- WKB: T ≈ exp(−(2/ħ) ∫ √(2m(V(x)−E)) dx)
+- Fowler–Nordheim (flash writes): J = (A E²/φ) exp(−B φ^(3/2)/E)
+- Gamow factor (the Sun, alpha decay): P ≈ exp(−2π Z₁Z₂e²/(4πε₀ħv))
+- Probability current j = (ħ/m) Im(ψ* ∇ψ), normalisation ∫|ψ|² dx = 1
+- Superposition |ψ⟩ = α|alive⟩ + β|dead⟩, |α|² + |β|² = 1
+- Live counter: d sliding 2 nm → 1 nm, T × 50,000,000
+- Zoom with scale bars: phone 15 cm → chip 1 cm → transistor 50 nm → nanosheet 5 nm → gate oxide 1.2 nm → silicon atoms 0.235 nm apart (Si–Si bond)
+- Electron wave packets hitting the gate oxide: most reflect, a faint part comes out the other side

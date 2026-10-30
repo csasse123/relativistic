@@ -21,14 +21,19 @@ dur = len(y) / sr
 tempo, beats = librosa.beat.beat_track(y=y, sr=sr, hop_length=hop, units="frames")
 bt = librosa.frames_to_time(beats, sr=sr, hop_length=hop)
 
-# kicks: onsets in the 30–150 Hz band
-S = np.abs(librosa.stft(y, n_fft=2048, hop_length=hop))
+# kicks: peaks of low-band (30–150 Hz) spectral flux at 3 ms resolution, ≥0.2 s apart
+S = np.abs(librosa.stft(y, n_fft=2048, hop_length=64))
 f = librosa.fft_frequencies(sr=sr, n_fft=2048)
-low = librosa.amplitude_to_db(S[(f > 30) & (f < 150)], ref=np.max)
-env = librosa.onset.onset_strength(S=low, sr=sr, hop_length=hop)
-kf = librosa.onset.onset_detect(onset_envelope=env, sr=sr, hop_length=hop, backtrack=False, delta=0.25)
-kt = librosa.frames_to_time(kf, sr=sr, hop_length=hop)
-kt = kt[env[kf] > 0.35 * env.max()]
+fl = np.maximum(0, np.diff(S[(f > 30) & (f < 150)].sum(0))); fl /= fl.max()
+ft = librosa.frames_to_time(np.arange(len(fl)), sr=sr, hop_length=64)
+kt = []
+for i in np.flatnonzero((fl[1:-1] > 0.12) & (fl[1:-1] >= fl[:-2]) & (fl[1:-1] >= fl[2:])) + 1:
+    if not kt or ft[i] - kt[-1][0] > 0.2: kt.append((ft[i], fl[i]))
+    elif fl[i] > kt[-1][1]: kt[-1] = (ft[i], fl[i])
+kt = np.array([t for t, _ in kt])
+d = np.diff(kt); d = d[(d > 0.3) & (d < 0.6)]
+if len(d) > 8: tempo = 60 / np.median(d)  # kick grid is more exact than the beat tracker's tempo
+env = librosa.onset.onset_strength(S=librosa.amplitude_to_db(np.abs(librosa.stft(y, n_fft=2048, hop_length=hop))[(f > 30) & (f < 150)]), sr=sr, hop_length=hop)
 
 # downbeats: pick the 4/4 phase with the most low-end energy on its beats
 le = env[np.clip(beats, 0, len(env) - 1)]
