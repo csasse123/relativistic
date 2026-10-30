@@ -114,6 +114,8 @@ v1.0 is locked to the Suno take `assets/thirty-two-clocks.mp3` (2:12). Cue times
 
 ### v0.9
 
+`tunnel.html`: "Five Atoms Thick", a quantum-tunneling music video. It has a live split-step Schrödinger solver (a wave packet hitting a real barrier), the exact barrier solution with the wall thinning from 2 nm to 1 nm (×50 million), a gate-all-around transistor leaking, a zoom from the phone down to the 1.2 nm gate oxide, a 3D NAND cross-section with Fowler–Nordheim, the Sun's Coulomb barrier, an STM line scan, and Schrödinger's cat. Suno sheet: `docs/SUNO_TUNNEL.md`; Runway shots: `docs/ai_clips_tunnel.json`. Render: `PAGE=tunnel.html node tools/render_mp4.mjs`.
+
 `satellites.html`: a satellites-only music video. It has real coastlines and city lights (`assets/earth_*.jpg`), a 32-satellite GPS constellation, Newton's cannon, a 4-sphere position fix, special relativity (−7.2 μs), general relativity (+45.7 μs), the factory detune and an imaging dive over Berlin.
 The Suno style, lyrics and settings are in [`docs/SUNO.md`](docs/SUNO.md). Drop the Suno mp3 onto the page; `?sync` gives exact line timing and R exports a WebM.
 
