@@ -33,7 +33,7 @@
   {
    "id": "q_wafer",
    "t": "0:12–0:18",
-   "image": "A cleanroom engineer in a white bunny suit and mask holds up a 300 mm silicon wafer, its surface shimmers with rainbow interference under amber safelight",
+   "image": "A cleanroom engineer in a white coverall, hood and face mask holds up a 300 mm silicon wafer with both gloved hands: a solid mirror-polished disc with NO hole in the middle, its whole surface covered edge to edge by a fine grid of hundreds of tiny rectangular chips that shimmer in rainbow interference colors, amber photolithography light",
    "motion": "slow tilt of the wafer so the rainbow sweeps across it, camera pushes toward the mirror-like surface",
    "style": "lab"
   },
@@ -96,7 +96,7 @@
   {
    "id": "q_sun",
    "t": "0:58–1:05",
-   "image": "Close-up of the Sun's surface with boiling granulation and a huge arching plasma prominence against black space",
+   "image": "NASA Solar Dynamics Observatory extreme-ultraviolet image of the Sun's edge: glowing orange-gold limb with boiling granulation and a huge arching plasma prominence rising into pure black space, no stars",
    "motion": "slow push toward the prominence, plasma flows along the magnetic loop",
    "style": "space"
   },
