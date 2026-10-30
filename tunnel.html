@@ -45,7 +45,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const BUILD = "v1.41.0";
+const BUILD = "v1.42.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · five atoms thick";
 const params = new URLSearchParams(location.search), CLEAN = params.has("clean");
@@ -387,7 +387,7 @@ function buildShots() {
   SHOTS = []; const shot = (t0, t1, use, cam, o = {}) => { if (t1 > t0 + 0.001) SHOTS.push({ t0, t1, use, cam, ...o }); };
   // INTRO — knock knock · who's there · both · the wall in your phone · zoom down to atoms
   shot(0, T0("who") - 0.3, ["bar"], CAM.barSide(-1.4, -1.1, 22, 16), { clip: "q_box", clipOff: 0.2, push: 0.05, bar: B("packet", { p0: 0, p1: 0.05 }) });
-  shot(T0("who") - 0.3, T0("both"), ["bar"], CAM.barSide(-1.1, -0.9, 16, 13), { clip: "q_eye", clipOff: 0.3, push: 0.08, bar: B("packet", { p0: 0.05, p1: 0.15 }) });
+  shot(T0("who") - 0.3, T0("both"), ["bar"], CAM.barSide(-1.1, -0.9, 16, 13), { clip: "q_eye", clipOff: 2.6, push: 0.08, bar: B("packet", { p0: 0.05, p1: 0.15 }) });
   shot(T0("both"), T0("wall"), ["bar"], CAM.barSide(-0.25, 0.25, 15, 12, 0.35), { bar: B("packet", { p0: 0.92, p1: 1.0 }), cat: true });
   shot(T0("wall"), T0("atoms") + 0.3, ["phone"], CAM.phone, { clip: "q_phone", clipOff: 0.3, scale: [150e-3, 50e-3] });
   shot(T0("atoms") + 0.3, T0("through"), ["phone"], CAM.phone, { clip: "q_teardown", clipOff: 0.3, push: 0.1, scale: [30e-3, 5e-3] });
@@ -414,7 +414,7 @@ function buildShots() {
   // CHORUS — whip pan to the far side on the downbeat
   shot(T0("c1"), T0("c2"), ["bar"], CAM.barFar, { bar: B("packet", { p0: 0.55, p1: 0.95 }), rain: 1, kick: true });
   shot(T0("c2"), T0("c2") + 2.2, ["bar"], CAM.barSide(0.4, 0.7, 14, 12), { clip: "q_crowd", clipOff: 0.4, rain: 0.6, kick: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
-  shot(T0("c2") + 2.2, T0("c3"), ["bar"], CAM.barSide(-0.3, 0.3, 14, 12, 0.35), { clip: "q_ghost", clipOff: 0.3, cat: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
+  shot(T0("c2") + 2.2, T0("c3"), ["bar"], CAM.barSide(-0.3, 0.3, 14, 12, 0.35), { clip: "q_ghost", clipOff: 4.2, cat: true, bar: B("packet", { p0: 0.9, p1: 1 }) });
   shot(T0("c3"), T1("c3"), ["bar"], CAM.barSide(-0.75, -0.45, 14, 12, 0.18), { bar: B("ball", { p0: 0.2, p1: 0.95 }), climb: true, kick: true });
   shot(T1("c3"), T0("c4"), ["bar"], CAM.barFar, { clip: "q_dancer", clipOff: 0.4, bar: B("packet", { p0: 0.6, p1: 0.9 }) });
   shot(T0("c4"), T0("inst"), ["lat"], CAM.latFly, { rain: 0.7, kick: true, electrons: true, oxide: true });
@@ -521,7 +521,7 @@ function drawOverlay(g, t, sh) {
   slam(g, t, T0("who"), T1("who") + 0.4, "WHO'S THERE?", 0.5, 0.84, 70, "#e8fbff");
   slam(g, t, T0("both"), T0("wall"), "BOTH.", 0.5, 0.2, 130, "#ffffff", { sub: "LEFT OF THE WALL AND RIGHT OF IT · UNTIL YOU LOOK" });
   if (sh.cat) slam(g, t, sh.t0 + 0.3, sh.t1, "|ψ⟩ = α|alive⟩ + β|dead⟩", 0.5, 0.86, 44, "#ffffff", { w: 500, f: MATH, sub: "|α|² + |β|² = 1" });
-  slam(g, t, T0("wall"), T1("atoms") + 0.4, "A FEW ATOMS THICK", 0.5, 0.86, 62, "#ffd9a8", { glow: "#ff8a1e" });
+  slam(g, t, T0("wall"), T0("atoms"), "A WALL IN YOUR PHONE", 0.5, 0.86, 62, "#e8fbff"); slam(g, t, T0("atoms"), T1("atoms") + 0.6, "A FEW ATOMS THICK", 0.5, 0.86, 62, "#ffd9a8", { glow: "#ff8a1e" });
   slam(g, t, T0("switches"), T0("every"), "208 000 000 000", 0.5, 0.42, 92, "#ffffff", { sub: "TRANSISTORS IN ONE AI GPU · TENS OF BILLIONS IN YOUR PHONE" });
   slam(g, t, T0("every"), T0("gate"), "EVERY ONE A WALL", 0.5, 0.88, 50, "#e8fbff");
   slam(g, t, T0("gate"), T0("doesnt") - 0.1, "GATE OFF · I = 0 ?", 0.5, 0.88, 54, "#ffd9a8", { glow: "#ff8a1e" });
