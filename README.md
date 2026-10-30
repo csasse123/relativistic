@@ -127,6 +127,27 @@ Formula rain, always-moving satellites, GPS clocks (−7 +45 = +38 μs), windshi
 - `video.html?sync` — tap **Space** at each line start while it plays; times are saved and used on reload.
 - **R** / button — export WebM (real-time capture with audio).
 
+## Orbital Heat Budget (v1.32) — `space-dc/`
+
+Live: [csasse123.github.io/relativistic/space-dc](https://csasse123.github.io/relativistic/space-dc/)
+
+3D thermal model of a MW-class data center satellite (solar array + radiator keel + compute core) in three orbits:
+
+| Orbit | What it shows |
+|------|---------------|
+| LEO 550 km · 53° | ~36 min shadow every ~96 min → ~5,000 thermal cycles/yr, batteries or throttling |
+| Dawn–dusk SSO 650 km (Google Suncatcher) | near-constant sun, constant full heat load, June eclipse season |
+| GEO | eclipses only near equinoxes, cold sky for radiators, ~240 ms latency |
+
+Views: **Satellite** (false-colour IR or visible, coolant flow, exaggerated CTE expansion), **Orbit** (shadow cylinder, sunlit/eclipse arcs), **Cluster** (hex formation, laser links, radiator view-factor penalty).
+Live lumped thermal sim (array, radiator, bypassed panels, GPU), module sizing per MW and per GW, briefing tabs on radiators, cycling/CTE, solar panels, coupling, and what is solved vs open.
+
+## Mirrors After Sunset (v1.32) — `mirrors/`
+
+Live: [csasse123.github.io/relativistic/mirrors](https://csasse123.github.io/relativistic/mirrors/)
+
+Can sunlight-reflecting satellites light a city at night? 3D scenes: one mirror flying into Earth's shadow, a to-scale close-up of its own sunset, a dawn–dusk orbit riding the sunset line, and a parade of mirrors over a city. Live numbers (shadow edge, pass time, spot size, brightness) and a check of the email thread's claims.
+
 ## Develop
 
 ```bash
@@ -137,6 +158,10 @@ cd relativistic && python3 -m http.server 8765
 
 - **v0.5** — guided tour; adaptive frustum (too zoom-like)  
 - **v0.6** — free look + velocity-fixed boost + full-sphere capture  
+- **v1.36** — `mirrors/`: scene 5 'Standing in the city' (a person on the ground, mirrors drawn in their sky, beams and a running 'light on you tonight' counter); plain-language 'what do you see' answer and mirrors → minutes table; live 'your spot is lit for' rows in the side panel  
+- **v1.35** — `mirrors/`: one slider from 1 mirror to 1,000,000 drives the 3D train and a live results panel (minutes lit, W/m², lux, energy, brightness chart, unlimited-mirror ceiling); city latitude is live again and re-runs the simulation; Cursor's separate train view replaced  
+- **v1.33** — `mirrors/` simplified: fixed 750× / real-speed switch, altitude the only control, reply-check sections removed  
+- **v1.32** — `space-dc/` Orbital Heat Budget (space data center thermal cycling) and `mirrors/` Mirrors After Sunset (orbital mirror shadow geometry)  
 
 ## License
 

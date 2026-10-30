@@ -1,0 +1,153 @@
+{
+ "song": "Five Atoms Thick",
+ "styles": {
+  "cat": "photorealistic cinematic film still, shot on ARRI Alexa 65, anamorphic 50mm, shallow depth of field, dark physics laboratory at night, single warm tungsten lamp plus cold cyan light leaking from cracks, deep shadows, teal and amber grade, film grain, moody and mysterious, no logos, no brand names, no readable text",
+  "lab": "photorealistic cinematic film still, shot on ARRI Alexa 35, semiconductor cleanroom, amber photolithography safelight mixed with cold white and cyan, glossy reflections, hyper-real engineering detail, teal and amber grade, subtle film grain, no logos, no brand names, no readable text",
+  "macro": "photorealistic extreme macro photography, focus-stacked, 5:1 magnification, real silicon die textures, rainbow thin-film interference, gold bond wires, microscopic circuit grids, dark background, cyan and violet rim light, crisp detail, no logos, no brand names, no readable text",
+  "club": "photorealistic cinematic night footage, shot on ARRI Alexa 35 with fast anamorphic lens, dark club with haze and sharp cyan and violet laser beams, young stylish crowd in their twenties, phone screens glowing, motion energy, film grain, no logos, no brand names, no readable text",
+  "tech": "photorealistic cinematic film still, shot on ARRI Alexa 65, dark modern high-tech facility, cool blue LEDs and warm amber practical lights, haze, glossy surfaces, teal and amber grade, subtle film grain, believable real engineering, no logos, no brand names, no readable text",
+  "space": "photorealistic NASA Solar Dynamics Observatory style imagery, extreme ultraviolet and visible light, real solar granulation, plasma loops and prominences, pure black space, scientifically accurate, no logos, no brand names, no readable text"
+ },
+ "clips": [
+  {
+   "id": "q_box",
+   "t": "0:00–0:04",
+   "image": "A plain dark steel box with a hinged lid on a scratched lab bench, a Geiger counter and a small glass flask beside it, a cat's two glowing eyes visible in the narrow gap under the lid",
+   "motion": "very slow push-in toward the gap, the eyes blink once, dust drifts in the lamp light, silent and tense",
+   "style": "cat"
+  },
+  {
+   "id": "q_eye",
+   "t": "0:04–0:07",
+   "image": "Extreme close-up of a cat's eye, golden iris, the black pupil reflects a tiny glowing microchip with cyan circuit lines",
+   "motion": "slow push into the pupil, the reflected chip glows brighter, the pupil narrows",
+   "style": "cat"
+  },
+  {
+   "id": "q_phone",
+   "t": "0:07–0:12",
+   "image": "A young woman in a dark room holds a smartphone close to her face, the screen lights her face cyan, her eyes focused, city lights bokeh behind the window",
+   "motion": "slow push past her shoulder into the phone screen, the screen glow blooms and fills the frame",
+   "style": "club"
+  },
+  {
+   "id": "q_wafer",
+   "t": "0:12–0:18",
+   "image": "A cleanroom engineer in a white bunny suit and mask holds up a 300 mm silicon wafer, its surface shimmers with rainbow interference under amber safelight",
+   "motion": "slow tilt of the wafer so the rainbow sweeps across it, camera pushes toward the mirror-like surface",
+   "style": "lab"
+  },
+  {
+   "id": "q_fab",
+   "t": "0:18–0:20",
+   "image": "Inside an automated semiconductor fab, endless corridor of tools, overhead rail transport pods racing along ceiling tracks",
+   "motion": "fast forward dolly down the corridor under the racing pods, kinetic, on the beat",
+   "style": "lab"
+  },
+  {
+   "id": "q_gpu",
+   "t": "0:20–0:22",
+   "image": "A huge dark AI server hall, rows of black GPU racks with blue status LEDs, heat shimmer rising above the racks, a young engineer with a tablet walking between rows",
+   "motion": "fast lateral tracking shot along the racks, LEDs pulse, heat haze ripples",
+   "style": "tech"
+  },
+  {
+   "id": "q_die",
+   "t": "0:22–0:25",
+   "image": "Extreme macro of a bare processor die with gold bond wires and microscopic circuit grids, rainbow thin-film colors",
+   "motion": "slow macro slide across the die surface, focus sweeps across the wires",
+   "style": "macro"
+  },
+  {
+   "id": "q_nand",
+   "t": "0:36–0:40",
+   "image": "Extreme macro of a memory chip on a bare SSD circuit board, the chip edge cut open showing hundreds of thin stacked layers like a skyscraper",
+   "motion": "slow vertical crane up the layer stack, light glints across each layer",
+   "style": "macro"
+  },
+  {
+   "id": "q_paw",
+   "t": "0:40–0:43",
+   "image": "A cat's paw resting on the lid of a dark steel box, thin beams of cold cyan light leaking from the cracks around the lid",
+   "motion": "the paw pushes the lid up a few millimetres, more light spills out, haze glows",
+   "style": "cat"
+  },
+  {
+   "id": "q_crowd",
+   "t": "0:43–0:47",
+   "image": "A packed dark club, crowd of young people with their phones raised high, cyan and violet laser beams slice the haze above them",
+   "motion": "handheld push through the crowd, phones sway to the beat, lasers sweep",
+   "style": "club"
+  },
+  {
+   "id": "q_ghost",
+   "t": "0:47–0:51",
+   "image": "A sleek black cat walks through a wall of horizontal cyan laser beams in a dark hazy corridor, a faint translucent double of the cat already appears on the other side",
+   "motion": "tracking shot beside the cat as it passes through the laser wall, the ghost double flickers and solidifies",
+   "style": "cat"
+  },
+  {
+   "id": "q_dancer",
+   "t": "0:51–0:55",
+   "image": "A young woman dancing alone under a single cyan laser in a dark club, eyes closed, euphoric, hair moving",
+   "motion": "slow orbit around her as she spins, laser flickers on the beat, haze",
+   "style": "club"
+  },
+  {
+   "id": "q_sun",
+   "t": "0:58–1:05",
+   "image": "Close-up of the Sun's surface with boiling granulation and a huge arching plasma prominence against black space",
+   "motion": "slow push toward the prominence, plasma flows along the magnetic loop",
+   "style": "space"
+  },
+  {
+   "id": "q_qpu",
+   "t": "1:05–1:09",
+   "image": "A gleaming gold dilution refrigerator chandelier of a superconducting quantum computer hanging in a dark lab, coaxial cables, cyan rim light, a young female physicist looking up at it",
+   "motion": "slow crane up the gold chandelier from the bottom stage, cables glint",
+   "style": "tech"
+  },
+  {
+   "id": "q_stm",
+   "t": "1:09–1:12",
+   "image": "A scanning tunneling microscope tip, a needle sharpened to a single atom, hovering above a surface of glowing atom bumps in a perfect grid",
+   "motion": "slow macro glide of the tip across the atom grid, the atoms glow as it passes",
+   "style": "macro"
+  },
+  {
+   "id": "q_open",
+   "t": "1:20–1:30",
+   "image": "The lid of a dark steel box is open, the box is empty, only a soft glowing cyan static fills it, the lab is dark",
+   "motion": "slow push down into the empty glowing box, the static flickers and fades to black",
+   "style": "cat"
+  },
+  {
+   "id": "q_glass",
+   "t": "0:25–0:28",
+   "image": "A young female physicist in a dark lab writes long quantum-mechanics equations with a white marker on a tall glass wall, integrals and Greek letters glowing in cyan backlight, her face lit through the glass",
+   "motion": "camera behind the glass tracks her hand as she writes, the strokes glow, slow arc",
+   "style": "tech"
+  },
+  {
+   "id": "q_board",
+   "t": "0:28–0:31",
+   "image": "Two young physicists, a man and a woman, at a blackboard covered in chalk equations and a sketch of a wave passing through a rectangular barrier, one tapping the sketch with chalk",
+   "motion": "handheld push-in as she draws the decaying wave through the barrier, chalk dust in the light",
+   "style": "tech"
+  },
+  {
+   "id": "q_tem",
+   "t": "0:31–0:34",
+   "image": "A young scientist in a dark microscopy room studies a large monitor showing a grayscale electron-microscope cross-section of stacked transistor nanosheets, rows of individual atoms visible as dots, a tiny scale bar",
+   "motion": "slow push past her shoulder into the monitor until the atom rows fill the frame",
+   "style": "tech"
+  },
+  {
+   "id": "q_teardown",
+   "t": "0:07–0:10",
+   "image": "A smartphone opened on an anti-static mat under a microscope ring light, tweezers lifting a metal shield off the logic board revealing the main processor chip",
+   "motion": "slow macro push toward the processor as the shield lifts away, reflections glide",
+   "style": "macro"
+  }
+ ]
+}
