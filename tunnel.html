@@ -45,7 +45,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const BUILD = "v1.41.0";
+const BUILD = "v1.42.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · five atoms thick";
 const params = new URLSearchParams(location.search), CLEAN = params.has("clean");
@@ -521,7 +521,7 @@ function drawOverlay(g, t, sh) {
   slam(g, t, T0("who"), T1("who") + 0.4, "WHO'S THERE?", 0.5, 0.84, 70, "#e8fbff");
   slam(g, t, T0("both"), T0("wall"), "BOTH.", 0.5, 0.2, 130, "#ffffff", { sub: "LEFT OF THE WALL AND RIGHT OF IT · UNTIL YOU LOOK" });
   if (sh.cat) slam(g, t, sh.t0 + 0.3, sh.t1, "|ψ⟩ = α|alive⟩ + β|dead⟩", 0.5, 0.86, 44, "#ffffff", { w: 500, f: MATH, sub: "|α|² + |β|² = 1" });
-  slam(g, t, T0("wall"), T1("atoms") + 0.4, "A FEW ATOMS THICK", 0.5, 0.86, 62, "#ffd9a8", { glow: "#ff8a1e" });
+  slam(g, t, T0("wall"), T0("atoms"), "A WALL IN YOUR PHONE", 0.5, 0.86, 62, "#e8fbff"); slam(g, t, T0("atoms"), T1("atoms") + 0.6, "A FEW ATOMS THICK", 0.5, 0.86, 62, "#ffd9a8", { glow: "#ff8a1e" });
   slam(g, t, T0("switches"), T0("every"), "208 000 000 000", 0.5, 0.42, 92, "#ffffff", { sub: "TRANSISTORS IN ONE AI GPU · TENS OF BILLIONS IN YOUR PHONE" });
   slam(g, t, T0("every"), T0("gate"), "EVERY ONE A WALL", 0.5, 0.88, 50, "#e8fbff");
   slam(g, t, T0("gate"), T0("doesnt") - 0.1, "GATE OFF · I = 0 ?", 0.5, 0.88, 54, "#ffd9a8", { glow: "#ff8a1e" });
