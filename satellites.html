@@ -51,7 +51,7 @@ import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const BUILD = "v1.46.1";
+const BUILD = "v1.46.2";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · thirty-two clocks";
 const params = new URLSearchParams(location.search);
@@ -119,7 +119,7 @@ if (VR) { VRX.rt = new THREE.WebGLCubeRenderTarget(Math.round(VRW / 4), { type: 
   VRX.eq = new THREE.ShaderMaterial({ uniforms: { tCube: { value: VRX.rt.texture }, uRot: { value: new THREE.Matrix3() } }, depthTest: false, depthWrite: false,
     vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
     fragmentShader: `uniform samplerCube tCube; uniform mat3 uRot; varying vec2 vUv; const float PI=3.14159265;
-      void main(){ float lon=(vUv.x-.5)*2.*PI, lat=(vUv.y-.5)*PI; vec3 d=uRot*vec3(cos(lat)*sin(lon), sin(lat), -cos(lat)*cos(lon)); gl_FragColor=vec4(textureCube(tCube,d).rgb,1.); }` });
+      void main(){ float lon=(vUv.x-.5)*2.*PI, lat=(vUv.y-.5)*PI; vec3 d=uRot*vec3(cos(lat)*sin(lon), sin(lat), -cos(lat)*cos(lon)); vec3 c=textureCube(tCube,d).rgb; if (!(c.r==c.r&&c.g==c.g&&c.b==c.b)) c=vec3(0.); gl_FragColor=vec4(min(c,vec3(64.)),1.); }` }); // NaN/overflow guard: bloom smears one bad pixel into a box
   VRX.scene = new THREE.Scene(); VRX.scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), VRX.eq)); VRX.ocam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   composer.addPass(new RenderPass(VRX.scene, VRX.ocam)); }
 else composer.addPass(new RenderPass(scene, camera));
@@ -256,7 +256,7 @@ const earthMat = new THREE.ShaderMaterial({
       float term=exp(-pow((mu-0.02)/0.11,2.));
       vec3 clc=mix(vec3(1.),vec3(1.,0.55,0.28),term*0.8); col=mix(col, clc*(max(mu,0.)*1.15+0.01), cl*0.92);
       col+=pow(lights,vec3(1.6))*2.2*(1.-dayK)*(1.-cl*0.75);
-      float fr=pow(1.-max(dot(n,V),0.),2.2); vec3 sky=mix(vec3(0.28,0.55,1.0),vec3(1.0,0.45,0.2),term*0.7);
+      float fr=pow(clamp(1.-dot(n,V),0.,1.),2.2); vec3 sky=mix(vec3(0.28,0.55,1.0),vec3(1.0,0.45,0.2),term*0.7); // fr: dot(n,V) can round past 1 straight below the camera, and pow(<0) is NaN
       col=mix(col, sky*(0.25+1.2*smoothstep(-0.25,0.35,mu)), fr*0.75*smoothstep(-0.35,0.1,mu));
       // imaging swath along the hero's ground track
       float s=dot(n,normalize(uScan)); float off=abs(dot(n,uScanN)); float tr=-dot(n,uScanV);
@@ -606,7 +606,7 @@ const LAB = mk("lab");
 {
   const grid = new THREE.GridHelper(120, 40, 0x1d6f88, 0x0d3240); LAB.root.add(grid);
   LAB.sat = buildGPS({ detail: true }); LAB.sat.scale.setScalar(3); LAB.sat.userData.gl.visible = false; LAB.sat.position.y = 9; LAB.root.add(LAB.sat);
-  for (let i = 0; i < 6; i++) { const l = glow(0xe8f6ff, 30, 0.35); l.position.set((i % 3 - 1) * 30, 40, (i < 3 ? -1 : 1) * 20); LAB.root.add(l); }
+  if (!VR) for (let i = 0; i < 6; i++) { const l = glow(0xe8f6ff, 30, 0.35); l.position.set((i % 3 - 1) * 30, 40, (i < 3 ? -1 : 1) * 20); LAB.root.add(l); } // studio lights: in 360 big sprites tear at the cube-face seams
   LAB.osc = eq("10.23 MHz − 0.00457 Hz", 30, "#ffd9a8", { px: 80, mono: true }); LAB.osc.position.set(0, 21, -8); LAB.root.add(LAB.osc);
   LAB.update = (t) => { LAB.sat.rotation.y = t * 0.4; const born = clamp((t - T0("born")) / (DUR("born") * 0.9)); LAB.sat.userData.arms.forEach((a, i) => { a.rotation.z = (i ? 1 : -1) * (1 - sm(born)) * 1.5; });
     LAB.osc.lookAt(camera.position); LAB.osc.visible = t >= T0("slow") && t < T0("born"); };
