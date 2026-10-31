@@ -45,7 +45,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const BUILD = "v1.43.0";
+const BUILD = "v1.44.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · five atoms thick";
 const params = new URLSearchParams(location.search), CLEAN = params.has("clean");
@@ -642,9 +642,25 @@ addEventListener("dragover", (e) => { e.preventDefault(); $("drop").style.displa
 addEventListener("dragleave", () => { $("drop").style.display = "none"; });
 addEventListener("drop", (e) => { e.preventDefault(); $("drop").style.display = "none"; const f = e.dataTransfer.files[0]; if (f) { loadSong(URL.createObjectURL(f)); begin(); seekTo(0); } });
 window.__SHOTS = () => SHOTS.map((x) => ({ t0: x.t0, t1: x.t1, clip: x.clip || null }));
-window.__frame = async (t, q = 0.92) => { running = true; if (hasSong) au.pause(); pPlay = false; manualT = t; const sh = shotAt(t), c = sh.clip && CLIPS[sh.clip];
+window.__frame = async (t, q = 0.92) => { if (t < 0) return window.__thumb(q); running = true; if (hasSong) au.pause(); pPlay = false; manualT = t; const sh = shotAt(t), c = sh.clip && CLIPS[sh.clip];
   if (c && c.ready) { const v = c.v, want = (t - sh.t0) + (sh.clipOff ?? 0.5); if (!v.paused) v.pause(); if (Math.abs(v.currentTime - want) > 0.001) { await new Promise((res) => { v.addEventListener("seeked", res, { once: true }); v.currentTime = want; setTimeout(res, 3000); }); } }
   renderFrame(t); cctx.drawImage($("c"), 0, 0); cctx.drawImage($("ov"), 0, 0); return comp.toDataURL("image/jpeg", q); };
+// THUMBNAIL / poster frame: the cat's eye with a chip in the pupil, the title, and the whole idea in one cartoon
+async function drawThumb(g) { const c = CLIPS.q_eye; if (c && c.ready) { const v = c.v; v.pause(); await new Promise((res) => { v.addEventListener("seeked", res, { once: true }); v.currentTime = 3.2; setTimeout(res, 3000); }); }
+  g.clearRect(0, 0, OW, OH); g.fillStyle = "#02070b"; g.fillRect(0, 0, OW, OH);
+  if (c && c.ready) { const v = c.v, ar = v.videoWidth / v.videoHeight || 16 / 9, w = OH * ar * 1.25, h = w / ar; g.drawImage(v, OW - w * 0.86, (OH - h) / 2, w, h); }
+  const gr = g.createLinearGradient(0, 0, OW * 0.75, 0); gr.addColorStop(0, "rgba(2,7,11,.97)"); gr.addColorStop(0.55, "rgba(2,7,11,.82)"); gr.addColorStop(1, "rgba(2,7,11,0)"); g.fillStyle = gr; g.fillRect(0, 0, OW, OH);
+  g.save(); g.textAlign = "left"; g.textBaseline = "alphabetic"; g.shadowColor = "#38d6f5"; g.shadowBlur = 30; g.fillStyle = "#ffffff"; g.font = `900 112px ${IMPACT}`; g.fillText("FIVE ATOMS", 56, 200); g.fillText("THICK", 56, 312);
+  g.shadowBlur = 16; g.shadowColor = "#ff8a1e"; g.fillStyle = "#ffd9a8"; g.font = `800 44px ${IMPACT}`; g.fillText("QUANTUM TUNNELING", 60, 378);
+  g.shadowBlur = 0; g.fillStyle = "#bff6ff"; g.font = `600 21px ${MONO}`; g.fillText("in every chip · every phone · every star", 62, 414); g.restore();
+  // the idea: most bounce back (sad), one gets through (happy)
+  const y = 560, xw = 330; g.fillStyle = "rgba(56,214,245,.18)"; g.fillRect(xw, y - 92, 34, 184); g.strokeStyle = "rgba(140,235,255,.9)"; g.lineWidth = 2; g.strokeRect(xw, y - 92, 34, 184);
+  g.fillStyle = "rgba(170,240,255,.6)"; for (let col = 0; col < 5; col++) for (let yy = y - 84; yy < y + 88; yy += 10) { g.beginPath(); g.arc(xw + 4 + col * 6.5, yy + (col % 2) * 5, 2.2, 0, 7); g.fill(); }
+  face(g, 120, y - 50, 34, "sad"); face(g, 230, y + 46, 34, "ouch", 1, 0.8); face(g, 470, y - 8, 40, "happy"); face(g, 347, y - 8, 30, "wow", 0.55, 1, true);
+  g.strokeStyle = "rgba(255,255,255,.5)"; g.lineWidth = 2; g.setLineDash([8, 7]); g.beginPath(); g.moveTo(180, y - 40); g.lineTo(290, y - 10); g.moveTo(400, y - 8); g.lineTo(420, y - 8); g.stroke(); g.setLineDash([]);
+  g.fillStyle = "#e8fbff"; g.font = `700 17px ${MONO}`; g.fillText("most bounce", 60, y + 118); g.fillStyle = "#ffd9a8"; g.fillText("some leak through", 390, y + 70);
+  g.fillStyle = "rgba(190,240,255,.55)"; g.font = `600 15px ${MONO}`; g.textAlign = "right"; g.fillText("A MUSIC VIDEO", OW - 34, OH - 30); g.textAlign = "left"; }
+window.__thumb = async (q = 0.95) => { running = true; if (hasSong) au.pause(); pPlay = false; await drawThumb(octx); cctx.fillStyle = "#000"; cctx.fillRect(0, 0, RW, RH); cctx.drawImage($("ov"), 0, 0); return comp.toDataURL("image/jpeg", q); };
 window.__seek = (t) => { if (!running) { running = true; $("start").style.display = "none"; tick(); } if (hasSong) au.pause(); pPlay = false; seekTo(t); };
 let actx = null, adest = null;
 function audioStream() { try { if (!actx) { actx = new (window.AudioContext || window.webkitAudioContext)(); const src = actx.createMediaElementSource(au); adest = actx.createMediaStreamDestination(); src.connect(actx.destination); src.connect(adest); }
