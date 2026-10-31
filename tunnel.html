@@ -45,7 +45,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const BUILD = "v1.44.0";
+const BUILD = "v1.45.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · five atoms thick";
 const params = new URLSearchParams(location.search), CLEAN = params.has("clean");
@@ -105,23 +105,42 @@ const sci = (x, d = 1) => { const e = Math.floor(Math.log10(Math.abs(x))), m = x
 // =============================================================================
 // Renderer, post (ACES, bloom, grain + chromatic aberration)
 // =============================================================================
-const Q = +(params.get("q") || 1080), RW = Math.round(Q * 16 / 9), RH = Q;
-$("c").width = RW; $("c").height = RH; $("ov").width = RW; $("ov").height = RH;
+// ?vr → 360° equirectangular output (VRW × VRW/2): the 3D world all around, clips + overlay on a curved 110° screen in front
+const VR = params.has("vr"), VRW = +(params.get("vrw") || 5760);
+const Q = +(params.get("q") || (VR ? 1440 : 1080)), RW = Math.round(Q * 16 / 9), RH = Q, CW = VR ? VRW : RW, CH = VR ? VRW / 2 : RH;
+$("c").width = CW; $("c").height = CH; $("ov").width = RW; $("ov").height = RH; if (VR) { $("ov").style.display = "none"; $("stage").style.width = "min(100vw, 200vh)"; $("stage").style.height = "min(50vw, 100vh)"; }
 const renderer = new THREE.WebGLRenderer({ canvas: $("c"), antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
-renderer.setPixelRatio(1); renderer.setSize(RW, RH, false);
+renderer.setPixelRatio(1); renderer.setSize(CW, CH, false);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000); scene.fog = new THREE.FogExp2(0x000000, 0.0);
 const camera = new THREE.PerspectiveCamera(40, RW / RH, 0.01, 2000); scene.add(camera);
 const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(RW, RH), 0.6, 0.5, 0.75); composer.addPass(bloom);
+// 360: a cube camera at the camera position → equirect; the rig keeps each shot's start direction (no swinging world)
+const VRX = {};
+if (VR) { VRX.rt = new THREE.WebGLCubeRenderTarget(Math.round(VRW / 4), { type: THREE.HalfFloatType }); VRX.cam = new THREE.CubeCamera(0.05, 2000, VRX.rt); scene.add(VRX.cam);
+  VRX.eq = new THREE.ShaderMaterial({ uniforms: { tCube: { value: VRX.rt.texture }, uRot: { value: new THREE.Matrix3() } }, depthTest: false, depthWrite: false,
+    vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
+    fragmentShader: `uniform samplerCube tCube; uniform mat3 uRot; varying vec2 vUv; const float PI=3.14159265;
+      void main(){ float lon=(vUv.x-.5)*2.*PI, lat=(vUv.y-.5)*PI; vec3 d=uRot*vec3(cos(lat)*sin(lon), sin(lat), -cos(lat)*cos(lon)); gl_FragColor=vec4(textureCube(tCube,d).rgb,1.); }` });
+  VRX.scene = new THREE.Scene(); VRX.scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), VRX.eq)); VRX.ocam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  composer.addPass(new RenderPass(VRX.scene, VRX.ocam)); }
+else composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(CW, CH), 0.6, 0.5, 0.75); composer.addPass(bloom);
 composer.addPass(new OutputPass());
+if (VR) { VRX.ovTex = new THREE.CanvasTexture($("ov")); VRX.ovTex.colorSpace = THREE.NoColorSpace; VRX.ovTex.minFilter = THREE.LinearFilter; VRX.ovTex.generateMipmaps = false;
+  const TH = 110 * Math.PI / 180; // screen: 110° wide, 16:9 on a cylinder
+  composer.addPass(VRX.panel = new ShaderPass({ uniforms: { tDiffuse: { value: null }, tOv: { value: null }, uTh: { value: TH }, uH: { value: TH * 9 / 16 } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+    fragmentShader: `uniform sampler2D tDiffuse, tOv; uniform float uTh, uH; varying vec2 vUv; const float PI=3.14159265;
+      void main(){ vec4 c=texture2D(tDiffuse,vUv); float lon=(vUv.x-.5)*2.*PI, lat=(vUv.y-.5)*PI, y=tan(clamp(lat,-1.5,1.5));
+        if (abs(lon)<uTh*.5 && abs(y)<uH*.5) { vec4 o=texture2D(tOv, vec2(lon/uTh+.5, y/uH+.5)); float e=smoothstep(0.,.004,uTh*.5-abs(lon))*smoothstep(0.,.004,uH*.5-abs(y)); c.rgb=mix(c.rgb,o.rgb,o.a*e); }
+        gl_FragColor=c; }` })); VRX.panel.uniforms.tOv.value = VRX.ovTex; }
 const grain = new ShaderPass({ uniforms: { tDiffuse: { value: null }, uT: { value: 0 }, uAmt: { value: 0.035 }, uCA: { value: 0.008 }, uVig: { value: 0.4 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
   fragmentShader: `uniform sampler2D tDiffuse; uniform float uT,uAmt,uCA,uVig; varying vec2 vUv;
     void main(){ vec2 d=vUv-.5; float r=dot(d,d); vec3 c; c.r=texture2D(tDiffuse,vUv-d*uCA*r*4.).r; c.g=texture2D(tDiffuse,vUv).g; c.b=texture2D(tDiffuse,vUv+d*uCA*r*4.).b;
       float n=fract(sin(dot(floor(vUv*vec2(1920.,1080.))+floor(uT*24.)*vec2(7.,13.),vec2(12.9898,78.233)))*43758.5453); c+=(n-.5)*uAmt; c*=1.-uVig*smoothstep(.15,.65,r*2.); gl_FragColor=vec4(c,1.); }` });
-composer.addPass(grain);
+composer.addPass(grain); if (VR) { grain.uniforms.uCA.value = 0; grain.uniforms.uVig.value = 0; }
 const octx = $("ov").getContext("2d"); octx.scale(RW / 1280, RH / 720);
 const OW = 1280, OH = 720;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -138,7 +157,8 @@ function mtext(g, s, x, y) { if (!s.includes("^(")) { g.fillText(s, x, y); retur
   let cx = al === "center" ? x - W / 2 : al === "right" ? x - W : x; g.textAlign = "left"; parts.forEach(([t, sup], i) => { g.font = sup ? sf : font; g.fillText(t, cx, sup ? y - px * 0.4 : y); cx += ws[i]; }); g.font = font; g.textAlign = al; }
 const S = {};
 const mk = (name) => { const root = new THREE.Group(); root.visible = false; scene.add(root); S[name] = { root }; return S[name]; };
-const look = (p, tgt, up = V(0, 1, 0)) => { camera.position.copy(p); camera.up.copy(up); camera.lookAt(tgt); };
+const VRK = VR ? +(params.get("vrk") || 0.55) : 1; // 360: stand closer to the subject
+const look = (p, tgt, up = V(0, 1, 0)) => { camera.position.copy(VRK === 1 ? p : tgt.clone().lerp(p, VRK)); camera.up.copy(up); camera.lookAt(tgt); };
 const orbit = (r, az, el, tgt = V(0, 0, 0)) => look(V(tgt.x + r * Math.cos(el) * Math.sin(az), tgt.y + r * Math.sin(el), tgt.z + r * Math.cos(el) * Math.cos(az)), tgt);
 const keyLight = new THREE.DirectionalLight(0xcfe8ff, 2.2); keyLight.position.set(4, 8, 6); scene.add(keyLight);
 const rimLight = new THREE.DirectionalLight(0x38d6f5, 1.6); rimLight.position.set(-6, 2, -5); scene.add(rimLight);
@@ -353,6 +373,22 @@ const SKY = mk("sky");
   SKY.root.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.6, vertexColors: true, map: glowTex, ...ADD, sizeAttenuation: true, toneMapped: false })));
   SKY.sun = new THREE.Group(); SKY.sun.add(new THREE.Mesh(new THREE.SphereGeometry(6, 64, 32), new THREE.MeshBasicMaterial({ color: 0xffb060, toneMapped: false })), glow(0xff9030, 40, 0.9), glow(0xffd8a0, 18, 1)); SKY.sun.position.set(0, 0, -60); SKY.root.add(SKY.sun);
   SKY.update = (t) => { SKY.root.rotation.y = t * 0.01; }; }
+
+// =============================================================================
+// 360 ENVIRONMENT — Schrödinger's equations floating all around you, drifting dust
+// =============================================================================
+if (VR) { const ENV = new THREE.Group(); scene.add(ENV); VRX.env = ENV; const r = rng(77);
+  const EQS = ["iħ ∂Ψ/∂t = ĤΨ", "Ĥ = −ħ²∇²/2m + V", "T ≈ e^(−2κd)", "κ = √(2m(V₀−E)) / ħ", "ψ(x) = C e^(−κx)", "∫|ψ|² dx = 1", "λ = h / p", "Δx Δp ≥ ħ/2", "|ψ⟩ = α|0⟩ + β|1⟩",
+    "T = [1 + V₀² sinh²(κd) / 4E(V₀−E)]⁻¹", "j = (ħ/m) Im(ψ*∇ψ)", "E = ħω", "p = ħk", "[x̂, p̂] = iħ", "J = (AF²/φ) exp(−Bφ^(3/2)/F)", "P ≈ exp(−√(Eɢ/E))", "ψ = Ae^(ikx) + Be^(−ikx)", "|alive⟩ + |dead⟩"];
+  const texFor = (str, col) => canvasTex(1024, 160, (g) => { g.font = `64px ${MATH}`; g.textAlign = "center"; g.textBaseline = "middle"; g.shadowColor = col; g.shadowBlur = 18; g.fillStyle = col; mtext(g, str, 512, 80); });
+  const texs = EQS.map((e, i) => texFor(e, i % 4 ? "#9fe8ff" : "#ffd28a"));
+  for (let i = 0; i < 150; i++) { const u = r() * 1.6 - 0.8, th = r() * Math.PI * 2, R = 26 + r() * 40, d = V(Math.sqrt(1 - u * u) * Math.cos(th), u, Math.sqrt(1 - u * u) * Math.sin(th));
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(8, 1.25), new THREE.MeshBasicMaterial({ map: texs[i % texs.length], ...ADD, opacity: 0.18 + r() * 0.3, toneMapped: false, side: THREE.DoubleSide }));
+    m.position.copy(d.multiplyScalar(R)); m.lookAt(0, 0, 0); m.scale.setScalar(0.7 + r() * 0.9); ENV.add(m); }
+  const dp = []; for (let i = 0; i < 4000; i++) { const u = r() * 2 - 1, th = r() * 6.283, R = 6 + r() * 90; dp.push(R * Math.sqrt(1 - u * u) * Math.cos(th), R * u, R * Math.sqrt(1 - u * u) * Math.sin(th)); }
+  const dg = new THREE.BufferGeometry(); dg.setAttribute("position", new THREE.Float32BufferAttribute(dp, 3));
+  ENV.add(new THREE.Points(dg, new THREE.PointsMaterial({ color: 0x5fd8f5, size: 0.12, map: glowTex, ...ADD, opacity: 0.5, toneMapped: false })));
+  VRX.envUpdate = (t, sh) => { ENV.position.copy(camera.position); ENV.rotation.y = t * 0.015; ENV.visible = !sh.use.includes("sky"); }; }
 
 // =============================================================================
 // AI VIDEO CLIP SLOTS — assets/clips/<id>.mp4 (docs/ai_clips_tunnel.json).
@@ -606,8 +642,11 @@ function renderFrame(t) {
   const u = clamp((t - sh.t0) / Math.max(0.001, sh.t1 - sh.t0));
   camera.near = 0.05; camera.far = 2000; camera.fov = sh.fov || 40; camera.aspect = RW / RH; camera.updateProjectionMatrix();
   for (const k of sh.use) S[k].update && S[k].update(t, sh, u);
+  if (VR && !sh._rot) { sh.cam(sh.t0, 0); camera.updateMatrixWorld(); const f = camera.getWorldDirection(V(0, 0, 0)), yaw = Math.atan2(f.x, -f.z), pitch = Math.asin(clamp(f.y, -1, 1));
+    sh._rot = new THREE.Matrix3().setFromMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(pitch, -yaw, 0, "YXZ"))); }
   sh.cam(t, u); camera.updateMatrixWorld();
   bloom.strength = 0.55 + 0.35 * pulse(t, 0.2) * (sh.kick ? 1 : 0.4); grain.uniforms.uT.value = t;
+  if (VR) { VRX.envUpdate(t, sh); drawOverlay(octx, t, sh); VRX.ovTex.needsUpdate = true; VRX.cam.position.copy(camera.position); VRX.cam.update(renderer, scene); VRX.eq.uniforms.uRot.value.copy(sh._rot); composer.render(); frameNo++; return; }
   composer.render();
   drawOverlay(octx, t, sh); frameNo++;
 }
@@ -616,7 +655,7 @@ function renderFrame(t) {
 // Player: song, preview clock, recorder, frame-exact export hooks
 // =============================================================================
 const au = $("au"); let manualT = null, running = false, recording = null, hasSong = false, pt = 0, pPlay = false, pLast = 0;
-const comp = document.createElement("canvas"); comp.width = RW; comp.height = RH; const cctx = comp.getContext("2d");
+const comp = document.createElement("canvas"); comp.width = CW; comp.height = CH; const cctx = comp.getContext("2d");
 function loadSong(src) { au.src = src; hasSong = true; au.load(); }
 au.addEventListener("loadedmetadata", () => { if (isFinite(au.duration)) { TOTAL = au.duration; buildShots(); $("seek").max = TOTAL; } });
 au.addEventListener("error", () => { hasSong = false; });
@@ -630,7 +669,7 @@ function tick() {
   if (!hasSong && pPlay) { const n = performance.now(); pt += (n - pLast) / 1000; pLast = n; if (pt >= TOTAL) pPlay = false; }
   const t = clamp(nowT(), 0, TOTAL - 0.001); renderFrame(t);
   $("seek").value = t; $("tc").textContent = Math.floor(t / 60) + ":" + (t % 60).toFixed(1).padStart(4, "0"); $("pp").textContent = playing() ? "pause" : "play";
-  if (recording) { cctx.drawImage($("c"), 0, 0); cctx.drawImage($("ov"), 0, 0); if (au.ended || (!hasSong && !pPlay)) stopRec(); }
+  if (recording) { cctx.drawImage($("c"), 0, 0); if (!VR) cctx.drawImage($("ov"), 0, 0); if (au.ended || (!hasSong && !pPlay)) stopRec(); }
   requestAnimationFrame(tick);
 }
 function begin() { $("start").style.display = "none"; if (!running) { running = true; tick(); } }
@@ -644,7 +683,7 @@ addEventListener("drop", (e) => { e.preventDefault(); $("drop").style.display = 
 window.__SHOTS = () => SHOTS.map((x) => ({ t0: x.t0, t1: x.t1, clip: x.clip || null }));
 window.__frame = async (t, q = 0.92) => { if (t < 0) return window.__thumb(q); running = true; if (hasSong) au.pause(); pPlay = false; manualT = t; const sh = shotAt(t), c = sh.clip && CLIPS[sh.clip];
   if (c && c.ready) { const v = c.v, want = (t - sh.t0) + (sh.clipOff ?? 0.5); if (!v.paused) v.pause(); if (Math.abs(v.currentTime - want) > 0.001) { await new Promise((res) => { v.addEventListener("seeked", res, { once: true }); v.currentTime = want; setTimeout(res, 3000); }); } }
-  renderFrame(t); cctx.drawImage($("c"), 0, 0); cctx.drawImage($("ov"), 0, 0); return comp.toDataURL("image/jpeg", q); };
+  renderFrame(t); cctx.drawImage($("c"), 0, 0); if (!VR) cctx.drawImage($("ov"), 0, 0); return comp.toDataURL("image/jpeg", q); };
 // THUMBNAIL / poster frame: the cat's eye with a chip in the pupil, the title, and the whole idea in one cartoon
 async function drawThumb(g) { const c = CLIPS.q_eye; if (c && c.ready) { const v = c.v; v.pause(); await new Promise((res) => { v.addEventListener("seeked", res, { once: true }); v.currentTime = 3.2; setTimeout(res, 3000); }); }
   g.clearRect(0, 0, OW, OH); g.fillStyle = "#02070b"; g.fillRect(0, 0, OW, OH);
