@@ -51,7 +51,7 @@ import { Lensflare, LensflareElement } from "three/addons/objects/Lensflare.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const BUILD = "v1.45.1";
+const BUILD = "v1.46.0";
 const $ = (id) => document.getElementById(id);
 $("build").textContent = BUILD + " · thirty-two clocks";
 const params = new URLSearchParams(location.search);
@@ -93,7 +93,7 @@ function applyCues() {
   let sv = null; try { sv = JSON.parse(localStorage.getItem(cueKey()) || "null"); } catch (e) {}
   const k = TOTAL / 132.07;
   LINES = PLAN.map(([id, t0, t1, txt], i) => sv && sv.length === PLAN.length ? { id, t0: sv[i], t1: sv[i] + (t1 - t0), txt } : { id, t0: t0 * k, t1: t1 * k, txt });
-  reindex(); buildShots(); buildFall(); $("seek").max = TOTAL;
+  reindex(); buildShots(); buildFall(); if (VR) buildWins(); $("seek").max = TOTAL;
 }
 let kIdx = 0; const lastKick = (t) => { // time since the last detected kick
   if (!KICKS.length) return 9; if (kIdx >= KICKS.length || KICKS[kIdx] > t) kIdx = 0; while (kIdx + 1 < KICKS.length && KICKS[kIdx + 1] <= t) kIdx++; return KICKS[kIdx] <= t ? t - KICKS[kIdx] : 9; };
@@ -127,12 +127,20 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(CW, CH), 0.4, 0.5, 0.92); co
 composer.addPass(new OutputPass());
 if (VR) { VRX.ovTex = new THREE.CanvasTexture($("ov")); VRX.ovTex.colorSpace = THREE.NoColorSpace; VRX.ovTex.minFilter = THREE.LinearFilter; VRX.ovTex.generateMipmaps = false;
   const TH = 110 * Math.PI / 180; // screen: 110° wide, 16:9 on a cylinder
-  composer.addPass(VRX.panel = new ShaderPass({ uniforms: { tDiffuse: { value: null }, tOv: { value: null }, uTh: { value: TH }, uH: { value: TH * 9 / 16 } },
+  // clips are not on a screen: up to 3 "visions" float in different directions, oval-feathered and screen-blended into space
+  VRX.wc = [0, 1, 2].map(() => { const c = document.createElement("canvas"); c.width = 1024; c.height = 576; const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.NoColorSpace; tx.minFilter = THREE.LinearFilter; tx.generateMipmaps = false; return { c, g: c.getContext("2d"), tx }; });
+  const HW = Math.tan(35 * Math.PI / 180);
+  composer.addPass(VRX.panel = new ShaderPass({ uniforms: { tDiffuse: { value: null }, tOv: { value: null }, uTh: { value: TH }, uH: { value: TH * 9 / 16 }, tW0: { value: null }, tW1: { value: null }, tW2: { value: null },
+      uWc: { value: [0, 1, 2].map(() => new THREE.Vector3(0, 0, -1)) }, uWr: { value: [0, 1, 2].map(() => new THREE.Vector3(1, 0, 0)) }, uWu: { value: [0, 1, 2].map(() => new THREE.Vector3(0, 1, 0)) }, uWa: { value: [0, 0, 0] },
+      uWh: { value: new THREE.Vector2(HW, HW * 9 / 16) }, uFlash: { value: 0 }, uFade: { value: 0 } },
     vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-    fragmentShader: `uniform sampler2D tDiffuse, tOv; uniform float uTh, uH; varying vec2 vUv; const float PI=3.14159265;
-      void main(){ vec4 c=texture2D(tDiffuse,vUv); float lon=(vUv.x-.5)*2.*PI, lat=(vUv.y-.5)*PI, y=tan(clamp(lat,-1.5,1.5));
-        if (abs(lon)<uTh*.5 && abs(y)<uH*.5) { vec4 o=texture2D(tOv, vec2(lon/uTh+.5, y/uH+.5)); float e=smoothstep(0.,.004,uTh*.5-abs(lon))*smoothstep(0.,.004,uH*.5-abs(y)); c.rgb=mix(c.rgb,o.rgb,o.a*e); }
-        gl_FragColor=c; }` })); VRX.panel.uniforms.tOv.value = VRX.ovTex; }
+    fragmentShader: `uniform sampler2D tDiffuse, tOv, tW0, tW1, tW2; uniform float uTh, uH, uFlash, uFade; uniform vec3 uWc[3], uWr[3], uWu[3]; uniform float uWa[3]; uniform vec2 uWh; varying vec2 vUv; const float PI=3.14159265;
+      vec3 win(vec3 c, vec3 d, sampler2D t, vec3 C, vec3 R, vec3 U, float a){ if (a<=0.) return c; float z=dot(d,C); if (z<=.05) return c; vec2 p=vec2(dot(d,R),dot(d,U))/z/uWh; float r=length(p); if (r>=1.) return c;
+        float m=a*(1.-smoothstep(.45,1.,r)); vec3 s=texture2D(t,p*.5+.5).rgb; return 1.-(1.-c)*(1.-s*m); }
+      void main(){ vec4 c=texture2D(tDiffuse,vUv); float lon=(vUv.x-.5)*2.*PI, lat=(vUv.y-.5)*PI, y=tan(clamp(lat,-1.5,1.5)); vec3 d=vec3(cos(lat)*sin(lon), sin(lat), -cos(lat)*cos(lon));
+        c.rgb=win(c.rgb,d,tW0,uWc[0],uWr[0],uWu[0],uWa[0]); c.rgb=win(c.rgb,d,tW1,uWc[1],uWr[1],uWu[1],uWa[1]); c.rgb=win(c.rgb,d,tW2,uWc[2],uWr[2],uWu[2],uWa[2]); c.rgb*=1.-uFade;
+        if (abs(lon)<uTh*.5 && abs(y)<uH*.5) { vec4 o=texture2D(tOv, vec2(lon/uTh+.5, y/uH+.5)); float e=smoothstep(0.,.12,uTh*.5-abs(lon))*smoothstep(0.,.08,uH*.5-abs(y)); c.rgb=mix(c.rgb,o.rgb,o.a*e); }
+        gl_FragColor=vec4(c.rgb+uFlash,1.); }` })); ['tW0', 'tW1', 'tW2'].forEach((k, j) => { VRX.panel.uniforms[k].value = VRX.wc[j].tx; }); VRX.panel.uniforms.tOv.value = VRX.ovTex; }
 const grain = new ShaderPass({ uniforms: { tDiffuse: { value: null }, uT: { value: 0 }, uAmt: { value: 0.035 }, uCA: { value: 0.006 }, uVig: { value: 0.35 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
   fragmentShader: `uniform sampler2D tDiffuse; uniform float uT,uAmt,uCA,uVig; varying vec2 vUv;
@@ -554,6 +562,30 @@ const WELL = mk("well");
     WELL.cg.userData.hand.rotation.z = -t * 1.2; WELL.cs.userData.hand.rotation.z = -t * 1.2 * 1.6; WELL.mini.rotation.y = t * 0.3; WELL.phi.lookAt(camera.position);
     WELL.phi.visible = t >= T0("phi") && t < T0("times"); };
 }
+// BLACK HOLE (360 edition, chorus "bent time"): every pixel of the sky is a light ray traced back through
+// Schwarzschild spacetime (photon equation d²r/dλ² = −(3/2) rₛ h² r / r⁵): shadow, Einstein ring, the disk bent over the top.
+const BH = mk("bh");
+{ const RS = 10; BH.RS = RS;
+  BH.sky = new THREE.Mesh(new THREE.SphereGeometry(3000, 64, 32), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, depthTest: false, toneMapped: false, uniforms: { uCam: { value: V(0, 0, 0) }, uRs: { value: RS }, uT: { value: 0 } },
+    vertexShader: `varying vec3 vD; void main(){ vD=position; vec4 p=projectionMatrix*vec4(mat3(viewMatrix)*position,1.); gl_Position=p.xyww; }`, // always centred on the eye
+    fragmentShader: `uniform vec3 uCam; uniform float uRs, uT; varying vec3 vD;
+      vec3 stars(vec3 d){ vec3 p=d*260.; vec3 i=floor(p); float h=fract(sin(dot(i,vec3(12.9898,78.233,37.719)))*43758.5453); vec3 f=fract(p)-.5; float s=step(.996,h)*smoothstep(.32,0.,length(f))*(.5+2.*fract(h*91.));
+        float band=exp(-pow(d.y*6.+.35*sin(d.x*2.7),2.))*.045; return vec3(s)*mix(vec3(.75,.85,1.),vec3(1.,.85,.7),fract(h*37.))+band*vec3(.45,.55,.8); }
+      void main(){ vec3 pos=uCam, v=normalize(vD), L=cross(pos,v); float h2=dot(L,L); vec3 col=vec3(0.); float tr=1.; bool hole=false;
+        for (int i=0;i<260;i++){ float r=length(pos); if (r<uRs){ hole=true; break; } if (r>90.*uRs && dot(pos,v)>0.) break;
+          float dt=clamp(.045*r,.05*uRs,8.*uRs); vec3 np=pos+v*dt; v=normalize(v-1.5*uRs*h2*pos/pow(r,5.)*dt);
+          if (pos.y*np.y<0.){ vec3 c=mix(pos,np,pos.y/(pos.y-np.y)); float rr=length(c.xz);
+            if (rr>3.*uRs && rr<15.*uRs){ float k=(rr-3.*uRs)/(12.*uRs); vec3 ph=normalize(vec3(-c.z,0.,c.x)); float beta=.5*sqrt(3.*uRs/rr), g=1./(1.-beta*dot(ph,-v)); g=clamp(g*g*g,.15,6.);
+              float stripes=.75+.25*sin(rr*1.3-uT*2.+atan(c.z,c.x)*6.); vec3 dc=mix(vec3(1.,.92,.75),vec3(1.,.42,.08),k)*(1.-k)*2.2*g*stripes; float a=.85*(1.-k*.6); col+=tr*a*dc; tr*=1.-a; } }
+          pos=np; }
+        if (!hole) col+=tr*stars(v); gl_FragColor=vec4(col,1.); }` }));
+  BH.sky.renderOrder = -10; BH.sky.frustumCulled = false; BH.root.add(BH.sky); BH.sky.onBeforeRender = (r, sc, cam) => { BH.sky.material.uniforms.uCam.value.setFromMatrixPosition(cam.matrixWorld); };
+  // the gravity funnel (Flamm's paraboloid) as a grid under the disk plane
+  { const pts = [], fz = (r) => -2 * Math.sqrt(RS * (r - RS)) - 6 * RS; for (let r = 1.05 * RS; r < 40 * RS; r *= 1.12) for (let k = 0; k < 96; k++) { const a1 = k / 96 * 6.283, a2 = (k + 1) / 96 * 6.283; pts.push(V(Math.cos(a1) * r, fz(r), Math.sin(a1) * r), V(Math.cos(a2) * r, fz(r), Math.sin(a2) * r)); }
+    for (let k = 0; k < 48; k++) { const a = k / 48 * 6.283; for (let r = 1.05 * RS; r < 40 * RS; r *= 1.06) { const r2 = r * 1.06; pts.push(V(Math.cos(a) * r, fz(r), Math.sin(a) * r), V(Math.cos(a) * r2, fz(r2), Math.sin(a) * r2)); } }
+    BH.root.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x2aa9cc, transparent: true, opacity: 0.45, depthWrite: false }))); }
+  BH.update = (t) => { BH.sky.material.uniforms.uT.value = t; };
+}
 // SR: speed tunnel
 const SR = mk("sr");
 {
@@ -681,6 +713,34 @@ const MCR = mk("mcr");
 }
 
 // =============================================================================
+// 360 WORLD (VR only) — a spacetime lattice bent by Earth's gravity that goes on and on,
+// GPS satellites sweeping past you, and the clips as "visions" in different directions
+// =============================================================================
+if (VR) {
+  { const S0 = 150, N = 10, K = 9000, SEG = 30, pts = []; // lines every 100 units (6 400 km), ±1 500 units; each vertex pulled toward Earth by K/r
+    const bend = (x, y, z) => { const r = Math.hypot(x, y, z), k = K / Math.max(r, R) / r; return [x - x * k, y - y * k, z - z * k]; };
+    for (let a = -N; a <= N; a++) for (let b = -N; b <= N; b++) for (let ax = 0; ax < 3; ax++) for (let i = 0; i < SEG; i++) {
+      const u0 = -N * S0 + i * (2 * N * S0 / SEG), u1 = u0 + 2 * N * S0 / SEG, P = (u) => ax === 0 ? [u, a * S0, b * S0] : ax === 1 ? [a * S0, u, b * S0] : [a * S0, b * S0, u];
+      pts.push(...bend(...P(u0)), ...bend(...P(u1))); }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+    VRX.lattice = new THREE.LineSegments(g, new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+      vertexShader: `varying float vD; varying vec3 vW; void main(){ vW=(modelMatrix*vec4(position,1.)).xyz; vD=distance(vW,cameraPosition); gl_Position=projectionMatrix*viewMatrix*vec4(vW,1.); }`,
+      fragmentShader: `varying float vD; varying vec3 vW; void main(){ float a=.16*smoothstep(1000.,120.,vD), r=length(vW); vec3 c=mix(vec3(1.,.66,.3),vec3(.25,.75,1.),smoothstep(110.,700.,r)); gl_FragColor=vec4(c*a,1.); }` }));
+    VRX.lattice.frustumCulled = false; scene.add(VRX.lattice); }
+  // satellites sweeping past the viewer (camera-relative fly-bys, true GPS model, ~1.4 units long)
+  VRX.fly = [0, 1, 2, 3].map((i) => { const m = satModel(), b = new THREE.Box3().setFromObject(m), sz = b.getSize(V(0, 0, 0)); m.scale.multiplyScalar(1.4 / Math.max(sz.x, sz.y, sz.z)); scene.add(m);
+    const dir = V(hash(i * 7) - 0.5, (hash(i * 3) - 0.5) * 0.5, hash(i * 5) - 0.5).normalize(), off = V(hash(i + 11) - 0.5, hash(i + 13) - 0.5, hash(i + 17) - 0.5).normalize().multiplyScalar(2.2 + i * 1.3);
+    off.addScaledVector(dir, -off.dot(dir)); return { m, dir, off, sp: 2.2 + hash(i + 19) * 1.8, ph: hash(i + 23) * 40 }; });
+  VRX.world = (t, sh) => { const space = sh.use.includes("earth"); VRX.lattice.visible = space;
+    VRX.fly.forEach((f) => { f.m.visible = space && !sh.use.includes("dc"); if (!f.m.visible) return; const s = ((t * f.sp + f.ph) % 40) - 20; f.m.position.copy(camera.position).add(f.off).addScaledVector(f.dir, s);
+      f.m.lookAt(f.m.position.clone().add(f.dir)); f.m.rotateZ(t * 0.1); }); };
+}
+let WINS = [];
+function buildWins() { const POS = [[-42, 8], [44, -4], [-80, 14], [82, 6], [-44, -24], [46, 26]]; /* around you, never over the middle */ WINS = SHOTS.filter((x) => x.clip).map((x, i) => ({ clip: x.clip, t0: x.t0, t1: x.t1, off: x.clipOff ?? 1.0, pos: POS[i % POS.length] })); }
+const winsAt = (t) => WINS.filter((w) => t >= w.t0 - 0.2 && t < w.t1 + 1.6).sort((a, b) => b.t0 - a.t0).slice(0, 3);
+const winTime = (w, t) => { const v = CLIPS[w.clip] && CLIPS[w.clip].v; return clamp((t - w.t0) + w.off, 0, v && isFinite(v.duration) ? v.duration - 0.05 : 9.9); };
+
+// =============================================================================
 // AI VIDEO CLIP SLOTS — assets/clips/<id>.mp4 (docs/AI_VIDEO_PROMPTS.md).
 // Missing clip → the 3D shot underneath plays instead.
 // =============================================================================
@@ -766,6 +826,7 @@ const hb = (t, k = 0) => { const H = satPos(k, t), up = H.clone().normalize(), v
 const at3 = (b, x, y, z) => b.H.clone().addScaledVector(b.v, x).addScaledVector(b.up, y).addScaledVector(b.side, z);
 const nb = (id) => { const s = NASA[id]; const up = s.pos.clone().normalize(), side = s.vel.clone().cross(up).normalize(); return { P: s.pos, up, v: s.vel, side, d: s.size }; };
 const CAM = {
+  bh: (t, u) => { const a = 0.6 + t * 0.05, r = lerp(260, 200, sm(u)); look(V(Math.sin(a) * r, 0.16 * r, Math.cos(a) * r), V(0, 0, 0)); },
   eclipse(t, u) { const b = hb(t); look(at3(b, lerp(-11, -6, u), 2.2, lerp(-7, -4, u)).add(shake(t, 0.3)), at3(b, 1.5, -1.8, 0), -0.06); },
   dcfly(t, u) { const C = DC.center, e = sm(u); const p = C.clone().addScaledVector(DC.up, lerp(3.2, 7, e)).addScaledVector(DC.along, lerp(-19, -14, e)).addScaledVector(DC.cross, lerp(-8, 3, e));
     camera.up.copy(DC.up); look(p.add(shake(t, 0.01)), C.clone().addScaledVector(DC.along, 4).addScaledVector(DC.up, -2.5), lerp(-0.1, 0.04, e)); camera.up.set(0, 1, 0); },
@@ -843,12 +904,13 @@ function buildShots() {
   const pre3 = (T0("c1") - T0("up")) / 3; const MC = { cap: ["MISSION CONTROL", "32 clocks, corrected from the ground"] };
   shot(T0("up"), T0("up") + pre3, ["mcr"], CAM.mcr("wide"), { clip: "pre_wide", glass: "γ = 1/√(1 − v²/c²)", near: 0.05, ...MC }); shot(T0("up") + pre3, T0("up") + 2 * pre3, ["mcr"], CAM.mcr("dolly"), { clip: "pre_close", near: 0.05 });
   shot(T0("up") + 2 * pre3, T0("c1"), ["sr"], CAM.clocks, { pre: true, arcs: true, mode: "schem", clip: "pre_board", glass: "Δf/f = ΔΦ/c² − v²/2c²" });
-  // CHORUS
+  // CHORUS — in the 360 edition "bent time" is a black hole
+  const BENT = () => VR ? [["bh"], CAM.bh] : [["well"], CAM.well];
   shot(T0("c1"), T0("c1") + 1.7, ["mcr"], CAM.mcr("low"), { clip: "chorus_cheer", glass: "+38.6 μs/day  ✓", near: 0.05 }); shot(T0("c1") + 1.7, T0("c2"), E, (t, u) => CAM.fly(t, u, 0));
-  shot(T0("c2"), T0("c2") + 1.6, ["mcr"], CAM.mcr("dolly"), { clip: "glass_write", near: 0.05, glass: "Gμν + Λgμν = 8πG/c⁴ Tμν" }); shot(T0("c2") + 1.6, T0("c3"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
+  shot(T0("c2"), T0("c2") + 1.6, ["mcr"], CAM.mcr("dolly"), { clip: "glass_write", near: 0.05, glass: "Gμν + Λgμν = 8πG/c⁴ Tμν" }); shot(T0("c2") + 1.6, T0("c3"), ...BENT(), { arcs: !VR, mode: VR ? "photo" : "schem", efe: VR ? null : "derive", bh: VR });
   shot(T0("c3"), (T0("c3") + T0("c4")) / 2, L, CAM.nasa("iss", "orbit"), { ...NC("iss"), efe: "derive" });
   shot((T0("c3") + T0("c4")) / 2, T0("c4"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
-  shot(T0("c4"), T0("c4") + 1.2, ["mcr"], CAM.mcr("low"), { clip: "crew_lineup", glass: "Gμν = 8πG/c⁴ Tμν", near: 0.05 }); shot(T0("c4") + 1.2, T0("speed"), ["well"], CAM.well, { arcs: true, mode: "schem", efe: "derive" });
+  shot(T0("c4"), T0("c4") + 1.2, ["mcr"], CAM.mcr("low"), { clip: "crew_lineup", glass: "Gμν = 8πG/c⁴ Tμν", near: 0.05 }); shot(T0("c4") + 1.2, T0("speed"), ...BENT(), { arcs: !VR, mode: VR ? "photo" : "schem", efe: VR ? null : "derive", bh: VR });
   // VERSE 2 — special relativity
   shot(T0("speed"), T0("moving"), L, CAM.nasa("icesat2", "flyby"), NC("icesat2")); shot(T0("moving"), T0("gamma"), L, CAM.nasa("aqua", "under"), NC("aqua"));
   shot(T0("gamma"), T0("m7"), L, CAM.nasa("landsat8", "orbit"), { ...NC("landsat8"), mode: P2S(0.0, 0.8), ladder: true, cap: null });
@@ -956,14 +1018,14 @@ function signalStorm(g, t, sh) { const ph = ((t - 22.0) % sh.beat) / sh.beat, pu
     g.fillStyle = `rgba(255,200,120,${0.5 + 0.5 * punch})`; g.beginPath(); g.arc(x0, y0, 2.5 + 3 * punch, 0, 7); g.fill(); }
   sats.forEach(([x, y]) => { const r = 4 + 10 * punch; const gr = g.createRadialGradient(x, y, 0, x, y, r * 3); gr.addColorStop(0, "rgba(255,255,255,.95)"); gr.addColorStop(1, "rgba(120,220,255,0)"); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r * 3, 0, 7); g.fill(); });
   g.restore();
-  g.fillStyle = `rgba(255,255,255,${0.22 * punch * (0.4 + heat)})`; g.fillRect(0, 0, OW, OH);
+  if (!VR) { g.fillStyle = `rgba(255,255,255,${0.22 * punch * (0.4 + heat)})`; g.fillRect(0, 0, OW, OH); }
   slam(g, t, sh.t0, sh.t1, sh.stormEq, 0.5, 0.5, Math.min(68, 54 + heat * 16), "#ffffff", { w: 600, f: MATH, glow: heat > 0.6 ? "#ff8a1e" : "#38d6f5" }); }
 function drawOverlay(g, t, sh) {
   g.clearRect(0, 0, OW, OH); if (CLEAN) return;
   if (sh.storm) { const ph = ((t - 22.0) % sh.beat) / sh.beat, punch = Math.exp(-ph * 6); g.save(); g.translate(OW / 2, OH / 2); g.scale(1 + 0.05 * punch, 1 + 0.05 * punch); g.translate(-OW / 2, -OH / 2); }
-  const clipOn = drawClip(g, t, sh);
+  const clipOn = VR ? false : drawClip(g, t, sh);
   if (sh.storm) { g.restore(); signalStorm(g, t, sh); }
-  if (!clipOn) blueprint(g, t, sh);
+  if (!clipOn && !VR) blueprint(g, t, sh);
   if (sh.efe === "derive") efeDerive(g, t, T0("c2"), T0("speed")); if (sh.efe === "num") efeNumeric(g, t, T0("height"), T0("p45")); if (sh.ladder) ladder(g, t, sh.t0, sh.t1);
   if (sh.arcs) drawArcs(g, t);
   callouts(g, t, sh); caption(g, t, sh);
@@ -971,6 +1033,7 @@ function drawOverlay(g, t, sh) {
   if (sh.tensor) tensorGrid(g, t, sh);
   if (sh.formula) slam(g, t, sh.t0 + 0.35, sh.t1, sh.formula[0], 0.62, 0.86, 40, "#ffffff", { w: 500, f: MATH, sub: sh.formula[1] });
   if (sh.intro) introText(g, t);
+  if (sh.bh) slam(g, t, sh.t0 + 0.3, sh.t1, "dτ/dt = √(1 − rₛ/r)", 0.5, 0.88, 46, "#ffd9a8", { w: 500, f: MATH, glow: "#ff8a1e", sub: "NEAR A BLACK HOLE A CLOCK ALMOST STOPS · AT GPS HEIGHT IT GAINS 45.7 μs A DAY" });
   stencil(g, t, T0("att"), T0("clocks") - 0.3, "ATTENTION", 0.5, 0.45, 120);
   slam(g, t, T0("clocks"), T1("land") + 0.4, "32", 0.5, 0.3, 200, "#ffffff", { sub: "GPS CLOCKS · FALLING · NOW" });
   slam(g, t, T0("alt"), T1("alt") + 0.3, "20 200 km · 13 950 km/h", 0.5, 0.84, 58, "#e8fbff");
@@ -989,13 +1052,13 @@ function drawOverlay(g, t, sh) {
   slam(g, t, T0("p45") + DUR("p45") * 0.5, T1("p45") + 0.1, "NET +38.6 μs / day", 0.5, 0.86, 70, "#ffffff", { glow: "#ffffff" });
   slam(g, t, T0("times"), T1("times"), "× c  ≈  11 km / day", 0.5, 0.18, 74, "#ff9a9a", { glow: "#ff2a3a", sub: "IF NOBODY CORRECTED IT" });
   digits(g, t);
-  if (sh.kick || (t > T0("height") && t < T0("born"))) { const d = lastKick(t); if (d < 0.1) { g.fillStyle = `rgba(220,248,255,${0.16 * (1 - d / 0.1)})`; g.fillRect(0, 0, OW, OH); } }
-  for (const id of ["drop", "height", "hit"]) { const d = t - T0(id); if (d >= 0 && d < 0.35) { g.fillStyle = `rgba(230,250,255,${0.75 * (1 - d / 0.35)})`; g.fillRect(0, 0, OW, OH); } }
-  if (sh.end) { const k = sm((t - (TOTAL - 3.6)) / 1.6); g.fillStyle = `rgba(0,0,0,${k})`; g.fillRect(0, 0, OW, OH);
+  if (!VR && (sh.kick || (t > T0("height") && t < T0("born")))) { const d = lastKick(t); if (d < 0.1) { g.fillStyle = `rgba(220,248,255,${0.16 * (1 - d / 0.1)})`; g.fillRect(0, 0, OW, OH); } }
+  if (!VR) for (const id of ["drop", "height", "hit"]) { const d = t - T0(id); if (d >= 0 && d < 0.35) { g.fillStyle = `rgba(230,250,255,${0.75 * (1 - d / 0.35)})`; g.fillRect(0, 0, OW, OH); } }
+  if (sh.end) { const k = sm((t - (TOTAL - 3.6)) / 1.6); if (!VR) { g.fillStyle = `rgba(0,0,0,${k})`; g.fillRect(0, 0, OW, OH); }
     const c = clamp((t - (TOTAL - 2.7)) / 0.6) * (1 - sm((t - (TOTAL - 0.5)) / 0.45)); if (c > 0) { g.save(); g.globalAlpha = c; g.font = `700 50px ${MONO}`; g.textAlign = "center"; g.fillStyle = "#ddf8ff"; g.shadowColor = "#38d6f5"; g.shadowBlur = 18;
       g.fillText("WITHOUT GENERAL RELATIVITY", OW / 2, OH * 0.47); g.font = `600 20px ${MONO}`; g.fillText("GPS WOULD NOT SURVIVE A SINGLE DAY", OW / 2, OH * 0.47 + 50); g.restore(); } }
   if (sh.end) noGR(g, t);
-  g.fillStyle = "#000"; g.fillRect(0, 0, OW, 6); g.fillRect(0, OH - 6, OW, 6);
+  if (!VR) { g.fillStyle = "#000"; g.fillRect(0, 0, OW, 6); g.fillRect(0, OH - 6, OW, 6); }
 }
 
 // =============================================================================
@@ -1026,7 +1089,7 @@ function renderFrame(t) {
   rainMat.uniforms.uFall.value = fallAt(t); rainMat.uniforms.uAlpha.value = rp.a * lerp(0.12, 1, sa) * (space ? 0.6 : 1) * (sh.efe || sh.ladder ? 0.35 : 1); rainMat.uniforms.uDens.value = rp.dens; rainMat.uniforms.uShear.value = rp.sh; rainMat.uniforms.uTint.value = rp.tint;
   rainMat.uniforms.uCam.value.copy(camera.position); rainMat.uniforms.uScale.value = rs; rainMat.uniforms.uBox.value.set(60, 40, 70).multiplyScalar(rs);
   bloom.strength = 0.36 + 0.3 * pulse(t, 0.2) * (sh.kick ? 1 : 0.4); grain.uniforms.uT.value = t;
-  if (VR) { drawOverlay(octx, t, sh); VRX.ovTex.needsUpdate = true; VRX.cam.position.copy(camera.position); VRX.cam.children.forEach((c) => { c.near = camera.near; c.far = 9000; c.updateProjectionMatrix(); });
+  if (VR) { VRX.world(t, sh); drawOverlay(octx, t, sh); VRX.ovTex.needsUpdate = true; vrWindows(t, sh); VRX.cam.position.copy(camera.position); VRX.cam.children.forEach((c) => { c.near = camera.near; c.far = 9000; c.updateProjectionMatrix(); });
     VRX.cam.update(renderer, scene); VRX.eq.uniforms.uRot.value.copy(sh._rot); composer.render(); frameNo++; return; }
   composer.render();
   drawOverlay(octx, t, sh); frameNo++;
@@ -1063,7 +1126,17 @@ addEventListener("dragover", (e) => { e.preventDefault(); $("drop").style.displa
 addEventListener("dragleave", () => { $("drop").style.display = "none"; });
 addEventListener("drop", (e) => { e.preventDefault(); $("drop").style.display = "none"; const f = e.dataTransfer.files[0]; if (f) { loadSong(URL.createObjectURL(f)); begin(); seekTo(0); } });
 // frame-exact offline render (tools/render_mp4.mjs): seek the active clip precisely, draw, return the composite frame
+function vrWindows(t, sh) { const P = VRX.panel.uniforms, act = winsAt(t);
+  let fl = 0; if (sh.kick || (t > T0("height") && t < T0("born"))) { const d = lastKick(t); if (d < 0.1) fl += 0.12 * (1 - d / 0.1); }
+  for (const id of ["drop", "height", "hit"]) { const d = t - T0(id); if (d >= 0 && d < 0.35) fl += 0.6 * (1 - d / 0.35); } P.uFlash.value = fl; P.uFade.value = sh.end ? sm((t - (TOTAL - 3.6)) / 1.6) : 0;
+  for (let j = 0; j < 3; j++) { const w = act[j], c = w && CLIPS[w.clip]; P.uWa.value[j] = 0; if (!c || !c.ready) continue; const v = c.v, want = winTime(w, t);
+    if (playing()) { if (v.paused) v.play().catch(() => {}); if (Math.abs(v.currentTime - want) > 0.3) v.currentTime = want; } else if (Math.abs(v.currentTime - want) > 0.04) { if (!v.paused) v.pause(); v.currentTime = want; }
+    const W = VRX.wc[j]; W.g.drawImage(v, 0, 0, 1024, 576); W.tx.needsUpdate = true;
+    const lon = w.pos[0] * Math.PI / 180, lat = w.pos[1] * Math.PI / 180, C = V(Math.cos(lat) * Math.sin(lon), Math.sin(lat), -Math.cos(lat) * Math.cos(lon)), Rt = C.clone().cross(V(0, 1, 0)).normalize();
+    P.uWc.value[j].copy(C); P.uWr.value[j].copy(Rt); P.uWu.value[j].copy(Rt.clone().cross(C)); P.uWa.value[j] = clamp((t - w.t0 + 0.2) / 0.35) * clamp((w.t1 + 1.6 - t) / 1.2); } }
 window.__frame = async (t, q = 0.92) => { running = true; if (hasSong) au.pause(); pPlay = false; manualT = t; const sh = shotAt(t), c = sh.clip && CLIPS[sh.clip];
+  if (VR) for (const w of winsAt(t)) { const cw = CLIPS[w.clip]; if (!cw || !cw.ready) continue; const v = cw.v, want = winTime(w, t); if (!v.paused) v.pause();
+    if (Math.abs(v.currentTime - want) > 0.001) await new Promise((res) => { v.addEventListener("seeked", res, { once: true }); v.currentTime = want; setTimeout(res, 3000); }); }
   if (c && c.ready) { const v = c.v, want = (t - sh.t0) + (sh.clipOff ?? 1.0); if (!v.paused) v.pause(); if (Math.abs(v.currentTime - want) > 0.001) { await new Promise((res) => { v.addEventListener("seeked", res, { once: true }); v.currentTime = want; setTimeout(res, 3000); }); } }
   renderFrame(t); cctx.drawImage($("c"), 0, 0); if (!VR) cctx.drawImage($("ov"), 0, 0); return comp.toDataURL("image/jpeg", q); };
 window.__seek = (t) => { if (!running) { running = true; $("start").style.display = "none"; tick(); } if (hasSong) au.pause(); pPlay = false; seekTo(t); };
