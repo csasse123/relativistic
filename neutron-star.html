@@ -19,6 +19,7 @@
   canvas#c { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
   canvas#c.dragging { cursor: grabbing; }
   .top { position: fixed; top: 0; left: 0; z-index: 5; padding: 16px 20px; pointer-events: none; max-width: 640px; }
+  .wip { display: inline-block; vertical-align: middle; margin-left: 8px; font: 700 0.55rem "JetBrains Mono", monospace; letter-spacing: 0.12em; text-transform: uppercase; color: #fbbf24; border: 1px solid rgba(251,191,36,0.5); background: rgba(251,191,36,0.1); padding: 3px 8px; border-radius: 999px; }
   .badge {
     display: inline-block; font: 700 0.6rem/1 "JetBrains Mono", monospace; letter-spacing: 0.14em; text-transform: uppercase;
     color: #04101f; background: linear-gradient(90deg, #6fd6ff, #b08cff); border-radius: 999px; padding: 4px 10px; margin-bottom: 8px;
@@ -152,7 +153,7 @@
 <canvas id="c"></canvas>
 <div class="top">
   <div class="badge">Special + general relativity · per-pixel geodesic ray tracing</div>
-  <h1>Spinning Neutron Star</h1>
+  <h1>Spinning Neutron Star <span class="wip" title="This page is still being developed: expect changes and rough edges">work in progress</span></h1>
   <div id="validity" style="display:none;margin-top:8px;max-width:470px;font-size:0.74rem;line-height:1.4;padding:6px 10px;border-radius:10px;border:1px solid rgba(251,113,133,0.45);background:rgba(60,10,25,0.55);color:#fecdd3"></div>
   <div class="caption" id="caption"><div class="step" id="capStep"></div><div class="t" id="capT"></div><div class="d" id="capD"></div></div>
 </div>
@@ -316,7 +317,7 @@
 <div id="spot" hidden></div>
 <div id="tbub" hidden></div>
 <div class="hint">drag: orbit · wheel / pinch: distance · 0–8: ladder · G: guided · V: view · Space: pause · H: panel · ?: help tips · I: intro · T: tour</div>
-<div class="build" id="build">v1.30.0</div>
+<div class="build" id="build">v1.31.1</div>
 
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
@@ -654,7 +655,7 @@ void main() {
 
 <script>
 "use strict";
-const BUILD = "v1.30.0";
+const BUILD = "v1.31.1";
 document.getElementById("build").textContent = BUILD;
 const $ = (id) => document.getElementById(id);
 
@@ -2184,7 +2185,7 @@ const TIPS = {
       [...$("ibDots").children].forEach((d, i) => d.addEventListener("click", () => jump(i)));
     }
     if (EXPORT && script) {
-      I.exp = true; document.body.classList.add("intro"); $("introBar").style.display = "none"; $("introSkip").style.display = "none"; $("introUI").hidden = false; $("panelTab").style.display = "none";
+      I.exp = true; document.body.classList.add("intro"); $("introBar").style.display = "none"; $("introSkip").style.display = "none"; document.querySelector(".wip").style.display = "none"; $("introUI").hidden = false; $("panelTab").style.display = "none";
       if (panelOpen()) togglePanel();
       Object.assign(S, { paused: true, autoRes: false, res: 1 }); $("build").style.display = "none"; hideWelcome();
       window.__introInfo = () => ({ total, starts, durs, lead: voice && voice.lead ? voice.lead : 0.3, voice: !!voice });
