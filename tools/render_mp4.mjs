@@ -6,11 +6,11 @@ import { chromium } from "playwright"; import http from "http"; import fs from "
 const root = path.resolve(new URL("..", import.meta.url).pathname), fps = +(process.argv[2] || 30), PAGE = process.env.PAGE || "satellites.html", SONG = { "satellites.html": "thirty-two-clocks", "tunnel.html": "five-atoms-thick" }[PAGE] || "thirty-two-clocks", VR = !!process.env.VR, VRW = +(process.env.VRW || 5760), out = process.argv[3] || (VR ? `exports/${SONG}_360_${VRW}.mp4` : `exports/${SONG}_1080p.mp4`);
 fs.mkdirSync(path.dirname(path.join(root, out)), { recursive: true });
 const types = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".json": "application/json", ".jpg": "image/jpeg", ".png": "image/png", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".glb": "model/gltf-binary", ".wasm": "application/wasm" };
-const server = http.createServer((q, r) => { const p = path.join(root, decodeURIComponent(q.url.split("?")[0])); fs.readFile(p, (e, b) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { "content-type": types[path.extname(p)] || "application/octet-stream" }); r.end(b); }); }).listen(8765);
+const server = http.createServer((q, r) => { const p = path.join(root, decodeURIComponent(q.url.split("?")[0])); fs.readFile(p, (e, b) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { "content-type": types[path.extname(p)] || "application/octet-stream" }); r.end(b); }); }).listen(+(process.env.PORT || 0)); await new Promise((r) => server.listening ? r() : server.once("listening", r)); const PORT = server.address().port; // a free port (8765 may be taken)
 const browser = await chromium.launch({ channel: "chrome", headless: false, args: ["--autoplay-policy=no-user-gesture-required", "--window-size=1920,1080"] });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 page.on("pageerror", (e) => console.error("page error:", e.message));
-await page.goto(`http://localhost:8765/${PAGE}?${VR ? `vr&vrw=${VRW}` : "q=1080"}`); await page.waitForFunction(() => window.__ready, null, { timeout: 180000 });
+await page.goto(`http://localhost:${PORT}/${PAGE}?${VR ? `vr&vrw=${VRW}` : "q=1080"}`); await page.waitForFunction(() => window.__ready, null, { timeout: 180000 });
 await page.waitForTimeout(3000); // let clips buffer
 const dur = await page.evaluate(() => { const a = document.getElementById("au"); return isFinite(a.duration) ? a.duration : 132.07; });
 const N = Math.ceil(dur * fps); console.log(`rendering ${N} frames at ${fps} fps (${dur.toFixed(2)} s) → ${out}`);
