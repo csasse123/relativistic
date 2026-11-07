@@ -1,0 +1,30 @@
+{
+  "song": "3D Night Sky (intro)",
+  "note": "Rule: every vision shows something the app really does. Feature named in 'app'. Checked against origin-vr-src (features.js, world.js, party.js) on 7 Nov 2026.",
+  "styles": {
+    "night": "photorealistic cinematic film still, shot on ARRI Alexa 65, anamorphic 40mm, real night sky with thousands of sharp stars and the Milky Way, deep blue-black, cold starlight with a little warm accent light, high dynamic range, astrophotography realism, subtle film grain, no logos, no brand names, no readable text",
+    "ancient": "photorealistic cinematic film still, shot on ARRI Alexa 65, anamorphic 40mm, ancient world at night under a dense clear star field, moonless, deep blue-black sky, warm firelight accents, historically accurate, subtle film grain, no logos, no readable text"
+  },
+  "clips": [
+    { "id": "ns_headset", "t": "0:00–0:08 (Lights off / Look up)", "app": "headset mode (Quest)",
+      "image": "A person in a dark living room wearing a plain white VR headset, head tilted up, the walls and ceiling of the room dissolving into a deep starry sky with the Milky Way",
+      "motion": "very slow push-in, the room keeps dissolving outward into stars, the person slowly turns their head to look around, calm and awed",
+      "style": "night" },
+    { "id": "ns_maunakea", "t": "0:08–0:15 (A mountain … Now leave)", "app": "observatory sites: Maunakea world (Keck I and II domes, Subaru cylinder, Gemini North)",
+      "image": "The summit of Maunakea at last light, red cinder slopes, two large white Keck observatory domes and a silver cylindrical enclosure, a sea of clouds far below, first stars appearing in a deep blue sky",
+      "motion": "slow aerial drift past the domes as the sky darkens and stars brighten, the dome slit slowly opening, clouds flowing below",
+      "style": "night" },
+    { "id": "ns_giza", "t": "0:27–0:31 (Polaris)", "app": "Skies of history: The Great Pyramid, 2560 BC, Thuban the builders' pole star",
+      "image": "The Great Pyramid of Giza newly finished with smooth white casing stones, under a moonless star-filled sky, the stars of the northern sky circling above its apex, a few workers' torches at its base",
+      "motion": "very slow tilt up the pyramid face to the sky, the stars slowly wheel around a point above the apex, torches flicker",
+      "style": "ancient" },
+    { "id": "ns_party", "t": "0:38–0:46 (Chorus)", "app": "the star party (the default place): Dobsonians, an imaging rig with laptop, a fork-mounted SCT, big binoculars, canopy, tents, cars with one tailgate open, every light red, open savanna ground",
+      "image": "A star party on open savanna grassland at night, several large Dobsonian telescopes, a refractor and a fork-mounted telescope, big binoculars on a tripod, a canopy over a table, tents and parked cars with one tailgate open, people with red head-torches, every light deep red, the bright Milky Way arching overhead",
+      "motion": "slow dolly between the telescopes, red head-torches bob, someone leans to an eyepiece, the Milky Way stays still overhead",
+      "style": "night" },
+    { "id": "ns_proxima", "t": "0:46–0:54 (Chorus)", "app": "Exoplanet skies: stand at Proxima Centauri, the stars rearrange in 3D, our Sun is one marked star in Cassiopeia",
+      "image": "A barren rocky alien landscape under a dim red dwarf sun low on the horizon, the rest of the sky dense with sharp stars, one small yellow-white star slightly brighter than the rest high in the sky, a faint thin ring of light circling it",
+      "motion": "slow push toward the horizon, the red sun glints off rocks, the faint ring around the small yellow star gently pulses",
+      "style": "night" }
+  ]
+}
