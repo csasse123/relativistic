@@ -105,5 +105,24 @@ Before Runway, I check each vision against the running app (the site, the landsc
 1. Christian generates takes in Suno from this sheet and picks the best one.
 2. Cut it on the kick grid (`python3 tools/beatmap.py`) and set the cue times.
 3. Runway: the spec is `docs/ai_clips_nightsky.json`, with each vision's app feature written in its `app` field and checked against `origin-vr-src` (features.js, world.js, party.js). Stills first, then animate the chosen take (`tools/runway_clips.mjs --spec docs/ai_clips_nightsky.json`).
-4. Add a film mode to the app (a scripted camera and `__frame(t)`), coordinated with the 3D Night Sky session, which owns that repo.
+4. The app side belongs to the 3D Night Sky session, which owns `~/Star Explorer VR`. It builds the cue runner and the flat path once the cue sheet arrives (see below).
 5. Render, check the frames by eye, and release.
+
+## App integration (agreed with the 3D Night Sky session, 7 Nov; live build 166)
+
+| Beat | App call (origin-vr-src/app.js unless noted) |
+|---|---|
+| Dark start, then the live sky over the Maunakea photo | `setSite('maunakea')`, `worldPrefSet('maunakea',false)`, `buildPlace('obs_maunakea')`; set the time with `simT`; fade with `fadeBall` |
+| Standing in the Maunakea world | `worldPrefSet('maunakea',true)`, `buildPlace('w_maunakea')`; position with `WORLD.p.e/n`; face with `worldFace(az)`. At night Keck, Subaru and Gemini fire their lasers and turn their domes by themselves (summit.js). |
+| The climb | drive `lift.s` per frame, with h = 2(e^(s/1.25) − 1). The height HUD and the 3D stars (~80 km) follow automatically. |
+| Polaris dive and card | `flyToStar(i)`. Its duration comes from the distance, so it needs a duration hook. |
+| Toward M31 | `flyToDso(DSOS.find(d=>d.id==='M31'))` |
+| Milky Way stack and star trails | `trStart()` (features.js); in flat mode, sweep the view with `setLook()` |
+| Visions' features | Skies of history `hisGo(ev)` (Giza 2560 BC); Exoplanet skies `exsGo(host)` (Proxima); star party `buildPlace` |
+| Your turn | `goHome()`, then `showMenu()` or `summonPanel()` |
+
+- **Intro hook:** it runs before or instead of `welcomeOnce()` (features.js, localStorage `originWelcomed`). In flat mode it starts from the start button. On the Quest, the song starts from the ENTER VR gesture (`auInit()` → `AU.ctx`), and the timeline runs on `AU.ctx.currentTime`.
+- **Skip:** B (`homeAction`) or a stick push jumps to "Your turn." There's also a "Skip intro" button on the panel.
+- **Headset:** the intro never drives the head. It turns the seat (`seatTurn`) or the scene. In flat mode it drives yaw and pitch.
+- **Film (already built):** `?film=1` exposes `window.__film`: `init(W, face)` for the 360 equirect, `step(dt)` at a fixed dt from t = 0, `frame(q)` returns a JPEG, plus `card()` and `api`. It's driven over CDP the same way as render_mp4.mjs.
+- **Still to build (3D Night Sky session, after the cue sheet):** the cue runner with fixed durations; a duration parameter for flyToStar, flyToDso and the climb; and `F.flat(w,h)` for 1080p.
